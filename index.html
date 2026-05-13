@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Wars</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="board-column" aria-label="Chess Wars board">
+        <canvas id="game-canvas" width="960" height="960" aria-label="Game canvas"></canvas>
+        <div id="showoff-touch" class="touch-controls is-hidden" aria-label="Showdown touch controls">
+          <div class="touch-bank" data-side="p1">
+            <span>P1</span>
+            <div class="touch-grid">
+              <button data-touch="p1-left" aria-label="P1 left">A</button>
+              <button data-touch="p1-right" aria-label="P1 right">D</button>
+              <button data-touch="p1-jump" aria-label="P1 jump">Jump</button>
+              <button data-touch="p1-ultimate" aria-label="P1 ultimate">Ult</button>
+            </div>
+            <button data-touch="p1-attack">Attack</button>
+            <button data-touch="p1-block">Block</button>
+          </div>
+          <div class="touch-bank" data-side="p2">
+            <span>P2</span>
+            <div class="touch-grid">
+              <button data-touch="p2-left" aria-label="P2 left">Left</button>
+              <button data-touch="p2-right" aria-label="P2 right">Right</button>
+              <button data-touch="p2-jump" aria-label="P2 jump">Jump</button>
+              <button data-touch="p2-ultimate" aria-label="P2 ultimate">Ult</button>
+            </div>
+            <button data-touch="p2-attack">Attack</button>
+            <button data-touch="p2-block">Block</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="hud" aria-label="Game controls and status">
+        <div class="brand-block">
+          <p class="eyebrow">Board tactics with duels</p>
+          <h1>Chess Wars</h1>
+        </div>
+
+        <div class="mode-card">
+          <div class="segmented" role="group" aria-label="Game mode">
+            <button id="mode-ai" class="is-active" type="button">Vs AI</button>
+            <button id="mode-local" type="button">Local 2P</button>
+          </div>
+          <button id="new-game" class="primary-action" type="button">New Game</button>
+        </div>
+
+        <div class="online-card">
+          <span class="label">Online Room</span>
+          <strong id="online-status">Offline</strong>
+          <p id="online-detail">Create a room, then share the same link with player 2.</p>
+          <div class="online-actions">
+            <button id="create-room" type="button">Create Room</button>
+            <div class="join-row">
+              <input id="room-code" type="text" inputmode="latin" autocomplete="off" placeholder="Room code" aria-label="Room code" />
+              <button id="join-room" type="button">Join</button>
+            </div>
+          </div>
+          <p id="online-link" class="online-link"></p>
+        </div>
+
+        <div class="status-card">
+          <span class="label">Turn</span>
+          <strong id="turn-label">White</strong>
+          <p id="status-message">Select a white piece to begin.</p>
+        </div>
+
+        <div class="piece-card">
+          <span class="label">Selection</span>
+          <strong id="selection-label">None</strong>
+          <p id="selection-detail">Click a piece, then choose a highlighted square.</p>
+        </div>
+
+        <div id="powerup-card" class="powerup-card">
+          <span class="label">Powerup</span>
+          <strong id="powerup-label">Next spawn in turns</strong>
+          <p id="powerup-detail">Move onto a spawned perk to collect it.</p>
+          <div id="powerup-options" class="choice-list is-hidden"></div>
+        </div>
+
+        <div id="victory-card" class="victory-card is-hidden">
+          <span class="label">Victory</span>
+          <strong id="victory-label">White wins</strong>
+          <p id="victory-detail">The king has fallen.</p>
+        </div>
+
+        <div id="showoff-panel" class="showoff-panel is-hidden">
+          <div>
+            <span class="label">Showdown</span>
+            <strong id="showoff-title">Duel</strong>
+          </div>
+          <div class="duel-bars">
+            <div>
+              <span id="duel-left-name">White</span>
+              <small id="duel-left-weapon">Weapon</small>
+              <meter id="duel-left-hp" min="0" max="100" value="100"></meter>
+              <small id="duel-left-mana-text" class="mana-text">Mana 0/100</small>
+              <meter id="duel-left-mana" class="mana-meter" min="0" max="100" value="0"></meter>
+            </div>
+            <div>
+              <span id="duel-right-name">Black</span>
+              <small id="duel-right-weapon">Weapon</small>
+              <meter id="duel-right-hp" min="0" max="100" value="100"></meter>
+              <small id="duel-right-mana-text" class="mana-text">Mana 0/100</small>
+              <meter id="duel-right-mana" class="mana-meter" min="0" max="100" value="0"></meter>
+            </div>
+          </div>
+        </div>
+
+        <div class="log-card">
+          <span class="label">Battle Log</span>
+          <ol id="battle-log"></ol>
+        </div>
+
+        <details class="rules-card">
+          <summary>Controls</summary>
+          <p>Board: click a piece, then a highlighted square.</p>
+          <p>Showdown movement: left, right, and Space jump.</p>
+          <p>Local ultimates: C for player 1 and &lt; for player 2.</p>
+          <p>Online and Vs AI ultimate: E. Online Showdown: left click attacks, right click blocks.</p>
+        </details>
+      </aside>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

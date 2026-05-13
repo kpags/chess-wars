@@ -1,0 +1,4 @@
+.docx_extract/
+.server.log
+.server.err
+node_modules/
