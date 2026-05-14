@@ -431,6 +431,20 @@ body.single-touch-controls .touch-bank[data-side="p2"] {
   display: none;
 }
 
+.touch-controls.hide-p2-touch-controls {
+  grid-template-columns: minmax(280px, 540px);
+  justify-content: center;
+}
+
+.touch-controls.hide-p2-touch-controls .touch-bank[data-side="p2"] {
+  display: none;
+}
+
+.touch-controls.hide-p2-touch-controls .touch-bank[data-side="p1"] {
+  width: 100%;
+  justify-self: center;
+}
+
 body.single-touch-controls .touch-bank {
   display: block;
   padding: 0;

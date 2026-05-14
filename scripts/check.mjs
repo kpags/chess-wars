@@ -19,6 +19,8 @@ assert.equal(pieces[0].smashShowdowns, 0, "pieces should start without Smash arm
 assert.equal(PIECE_STATS.pawn.hp, 100, "pawn hp follows v1.0.1 patch notes");
 assert.equal(PIECE_STATS.rook.hp, 115, "rook hp follows v1.0.1 patch notes");
 assert.equal(PIECE_STATS.horse.hp, 120, "horse hp follows v1.0.1 patch notes");
+assert.equal(PIECE_STATS.horse.name, "Knight", "horse piece should be named Knight in the UI");
+assert.equal(PIECE_STATS.horse.short, "N", "horse piece should use the Knight board marker");
 assert.equal(PIECE_STATS.bishop.hp, 130, "bishop hp follows v1.0.1 patch notes");
 assert.equal(PIECE_STATS.queen.hp, 150, "queen hp follows v1.0.1 patch notes");
 assert.equal(PIECE_STATS.king.hp, 200, "king hp follows v1.0.1 patch notes");
@@ -46,7 +48,7 @@ const whiteHorse = getPieceAt(pieces, 1, 7);
 assert.deepEqual(
   getLegalMoves(pieces, whiteHorse).map((move) => `${move.x},${move.y}`).sort(),
   ["0,5", "2,5"],
-  "horse should jump like a chess knight"
+  "knight should keep the chess knight jump"
 );
 
 assert.ok(getAllLegalMoves(pieces, TEAM.WHITE).length > 0, "white should have legal opening moves");
@@ -109,8 +111,17 @@ assert.match(main, /Fortify/, "rook ultimate should be Fortify");
 assert.match(main, /Stampede/, "horse ultimate should be Stampede");
 assert.match(main, /STAMPEDE_DURATION = 3/, "horse Stampede should last 3 seconds");
 assert.match(main, /STAMPEDE_SPEED_MULTIPLIER = 2/, "horse Stampede should move at 200 percent speed");
-assert.match(main, /STAMPEDE_DAMAGE = 8/, "horse Stampede should deal 8 damage on each pass");
+assert.match(main, /STAMPEDE_DAMAGE = 12/, "horse Stampede should deal 12 damage on each pass");
 assert.match(main, /updateStampede/, "horse Stampede should move back and forth during Showdown");
+assert.match(main, /STAMPEDE_DASH_INTERVAL = 0\.07/, "horse Stampede should use frequent dash frames");
+assert.match(main, /STAMPEDE_DASH_DISTANCE = 96/, "horse Stampede should use shorter smooth dash bursts");
+assert.match(main, /performStampedeDash/, "horse Stampede should teleport between dash positions");
+assert.match(main, /drawStampedeDashEffect/, "horse Stampede should draw a dash smear effect");
+assert.match(main, /function isStampeding\(fighter\)/, "horse Stampede should share one active-skill visibility check");
+assert.match(main, /if \(isStampeding\(fighter\)\) \{\s+drawStampedeDashEffect\(fighter, viewX, jumpHeight\);\s+ctx\.restore\(\);\s+return;/s, "horse piece should be hidden while Stampede is active");
+assert.match(main, /if \(!isStampeding\(fighter\)\) \{\s+return;\s+\}/s, "horse Stampede dash effects should not linger after the skill ends");
+assert.match(main, /stampedeTrailFrom/, "horse Stampede should remember the dash trail start");
+assert.match(main, /stampedeTrailTo/, "horse Stampede should remember the dash trail end");
 assert.match(main, /Blessing/, "bishop ultimate should be Blessing");
 assert.match(main, /piece\.maxHp \* 0\.3/, "bishop Blessing should restore 30 percent total HP");
 assert.match(main, /Barrage/, "queen ultimate should be Barrage");
@@ -118,6 +129,23 @@ assert.match(main, /barrageShots = 5/, "queen Barrage should launch 5 attacks");
 assert.match(main, /Hard Swing/, "king ultimate should be Hard Swing");
 assert.match(main, /grantMana/, "basic attacks should grant ultimate mana");
 assert.match(main, /tryUltimate/, "fighters should be able to activate ultimate skills");
+assert.match(main, /PASSIVE_TRIGGER_CHANCE = 0\.25/, "class passive skills should have a 25 percent activation chance");
+assert.match(main, /PASSIVE_PLUS_DAMAGE = 3/, "pawn passive should add 3 attack damage");
+assert.match(main, /PASSIVE_PLUS_DAMAGE_SECONDS = 3/, "pawn passive should last 3 seconds");
+assert.match(main, /PASSIVE_STUN_SECONDS = 1\.5/, "rook passive should stun for 1.5 seconds");
+assert.match(main, /PASSIVE_SPEED_MULTIPLIER = 1\.5/, "knight passive should add a 50 percent speed boost");
+assert.match(main, /PASSIVE_SPEED_SECONDS = 3/, "knight passive should last 3 seconds");
+assert.match(main, /PASSIVE_LIFE_STEAL = 15/, "bishop passive should steal 15 HP");
+assert.match(main, /PASSIVE_INTIMIDATE_SECONDS = 2/, "queen passive should last 2 seconds");
+assert.match(main, /PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER = 2/, "queen passive should halve opponent attack speed");
+assert.match(main, /PASSIVE_DOMINANCE_SECONDS = 5/, "king passive should last 5 seconds");
+assert.match(main, /PASSIVE_DOMINANCE_DAMAGE = 10/, "king passive should add 10 attack damage");
+assert.match(main, /PASSIVE_DOMINANCE_REDUCTION = 5/, "king passive should reduce incoming damage by 5");
+assert.match(main, /maybeActivatePassiveSkill/, "Showdown attacks should roll for class passives");
+assert.match(main, /showPassiveActivation/, "passive activations should show the source piece and skill");
+assert.match(main, /drawPassiveIndicator/, "active passives should draw an in-Showdown indicator");
+assert.match(main, /drawStunEffect/, "stunned pieces should show a stun effect above the head");
+assert.match(main, /opponent\.stunTimer = Math\.max\(opponent\.stunTimer \?\? 0, options\.stun \?\? 0\)/, "stun effects should disappear when the stun timer ends");
 assert.match(main, /smashShowdowns = 1/, "Smash should arm only the receiving piece");
 assert.match(main, /SMASH_DAMAGE_BONUS/, "Smash should affect Showdown damage for one duel");
 assert.match(main, /consumeSmashAfterShowdown/, "Smash should expire after one Showdown");
@@ -129,8 +157,10 @@ assert.match(main, /winner\.hp = winner\.maxHp/, "remaining HP should not be ret
 assert.match(main, /HP activates at full value during Showdown/, "board state should not present retained HP as active");
 assert.doesNotMatch(main, /drawHealthBar\(-board\.cell/, "board pieces should not draw persistent HP bars");
 assert.match(main, /drawBoardPlinth/, "board should include a 3D plinth");
-assert.match(main, /SHOWDOWN_SPRITE_WIDTH = 240/, "Showdown sprites should be wide enough for weapon arcs");
-assert.match(main, /SHOWDOWN_SPRITE_HEIGHT = 272/, "Showdown sprites should have extra height to avoid bishop cropping");
+assert.match(main, /SHOWDOWN_SPRITE_WIDTH = 460/, "Showdown sprites should be wide enough for weapon arcs");
+assert.match(main, /SHOWDOWN_SPRITE_HEIGHT = 320/, "Showdown sprites should have extra height to avoid weapon cropping");
+assert.match(main, /SHOWDOWN_SPRITE_BODY_Y = 246/, "Showdown sprite art should be shifted down to keep weapons visible");
+assert.match(main, /SHOWDOWN_SPRITE_FLOOR_Y = 284/, "Showdown sprite drawing should keep the fighter feet anchored");
 assert.match(main, /Bold stickman legs/, "Showdown fighters should use bold stickman rendering");
 assert.match(main, /moveBlend/, "Showdown fighters should blend into movement frames smoothly");
 assert.match(main, /drawFighterAfterimages/, "Showdown fighters should have afterimages for fast motion");
@@ -157,6 +187,9 @@ assert.match(main, /SMALL_SCREEN_QUERY = "\(max-width: 720px\), \(pointer: coars
 assert.match(main, /els\.modeLocal\.disabled = localDisabled/, "local play should be disabled on smaller screens");
 assert.match(main, /mode === "local" && isSmallScreenMode\(\)/, "local play mode should be blocked when the screen is small");
 assert.match(main, /single-touch-controls/, "small screens should use the single-set touch-control layout");
+assert.match(main, /shouldHideP2ShowdownControls/, "AI and online Showdowns should hide player 2 controls");
+assert.match(main, /state\.mode === "ai" \|\| state\.mode === "online" \|\| isSmallScreenMode\(\)/, "player 2 controls should hide in AI, online, and small-screen Showdowns");
+assert.match(main, /hide-p2-touch-controls/, "touch controls should have a class for hiding player 2 controls");
 assert.match(main, /setPointerCapture\?\.\(event\.pointerId\)/, "held touch controls should capture the pointer");
 assert.match(main, /pointerleave[\s\S]*event\.pointerType === "mouse" && event\.buttons === 0/, "held touch controls should keep moving when a pressed pointer drifts off the button");
 assert.match(main, /setTouchPointer\(event\.pointerId, button\.dataset\.touch\)/, "held touch controls should keep movement, attack, and block active while pressed");
@@ -169,6 +202,7 @@ assert.match(html, /data-touch="p2-left"[\s\S]*icon-left[\s\S]*data-touch="p2-ri
 assert.match(html, /sr-only/, "touch icon buttons should keep accessible text for screen readers");
 assert.match(styles, /@media \(max-width: 1020px\)[\s\S]*\.touch-grid\s*\{[\s\S]*grid-template-columns: repeat\(4, minmax\(48px, 1fr\)\)/, "smaller screens should place four touch icons on the first row and two on the second");
 assert.match(styles, /body\.single-touch-controls \.touch-bank\[data-side="p2"\]\s*\{\s+display: none;/, "small screens should show only one touch-control set");
+assert.match(styles, /\.touch-controls\.hide-p2-touch-controls \.touch-bank\[data-side="p2"\]\s*\{\s+display: none;/, "AI and online Showdowns should hide the P2 touch-control bank");
 assert.match(styles, /grid-template-areas:\s*"left right \. \. attack block"\s*"\. \. ultimate jump \. \."/s, "single touch controls should match the reference image layout");
 assert.match(styles, /column-gap: 14px/, "single touch controls should keep a small gap between each button pair");
 assert.match(styles, /-webkit-tap-highlight-color: transparent/, "held touch controls should not show mobile tap highlights");

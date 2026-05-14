@@ -25,13 +25,13 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 ## Implemented Rules
 
 - Local two-player mode and player-versus-AI mode.
-- Pawns, rooks, horses, bishops, queen, and king use chess-style movement.
+- Pawns, rooks, knights, bishops, queen, and king use chess-style movement.
 - Captures start a best-of-3 Showdown duel instead of instantly removing the defender.
 - Each Showdown starts both pieces at full HP, and each round lasts 60 seconds. If time expires, the piece with higher health wins the round.
-- Piece HP starts from the v1.0.1 values: pawn 100, rook 115, horse 120, bishop 130, queen 150, king 200.
+- Piece HP starts from the v1.0.1 values: pawn 100, rook 115, knight 120, bishop 130, queen 150, king 200.
 - Showdown attacks deal 5-10 base damage.
 - Piece weapons are visible in Showdown: fists, spike club, javelin, cross, scythe, and sword & shield.
-- Damage bonuses are applied by piece: pawn fixed, rook +4%, horse +5%, bishop +7%, queen +12%, king +15%.
+- Damage bonuses are applied by piece: pawn fixed, rook +4%, knight +5%, bishop +7%, queen +12%, king +15%.
 - Critical hits have a 4 percent chance and deal double damage.
 - Blocking reduces incoming damage.
 - The game ends when a king is defeated.
@@ -180,3 +180,24 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 
 - Held movement controls now continue moving while a separate attack or block button is tapped.
 - Mobile Showdown touch input now tracks each active pointer independently so one released button does not cancel another held button.
+
+## Patch Notes v1.1.7
+
+- Horse Stampede now moves in teleport-like dashes for 3 seconds, with horizontal dash-smear effects.
+- Stampede still deals 8 damage each time the horse dashes past the opponent.
+- P2 Showdown controls are hidden when playing Vs AI or Online.
+
+## Patch Notes v1.1.8
+
+- Horse Stampede now uses shorter, more frequent dash frames for smoother motion.
+- The horse piece is hidden while Stampede is active and reappears after the skill ends.
+- Stampede dash-smear effects now stop immediately when the skill ends.
+- Stampede damage increased from 8 to 12 per pass through the opponent.
+
+## Patch Notes v1.1.9
+
+- Horses are now named Knights in the player-facing UI and board marker.
+- Stunned Showdown pieces now show a stun effect above their head while the stun is active.
+- Showdown sprites now have more canvas room so weapon arcs are not cropped.
+- Added 25% class passive activations during Showdown attacks: Pawn Plus Damage, Rook Stun, Knight Speed, Bishop Life Steal, Queen Intimidate, and King Dominance.
+- Passive activations now show an in-combat indicator and log which piece activated the skill.

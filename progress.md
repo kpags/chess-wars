@@ -69,3 +69,27 @@ Original prompt: Based on the attached GIF, improve the showdown animations like
 - Extracted Patch Notes v1.1.6 from `Chess_wars.docx` using a temporary workspace copy.
 - Reworked Showdown touch input to track active pointers individually.
 - Fixed multi-touch behavior so holding movement continues while attack or block is pressed and released with another pointer.
+
+## 2026-05-14 v1.1.7
+
+- Extracted Patch Notes v1.1.7 from `Chess_wars.docx` using a temporary workspace copy and inspected the embedded dash-effect reference image.
+- Reworked Horse Stampede from smooth high-speed movement into repeated teleport-like dashes for 3 seconds.
+- Added a horizontal dash-smear effect with speed lines and small color accents while Stampede is active.
+- Hid the P2 Showdown touch controls while playing Vs AI or Online, while preserving local desktop P2 controls.
+
+## 2026-05-14 v1.1.8
+
+- Extracted Patch Notes v1.1.8 from `Chess_wars.docx` using a temporary workspace copy.
+- Tuned Horse Stampede into shorter, more frequent dash bursts so the movement reads smoother.
+- Hid the horse piece during Stampede and brought it back after the skill ends.
+- Stopped Stampede dash-smear effects from lingering after the active skill window.
+- Increased Stampede damage from 8 to 12 per pass through the opponent.
+
+## 2026-05-14 v1.1.9
+
+- Extracted Patch Notes v1.1.9 from `Chess_wars.docx` using a temporary workspace copy.
+- Renamed the player-facing Horse piece to Knight while keeping the internal `horse` type for stable movement and saved state logic.
+- Added timed stun visuals above stunned Showdown pieces.
+- Expanded the Showdown sprite canvas and adjusted the sprite anchor so weapon arcs are no longer cropped.
+- Added 25% Showdown class passive activations for Pawns, Rooks, Knights, Bishops, Queen, and King.
+- Added passive activation indicators and combat log entries showing which piece activated each passive skill.

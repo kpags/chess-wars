@@ -116,15 +116,41 @@ const DASH_MULTIPLIER = 1.75;
 const ULTIMATE_ATTACK_RANGE = ARENA.attackRange;
 const STAMPEDE_DURATION = 3;
 const STAMPEDE_SPEED_MULTIPLIER = 2;
-const STAMPEDE_DAMAGE = 8;
+const STAMPEDE_DAMAGE = 12;
 const STAMPEDE_HIT_COOLDOWN = 0.18;
-const SHOWDOWN_SPRITE_WIDTH = 240;
-const SHOWDOWN_SPRITE_HEIGHT = 272;
+const STAMPEDE_DASH_INTERVAL = 0.07;
+const STAMPEDE_DASH_DISTANCE = 96;
+const STAMPEDE_TRAIL_SECONDS = 0.1;
+const PASSIVE_TRIGGER_CHANCE = 0.25;
+const PASSIVE_FLASH_SECONDS = 1.35;
+const PASSIVE_PLUS_DAMAGE = 3;
+const PASSIVE_PLUS_DAMAGE_SECONDS = 3;
+const PASSIVE_STUN_SECONDS = 1.5;
+const PASSIVE_SPEED_MULTIPLIER = 1.5;
+const PASSIVE_SPEED_SECONDS = 3;
+const PASSIVE_LIFE_STEAL = 15;
+const PASSIVE_INTIMIDATE_SECONDS = 2;
+const PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER = 2;
+const PASSIVE_DOMINANCE_SECONDS = 5;
+const PASSIVE_DOMINANCE_DAMAGE = 10;
+const PASSIVE_DOMINANCE_REDUCTION = 5;
+const PASSIVE_SKILLS = {
+  pawn: { name: "Plus Damage", color: "#ffd166" },
+  rook: { name: "Stun", color: "#9bd7ff" },
+  horse: { name: "Speed", color: "#68c284" },
+  bishop: { name: "Life Steal", color: "#d98cff" },
+  queen: { name: "Intimidate", color: "#ff8f70" },
+  king: { name: "Dominance", color: "#f7efe0" }
+};
+const SHOWDOWN_SPRITE_WIDTH = 460;
+const SHOWDOWN_SPRITE_HEIGHT = 320;
+const SHOWDOWN_SPRITE_BODY_Y = 246;
+const SHOWDOWN_SPRITE_FLOOR_Y = 284;
 const ULTIMATE_KEYS = ["e", "E", "KeyE"];
 const ULTIMATES = {
   pawn: { name: "Heavy Fist", detail: "25 damage" },
   rook: { name: "Fortify", detail: "50% damage reduction for 5s" },
-  horse: { name: "Stampede", detail: "200% speed for 3s, 8 damage on each pass" },
+  horse: { name: "Stampede", detail: "200% speed for 3s, 12 damage on each pass" },
   bishop: { name: "Blessing", detail: "Restore 30% HP" },
   queen: { name: "Barrage", detail: "5 hits at 10 damage" },
   king: { name: "Hard Swing", detail: "80 damage and 3s stun" }
@@ -622,9 +648,19 @@ function createFighter(piece, x, facing, role) {
     stunTimer: 0,
     fortifyTimer: 0,
     dashTimer: 0,
+    plusDamageTimer: 0,
+    speedTimer: 0,
+    intimidateTimer: 0,
+    dominanceTimer: 0,
+    passiveFlashTimer: 0,
+    passiveFlashLabel: "",
     stampedeTimer: 0,
     stampedeDirection: facing,
+    stampedeDashTimer: 0,
     stampedeHitCooldown: 0,
+    stampedeTrailTimer: 0,
+    stampedeTrailFrom: x,
+    stampedeTrailTo: x,
     barrageTimer: 0,
     barrageShots: 0,
     ultimateTimer: 0,
@@ -1559,9 +1595,19 @@ function createRemoteShowdownTargets(showoff) {
       stunTimer: fighter.stunTimer ?? 0,
       fortifyTimer: fighter.fortifyTimer ?? 0,
       dashTimer: fighter.dashTimer ?? 0,
+      plusDamageTimer: fighter.plusDamageTimer ?? 0,
+      speedTimer: fighter.speedTimer ?? 0,
+      intimidateTimer: fighter.intimidateTimer ?? 0,
+      dominanceTimer: fighter.dominanceTimer ?? 0,
+      passiveFlashTimer: fighter.passiveFlashTimer ?? 0,
+      passiveFlashLabel: fighter.passiveFlashLabel ?? "",
       stampedeTimer: fighter.stampedeTimer ?? 0,
       stampedeDirection: fighter.stampedeDirection ?? fighter.facing,
+      stampedeDashTimer: fighter.stampedeDashTimer ?? 0,
       stampedeHitCooldown: fighter.stampedeHitCooldown ?? 0,
+      stampedeTrailTimer: fighter.stampedeTrailTimer ?? 0,
+      stampedeTrailFrom: fighter.stampedeTrailFrom ?? fighter.x,
+      stampedeTrailTo: fighter.stampedeTrailTo ?? fighter.x,
       barrageTimer: fighter.barrageTimer ?? 0,
       barrageShots: fighter.barrageShots ?? 0,
       ultimateTimer: fighter.ultimateTimer ?? 0,
@@ -1597,9 +1643,19 @@ function preserveRemoteShowdownVisuals(previousFighters) {
     fighter.hitFlash = Math.max(previous.hitFlash ?? 0, fighter.hitFlash ?? 0);
     fighter.criticalFlash = Math.max(previous.criticalFlash ?? 0, fighter.criticalFlash ?? 0);
     fighter.ultimateTimer = Math.max(previous.ultimateTimer ?? 0, fighter.ultimateTimer ?? 0);
+    fighter.plusDamageTimer = Math.max(previous.plusDamageTimer ?? 0, fighter.plusDamageTimer ?? 0);
+    fighter.speedTimer = Math.max(previous.speedTimer ?? 0, fighter.speedTimer ?? 0);
+    fighter.intimidateTimer = Math.max(previous.intimidateTimer ?? 0, fighter.intimidateTimer ?? 0);
+    fighter.dominanceTimer = Math.max(previous.dominanceTimer ?? 0, fighter.dominanceTimer ?? 0);
+    fighter.passiveFlashTimer = Math.max(previous.passiveFlashTimer ?? 0, fighter.passiveFlashTimer ?? 0);
+    fighter.passiveFlashLabel = previous.passiveFlashLabel ?? fighter.passiveFlashLabel ?? "";
     fighter.stampedeTimer = Math.max(previous.stampedeTimer ?? 0, fighter.stampedeTimer ?? 0);
     fighter.stampedeDirection = previous.stampedeDirection ?? fighter.stampedeDirection ?? fighter.facing;
+    fighter.stampedeDashTimer = Math.max(previous.stampedeDashTimer ?? 0, fighter.stampedeDashTimer ?? 0);
     fighter.stampedeHitCooldown = Math.max(previous.stampedeHitCooldown ?? 0, fighter.stampedeHitCooldown ?? 0);
+    fighter.stampedeTrailTimer = Math.max(previous.stampedeTrailTimer ?? 0, fighter.stampedeTrailTimer ?? 0);
+    fighter.stampedeTrailFrom = previous.stampedeTrailFrom ?? fighter.stampedeTrailFrom ?? fighter.x;
+    fighter.stampedeTrailTo = previous.stampedeTrailTo ?? fighter.stampedeTrailTo ?? fighter.x;
     fighter.fallen = previous.fallen ?? fighter.fallen ?? false;
     fighter.fallTimer = Math.max(previous.fallTimer ?? 0, fighter.fallTimer ?? 0);
     fighter.victoryPose = previous.victoryPose ?? fighter.victoryPose ?? false;
@@ -1918,9 +1974,19 @@ function updateRemoteShowdownVisuals(dt) {
     fighter.stunTimer = Math.max(0, target.stunTimer ?? fighter.stunTimer ?? 0);
     fighter.fortifyTimer = Math.max(0, target.fortifyTimer ?? fighter.fortifyTimer ?? 0);
     fighter.dashTimer = Math.max(0, target.dashTimer ?? fighter.dashTimer ?? 0);
+    fighter.plusDamageTimer = Math.max(0, target.plusDamageTimer ?? fighter.plusDamageTimer ?? 0);
+    fighter.speedTimer = Math.max(0, target.speedTimer ?? fighter.speedTimer ?? 0);
+    fighter.intimidateTimer = Math.max(0, target.intimidateTimer ?? fighter.intimidateTimer ?? 0);
+    fighter.dominanceTimer = Math.max(0, target.dominanceTimer ?? fighter.dominanceTimer ?? 0);
+    fighter.passiveFlashTimer = Math.max(0, target.passiveFlashTimer ?? fighter.passiveFlashTimer ?? 0);
+    fighter.passiveFlashLabel = target.passiveFlashLabel ?? fighter.passiveFlashLabel ?? "";
     fighter.stampedeTimer = Math.max(0, target.stampedeTimer ?? fighter.stampedeTimer ?? 0);
     fighter.stampedeDirection = target.stampedeDirection ?? fighter.stampedeDirection ?? fighter.facing;
+    fighter.stampedeDashTimer = Math.max(0, target.stampedeDashTimer ?? fighter.stampedeDashTimer ?? 0);
     fighter.stampedeHitCooldown = Math.max(0, target.stampedeHitCooldown ?? fighter.stampedeHitCooldown ?? 0);
+    fighter.stampedeTrailTimer = Math.max(0, target.stampedeTrailTimer ?? fighter.stampedeTrailTimer ?? 0);
+    fighter.stampedeTrailFrom = target.stampedeTrailFrom ?? fighter.stampedeTrailFrom ?? fighter.x;
+    fighter.stampedeTrailTo = target.stampedeTrailTo ?? fighter.stampedeTrailTo ?? fighter.x;
     fighter.barrageTimer = Math.max(0, target.barrageTimer ?? fighter.barrageTimer ?? 0);
     fighter.barrageShots = target.barrageShots ?? fighter.barrageShots ?? 0;
     fighter.fallen = target.fallen ?? fighter.fallen ?? false;
@@ -1999,6 +2065,7 @@ function updateShowoff(dt) {
     fighter.fortifyTimer = Math.max(0, (fighter.fortifyTimer ?? 0) - dt);
     fighter.dashTimer = Math.max(0, (fighter.dashTimer ?? 0) - dt);
     fighter.ultimateTimer = Math.max(0, (fighter.ultimateTimer ?? 0) - dt);
+    updateFighterEffectTimers(fighter, dt);
     updateBarrage(fighter, dt);
   }
 
@@ -2015,6 +2082,17 @@ function updateShowoff(dt) {
     const winnerId = getTimedRoundWinner(attacker, defender);
     const loserId = winnerId === attacker.id ? defender.id : attacker.id;
     finishShowdownRound(winnerId, loserId, "timer");
+  }
+}
+
+function updateFighterEffectTimers(fighter, dt) {
+  fighter.plusDamageTimer = Math.max(0, (fighter.plusDamageTimer ?? 0) - dt);
+  fighter.speedTimer = Math.max(0, (fighter.speedTimer ?? 0) - dt);
+  fighter.intimidateTimer = Math.max(0, (fighter.intimidateTimer ?? 0) - dt);
+  fighter.dominanceTimer = Math.max(0, (fighter.dominanceTimer ?? 0) - dt);
+  fighter.passiveFlashTimer = Math.max(0, (fighter.passiveFlashTimer ?? 0) - dt);
+  if (fighter.passiveFlashTimer <= 0) {
+    fighter.passiveFlashLabel = "";
   }
 }
 
@@ -2061,6 +2139,7 @@ function markShowdownEndPoses(showoff, winnerId, loserId) {
     winnerFighter.stampedeTimer = 0;
     winnerFighter.barrageShots = 0;
     winnerFighter.ultimateTimer = 0;
+    clearFighterActiveEffects(winnerFighter);
   }
 
   if (loserFighter) {
@@ -2074,7 +2153,18 @@ function markShowdownEndPoses(showoff, winnerId, loserId) {
     loserFighter.stampedeTimer = 0;
     loserFighter.barrageShots = 0;
     loserFighter.ultimateTimer = 0;
+    clearFighterActiveEffects(loserFighter);
   }
+}
+
+function clearFighterActiveEffects(fighter) {
+  fighter.stunTimer = 0;
+  fighter.plusDamageTimer = 0;
+  fighter.speedTimer = 0;
+  fighter.intimidateTimer = 0;
+  fighter.dominanceTimer = 0;
+  fighter.passiveFlashTimer = 0;
+  fighter.passiveFlashLabel = "";
 }
 
 function updateShowdownEndAnimations(dt) {
@@ -2189,7 +2279,8 @@ function applyFighterInput(fighter, input, dt) {
   fighter.onGround ??= true;
   const stunned = (fighter.stunTimer ?? 0) > 0;
   const dashMultiplier = (fighter.dashTimer ?? 0) > 0 ? DASH_MULTIPLIER : 1;
-  const speed = (input.block ? ARENA.blockSpeed : ARENA.speed) * dashMultiplier;
+  const passiveSpeedMultiplier = (fighter.speedTimer ?? 0) > 0 ? PASSIVE_SPEED_MULTIPLIER : 1;
+  const speed = (input.block ? ARENA.blockSpeed : ARENA.speed) * dashMultiplier * passiveSpeedMultiplier;
   const wasBlocking = fighter.block;
   fighter.block = !stunned && input.block;
   if (fighter.block && !wasBlocking) {
@@ -2241,11 +2332,16 @@ function applyFighterInput(fighter, input, dt) {
   }
 }
 
+function getAttackCooldown(fighter) {
+  const intimidateMultiplier = (fighter.intimidateTimer ?? 0) > 0 ? PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER : 1;
+  return ARENA.attackCooldown * intimidateMultiplier;
+}
+
 function tryAttack(fighter) {
   const opponent = getOpponentFighter(fighter);
   const dx = Math.abs(opponent.x - fighter.x);
   const attackerPiece = getPieceById(state.pieces, fighter.id);
-  fighter.cooldown = ARENA.attackCooldown;
+  fighter.cooldown = getAttackCooldown(fighter);
   fighter.attackTimer = ARENA.attackDuration;
 
   if (dx > ARENA.attackRange) {
@@ -2259,8 +2355,10 @@ function tryAttack(fighter) {
   }
 
   const stat = PIECE_STATS[attackerPiece.type];
+  const passive = maybeActivatePassiveSkill(fighter, opponent, attackerPiece);
   const baseDamage = randomInt(5, 10);
   let damage = applyDamageBonus(baseDamage, stat.damageBonus + getStrengthDamageBonus(attackerPiece));
+  damage = applyPassiveAttackDamage(fighter, damage);
   const critical = Math.random() < 0.04;
   if (critical) {
     damage = roundDamage(damage * 2);
@@ -2271,12 +2369,92 @@ function tryAttack(fighter) {
     label: stat.weapon,
     critical,
     mana: true,
+    stun: passive === "stun" ? PASSIVE_STUN_SECONDS : 0,
     color: critical ? "#ffd166" : "#f7efe0"
   });
   addLog(`${describePiece(attackerPiece)} uses ${stat.weapon} for ${formatNumber(dealt)}${critical ? " critical" : ""}.`);
+  if (passive === "lifeSteal" && dealt > 0) {
+    applyLifeStealPassive(fighter, opponent);
+  }
   if (critical) {
     startCombatBanner("CRITICAL DAMAGE", `${describePiece(attackerPiece)} dealt ${formatNumber(dealt)} to ${describePiece(opponentPiece)}.`);
   }
+}
+
+function maybeActivatePassiveSkill(fighter, opponent, piece) {
+  const passive = PASSIVE_SKILLS[piece.type];
+  if (!passive || Math.random() >= PASSIVE_TRIGGER_CHANCE) {
+    return null;
+  }
+
+  showPassiveActivation(fighter, piece, passive);
+
+  if (piece.type === "pawn") {
+    fighter.plusDamageTimer = PASSIVE_PLUS_DAMAGE_SECONDS;
+    return "plusDamage";
+  }
+
+  if (piece.type === "rook") {
+    return "stun";
+  }
+
+  if (piece.type === "horse") {
+    fighter.speedTimer = PASSIVE_SPEED_SECONDS;
+    return "speed";
+  }
+
+  if (piece.type === "bishop") {
+    return "lifeSteal";
+  }
+
+  if (piece.type === "queen") {
+    opponent.intimidateTimer = PASSIVE_INTIMIDATE_SECONDS;
+    opponent.cooldown = Math.max(opponent.cooldown ?? 0, ARENA.attackCooldown);
+    return "intimidate";
+  }
+
+  if (piece.type === "king") {
+    fighter.dominanceTimer = PASSIVE_DOMINANCE_SECONDS;
+    return "dominance";
+  }
+
+  return null;
+}
+
+function showPassiveActivation(fighter, piece, passive) {
+  const label = `${PIECE_STATS[piece.type].name}: ${passive.name}`;
+  fighter.passiveFlashTimer = PASSIVE_FLASH_SECONDS;
+  fighter.passiveFlashLabel = label;
+  addFloatingText(label, fighter.x, fighter.y - 164, passive.color);
+  addLog(`${describePiece(piece)} activates ${passive.name}.`);
+}
+
+function applyPassiveAttackDamage(fighter, damage) {
+  let adjustedDamage = damage;
+  if ((fighter.plusDamageTimer ?? 0) > 0) {
+    adjustedDamage += PASSIVE_PLUS_DAMAGE;
+  }
+  if ((fighter.dominanceTimer ?? 0) > 0) {
+    adjustedDamage += PASSIVE_DOMINANCE_DAMAGE;
+  }
+  return roundDamage(adjustedDamage);
+}
+
+function applyLifeStealPassive(attacker, opponent) {
+  const attackerPiece = getPieceById(state.pieces, attacker.id);
+  const opponentPiece = getPieceById(state.pieces, opponent.id);
+  if (!attackerPiece || !opponentPiece || opponentPiece.hp <= 0) {
+    return 0;
+  }
+
+  const stolen = roundDamage(Math.min(PASSIVE_LIFE_STEAL, opponentPiece.hp));
+  opponentPiece.hp = roundDamage(Math.max(0, opponentPiece.hp - stolen));
+  attackerPiece.hp = roundDamage(Math.min(attackerPiece.maxHp, attackerPiece.hp + stolen));
+  opponent.hitFlash = Math.max(opponent.hitFlash ?? 0, 0.22);
+  addFloatingText(`-${formatNumber(stolen)} steal`, opponent.x, opponent.y - 146, PASSIVE_SKILLS.bishop.color);
+  addFloatingText(`+${formatNumber(stolen)}`, attacker.x, attacker.y - 132, PASSIVE_SKILLS.bishop.color);
+  addLog(`${describePiece(attackerPiece)} steals ${formatNumber(stolen)} HP from ${describePiece(opponentPiece)}.`);
+  return stolen;
 }
 
 function dealCombatDamage(attacker, opponent, amount, options = {}) {
@@ -2292,6 +2470,9 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
     damage = randomInt(0, 2);
   } else if ((opponent.fortifyTimer ?? 0) > 0) {
     damage = roundDamage(Math.max(1, damage * 0.5));
+  }
+  if ((opponent.dominanceTimer ?? 0) > 0) {
+    damage = roundDamage(Math.max(0, damage - PASSIVE_DOMINANCE_REDUCTION));
   }
 
   opponentPiece.hp = roundDamage(Math.max(0, opponentPiece.hp - damage));
@@ -2353,12 +2534,20 @@ function startStampede(fighter, opponent) {
   const direction = opponent.x >= fighter.x ? 1 : -1;
   fighter.stampedeTimer = STAMPEDE_DURATION;
   fighter.stampedeDirection = direction;
+  fighter.stampedeDashTimer = 0;
   fighter.stampedeHitCooldown = 0;
+  fighter.stampedeTrailTimer = STAMPEDE_TRAIL_SECONDS;
+  fighter.stampedeTrailFrom = fighter.x;
+  fighter.stampedeTrailTo = fighter.x + direction * STAMPEDE_DASH_DISTANCE;
   fighter.block = false;
   fighter.moveBlend = 1;
   fighter.attackTimer = Math.max(fighter.attackTimer, 0.16);
   fighter.facing = direction;
   addFloatingText("Stampede", fighter.x, fighter.y - 118, "#ffd166");
+}
+
+function isStampeding(fighter) {
+  return (fighter.stampedeTimer ?? 0) > 0;
 }
 
 function updateStampede(fighter, dt) {
@@ -2370,10 +2559,30 @@ function updateStampede(fighter, dt) {
     return;
   }
 
+  fighter.stampedeTimer = Math.max(0, (fighter.stampedeTimer ?? 0) - dt);
+  fighter.stampedeDashTimer = Math.max(0, (fighter.stampedeDashTimer ?? 0) - dt);
+  fighter.stampedeHitCooldown = Math.max(0, (fighter.stampedeHitCooldown ?? 0) - dt);
+  fighter.stampedeTrailTimer = Math.max(0, (fighter.stampedeTrailTimer ?? 0) - dt);
+  if (!isStampeding(fighter)) {
+    fighter.stampedeTrailTimer = 0;
+    return;
+  }
+
+  fighter.block = false;
+  fighter.motionTime = (fighter.motionTime ?? 0) + dt * STAMPEDE_SPEED_MULTIPLIER * 4.2;
+  fighter.moveBlend = 1;
+  fighter.attackTimer = Math.max(fighter.attackTimer, 0.12);
+
+  while (isStampeding(fighter) && fighter.stampedeDashTimer <= 0) {
+    performStampedeDash(fighter, opponent, attackerPiece, opponentPiece);
+    fighter.stampedeDashTimer += STAMPEDE_DASH_INTERVAL;
+  }
+}
+
+function performStampedeDash(fighter, opponent, attackerPiece, opponentPiece) {
   const previousX = fighter.x;
-  const speed = ARENA.speed * STAMPEDE_SPEED_MULTIPLIER;
   let direction = fighter.stampedeDirection || fighter.facing || 1;
-  let nextX = fighter.x + direction * speed * dt;
+  let nextX = fighter.x + direction * STAMPEDE_DASH_DISTANCE;
 
   if (nextX >= ARENA.maxX) {
     nextX = ARENA.maxX;
@@ -2386,12 +2595,10 @@ function updateStampede(fighter, dt) {
   fighter.x = nextX;
   fighter.facing = direction;
   fighter.stampedeDirection = direction;
-  fighter.stampedeTimer = Math.max(0, (fighter.stampedeTimer ?? 0) - dt);
-  fighter.stampedeHitCooldown = Math.max(0, (fighter.stampedeHitCooldown ?? 0) - dt);
-  fighter.block = false;
-  fighter.motionTime = (fighter.motionTime ?? 0) + dt * STAMPEDE_SPEED_MULTIPLIER * 2.4;
-  fighter.moveBlend = 1;
-  fighter.attackTimer = Math.max(fighter.attackTimer, 0.12);
+  fighter.stampedeTrailTimer = STAMPEDE_TRAIL_SECONDS;
+  fighter.stampedeTrailFrom = previousX;
+  fighter.stampedeTrailTo = nextX;
+  fighter.ultimateTimer = Math.max(fighter.ultimateTimer, 0.08);
 
   const crossedOpponent =
     (previousX < opponent.x && fighter.x >= opponent.x) ||
@@ -2529,7 +2736,7 @@ function syncHud() {
       els.selectionDetail.textContent = `Selected at ${toSquareName(selected.x, selected.y)}. Possible moves are hidden.`;
     } else {
       els.selectionLabel.textContent = describePiece(selected);
-      els.selectionDetail.textContent = `HP activates at full value during Showdown. Mana ${formatNumber(selected.mana ?? 0)}/${MAX_MANA}. Weapon: ${stat.weapon}. Ultimate: ${ULTIMATES[selected.type].name}. Damage bonus: ${formatPercent(stat.damageBonus)}.${perks.length ? ` Perks: ${perks.join(", ")}.` : ""}`;
+      els.selectionDetail.textContent = `HP activates at full value during Showdown. Mana ${formatNumber(selected.mana ?? 0)}/${MAX_MANA}. Weapon: ${stat.weapon}. Ultimate: ${ULTIMATES[selected.type].name}. Passive: ${PASSIVE_SKILLS[selected.type].name}. Damage bonus: ${formatPercent(stat.damageBonus)}.${perks.length ? ` Perks: ${perks.join(", ")}.` : ""}`;
     }
   } else {
     els.selectionLabel.textContent = "None";
@@ -2538,6 +2745,7 @@ function syncHud() {
 
   els.showoffPanel.classList.toggle("is-hidden", state.phase !== "showoff");
   els.touchControls.classList.toggle("is-hidden", state.phase !== "showoff");
+  els.touchControls.classList.toggle("hide-p2-touch-controls", state.phase === "showoff" && shouldHideP2ShowdownControls());
 
   if (state.showoff) {
     const fighters = getShowdownHudFighters();
@@ -2552,8 +2760,8 @@ function syncHud() {
     }
     els.duelLeftName.textContent = describePiece(leftPiece);
     els.duelRightName.textContent = describePiece(rightPiece);
-    els.duelLeftWeapon.textContent = `${PIECE_STATS[leftPiece.type].weapon} - ${ULTIMATES[leftPiece.type].name}`;
-    els.duelRightWeapon.textContent = `${PIECE_STATS[rightPiece.type].weapon} - ${ULTIMATES[rightPiece.type].name}`;
+    els.duelLeftWeapon.textContent = `${PIECE_STATS[leftPiece.type].weapon} - ${ULTIMATES[leftPiece.type].name} - Passive: ${PASSIVE_SKILLS[leftPiece.type].name}`;
+    els.duelRightWeapon.textContent = `${PIECE_STATS[rightPiece.type].weapon} - ${ULTIMATES[rightPiece.type].name} - Passive: ${PASSIVE_SKILLS[rightPiece.type].name}`;
     els.duelLeftHp.max = leftPiece.maxHp;
     els.duelLeftHp.value = leftPiece.hp;
     els.duelRightHp.max = rightPiece.maxHp;
@@ -2576,6 +2784,10 @@ function syncHud() {
   } else {
     els.battleLog.replaceChildren();
   }
+}
+
+function shouldHideP2ShowdownControls() {
+  return state.mode === "ai" || state.mode === "online" || isSmallScreenMode();
 }
 
 function getShowdownHudFighters() {
@@ -3403,10 +3615,16 @@ function drawFighter(fighter) {
   const viewX = getShowdownViewX(fighter.x);
   const viewFacing = shouldFlipShowdownPerspective() ? -fighter.facing : fighter.facing;
   const spriteX = -SHOWDOWN_SPRITE_WIDTH / 2;
-  const spriteY = -235;
+  const spriteY = -SHOWDOWN_SPRITE_FLOOR_Y;
 
   ctx.save();
   ctx.translate(viewX, fighter.y);
+  if (isStampeding(fighter)) {
+    drawStampedeDashEffect(fighter, viewX, jumpHeight);
+    ctx.restore();
+    return;
+  }
+
   ctx.scale(viewFacing, 1);
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
@@ -3442,6 +3660,8 @@ function drawFighter(fighter) {
   }
 
   ctx.scale(viewFacing, 1);
+  drawStunEffect(fighter);
+  drawPassiveIndicator(fighter);
   ctx.fillStyle = "#fff8e8";
   ctx.font = "700 18px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
@@ -3451,14 +3671,86 @@ function drawFighter(fighter) {
   ctx.restore();
 }
 
+function drawStunEffect(fighter) {
+  const timer = fighter.stunTimer ?? 0;
+  if (timer <= 0) {
+    return;
+  }
+
+  const alpha = clamp(timer / 0.35, 0.28, 1);
+  const phase = performance.now() / 130;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = "#ffd166";
+  ctx.fillStyle = "rgba(255, 209, 102, 0.88)";
+  ctx.lineWidth = 3;
+  ctx.translate(0, -178);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 34, 12, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  for (let i = 0; i < 3; i += 1) {
+    const angle = phase + i * ((Math.PI * 2) / 3);
+    const x = Math.cos(angle) * 34;
+    const y = Math.sin(angle) * 10;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawPassiveIndicator(fighter) {
+  const label = getPassiveIndicatorLabel(fighter);
+  if (!label) {
+    return;
+  }
+
+  ctx.save();
+  ctx.font = "800 12px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const width = Math.min(172, Math.max(86, ctx.measureText(label).width + 22));
+  const x = -width / 2;
+  const y = -137;
+  ctx.fillStyle = "rgba(29, 22, 18, 0.86)";
+  ctx.strokeStyle = "rgba(255, 209, 102, 0.62)";
+  ctx.lineWidth = 2;
+  roundRect(x, y, width, 24, 7);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#ffd166";
+  ctx.fillText(label, 0, y + 12);
+  ctx.restore();
+}
+
+function getPassiveIndicatorLabel(fighter) {
+  if ((fighter.passiveFlashTimer ?? 0) > 0 && fighter.passiveFlashLabel) {
+    return fighter.passiveFlashLabel;
+  }
+
+  if ((fighter.plusDamageTimer ?? 0) > 0) {
+    return "Plus Damage";
+  }
+  if ((fighter.speedTimer ?? 0) > 0) {
+    return "Speed";
+  }
+  if ((fighter.intimidateTimer ?? 0) > 0) {
+    return "Intimidated";
+  }
+  if ((fighter.dominanceTimer ?? 0) > 0) {
+    return "Dominance";
+  }
+  return "";
+}
+
 function drawFighterAfterimages(fighter, sprite, spriteX, spriteY) {
   const attacking = fighter.attackTimer > 0;
-  const dashing = ((fighter.dashTimer ?? 0) > 0 || (fighter.stampedeTimer ?? 0) > 0) && (fighter.moveBlend ?? 0) > 0.15;
+  const dashing = (fighter.dashTimer ?? 0) > 0 && (fighter.moveBlend ?? 0) > 0.15;
   if (!attacking && !dashing) {
     return;
   }
 
-  const count = attacking ? 2 : (fighter.stampedeTimer ?? 0) > 0 ? 4 : 3;
+  const count = attacking ? 2 : 3;
   const direction = attacking ? -fighter.facing : -Math.sign(fighter.facing || 1);
   for (let i = count; i >= 1; i -= 1) {
     ctx.save();
@@ -3467,6 +3759,45 @@ function drawFighterAfterimages(fighter, sprite, spriteX, spriteY) {
     ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_SPRITE_WIDTH, SHOWDOWN_SPRITE_HEIGHT);
     ctx.restore();
   }
+}
+
+function drawStampedeDashEffect(fighter, viewX, jumpHeight) {
+  if (!isStampeding(fighter)) {
+    return;
+  }
+
+  const trailAlpha = clamp((fighter.stampedeTrailTimer ?? 0) / STAMPEDE_TRAIL_SECONDS, 0.35, 1);
+  const from = getShowdownViewX(fighter.stampedeTrailFrom ?? fighter.x);
+  const to = getShowdownViewX(fighter.stampedeTrailTo ?? fighter.x);
+  const start = Math.min(from, to) - viewX - 116;
+  const end = Math.max(from, to) - viewX + 116;
+  const elapsed = performance.now() / 30;
+
+  ctx.save();
+  ctx.translate(0, -jumpHeight);
+  ctx.lineCap = "round";
+  ctx.globalAlpha = 0.18 + trailAlpha * 0.62;
+
+  for (let i = 0; i < 34; i += 1) {
+    const wobble = Math.sin(elapsed + i * 1.37);
+    const y = -134 + (i % 14) * 7 + wobble * 2.5;
+    const inset = 8 + ((i * 17) % 72);
+    const lineStart = start + inset * 0.5;
+    const lineEnd = end - inset;
+    ctx.strokeStyle = i % 4 === 0 ? "rgba(255, 248, 232, 0.58)" : i % 3 === 0 ? "rgba(0, 0, 0, 0.72)" : "rgba(185, 185, 185, 0.62)";
+    ctx.lineWidth = i % 5 === 0 ? 4 : 2;
+    ctx.beginPath();
+    ctx.moveTo(lineStart, y);
+    ctx.lineTo(lineEnd, y + wobble * 1.8);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = Math.min(1, trailAlpha + 0.25);
+  ctx.fillStyle = "#2767ff";
+  ctx.fillRect(start + (end - start) * 0.42, -78, 6, 9);
+  ctx.fillStyle = "#ff1f2f";
+  ctx.fillRect(start + (end - start) * 0.56, -82, 7, 8);
+  ctx.restore();
 }
 
 function getShowdownViewX(x) {
@@ -3556,7 +3887,7 @@ function drawShowdownSprite(spriteCtx, piece, frame) {
   const jointColor = "#000000";
 
   spriteCtx.save();
-  spriteCtx.translate(SHOWDOWN_SPRITE_WIDTH / 2, 198 + pose.bodyLift);
+  spriteCtx.translate(SHOWDOWN_SPRITE_WIDTH / 2, SHOWDOWN_SPRITE_BODY_Y + pose.bodyLift);
   spriteCtx.lineCap = "round";
   spriteCtx.lineJoin = "round";
 
