@@ -49,3 +49,23 @@ Original prompt: Based on the attached GIF, improve the showdown animations like
 - Replaced compact Showdown touch-control labels with icon buttons.
 - Added the requested smaller-screen two-row arrangement: left arrow, right arrow, sword, shield, then closed fist and jump.
 - Kept accessible screen-reader labels and button titles for each icon control.
+
+## 2026-05-14 v1.1.4
+
+- Extracted Patch Notes v1.1.4 from `Chess_wars.docx` using a temporary workspace copy and inspected the embedded control-layout image.
+- Disabled powerup spawning, pickup, board rendering, and the powerup HUD for balance.
+- Disabled Local 2P on smaller/mobile screens and automatically returns local mode to Vs AI when a screen becomes small.
+- Reworked the smaller-screen Showdown controls into a single reference-style tray with arrows left, sword/shield right, and fist/jump centered below.
+
+## 2026-05-14 v1.1.5
+
+- Extracted Patch Notes v1.1.5 from `Chess_wars.docx` using a temporary workspace copy.
+- Updated touch controls so movement, attack, and block stay active while the button is held, even if the pointer drifts out before release.
+- Removed sticky mobile hold highlighting from Showdown touch buttons.
+- Added small gaps between each mobile control pair.
+
+## 2026-05-14 v1.1.6
+
+- Extracted Patch Notes v1.1.6 from `Chess_wars.docx` using a temporary workspace copy.
+- Reworked Showdown touch input to track active pointers individually.
+- Fixed multi-touch behavior so holding movement continues while attack or block is pressed and released with another pointer.

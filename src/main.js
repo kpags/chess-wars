@@ -130,6 +130,10 @@ const ULTIMATES = {
   king: { name: "Hard Swing", detail: "80 damage and 3s stun" }
 };
 
+const POWERUPS_ENABLED = false;
+const SMALL_SCREEN_QUERY = "(max-width: 720px), (pointer: coarse)";
+const smallScreenModeQuery = window.matchMedia(SMALL_SCREEN_QUERY);
+
 const POWERUP_TURN_RANGE = {
   min: 4,
   max: 8
@@ -182,7 +186,7 @@ const state = {
   showoff: null,
   graveyard: [],
   powerup: null,
-  powerupTurnsRemaining: rollPowerupTurnCount(),
+  powerupTurnsRemaining: getInitialPowerupTurns(),
   skipPowerupAdvance: false,
   nextPowerupId: 1,
   pendingChoice: null,
@@ -193,6 +197,7 @@ const state = {
   },
   keys: new Set(),
   touch: new Set(),
+  touchPointers: new Map(),
   mouse: {
     attack: false,
     block: false
@@ -207,6 +212,7 @@ const state = {
 
 function boot() {
   bindEvents();
+  syncResponsiveMode();
   syncOnlineHud();
   joinRoomFromUrl();
   syncHud();
@@ -234,7 +240,15 @@ function bindEvents() {
     }
   });
   els.modeAi.addEventListener("click", () => setMode("ai"));
-  els.modeLocal.addEventListener("click", () => setMode("local"));
+  els.modeLocal.addEventListener("click", () => {
+    if (isSmallScreenMode()) {
+      state.message = "Local 2P is disabled on smaller screens.";
+      syncResponsiveMode();
+      syncHud();
+      return;
+    }
+    setMode("local");
+  });
   els.newGame.addEventListener("click", () => {
     if (isOnlineGuest()) {
       sendOnlineEvent("reset-request", {});
@@ -248,30 +262,49 @@ function bindEvents() {
   els.joinRoom.addEventListener("click", joinTypedRoom);
   els.powerupOptions.addEventListener("click", onPowerupChoiceClick);
   ensureCombatStateForPieces();
+  if (smallScreenModeQuery.addEventListener) {
+    smallScreenModeQuery.addEventListener("change", syncResponsiveMode);
+  } else {
+    smallScreenModeQuery.addListener(syncResponsiveMode);
+  }
 
   document.querySelectorAll("[data-touch]").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       button.setPointerCapture?.(event.pointerId);
-      state.touch.add(button.dataset.touch);
+      setTouchPointer(event.pointerId, button.dataset.touch);
       sendOnlineInputState();
     });
-    button.addEventListener("pointerup", () => {
-      state.touch.delete(button.dataset.touch);
+    button.addEventListener("pointerup", (event) => {
+      if (button.hasPointerCapture?.(event.pointerId)) {
+        button.releasePointerCapture(event.pointerId);
+      }
+      clearTouchPointer(event.pointerId);
       sendOnlineInputState();
     });
-    button.addEventListener("pointerleave", () => {
-      state.touch.delete(button.dataset.touch);
-      sendOnlineInputState();
+    button.addEventListener("pointerleave", (event) => {
+      if (event.pointerType === "mouse" && event.buttons === 0) {
+        clearTouchPointer(event.pointerId);
+        sendOnlineInputState();
+      }
     });
-    button.addEventListener("pointercancel", () => {
-      state.touch.delete(button.dataset.touch);
+    button.addEventListener("pointercancel", (event) => {
+      if (button.hasPointerCapture?.(event.pointerId)) {
+        button.releasePointerCapture(event.pointerId);
+      }
+      clearTouchPointer(event.pointerId);
       sendOnlineInputState();
     });
   });
 }
 
 function setMode(mode) {
+  if (mode === "local" && isSmallScreenMode()) {
+    state.message = "Local 2P is disabled on smaller screens.";
+    syncResponsiveMode();
+    syncHud();
+    return;
+  }
   if (mode !== "online") {
     leaveOnlineRoom();
   }
@@ -279,6 +312,25 @@ function setMode(mode) {
   els.modeAi.classList.toggle("is-active", mode === "ai");
   els.modeLocal.classList.toggle("is-active", mode === "local");
   resetGame();
+}
+
+function isSmallScreenMode() {
+  return smallScreenModeQuery.matches;
+}
+
+function syncResponsiveMode() {
+  const localDisabled = isSmallScreenMode();
+  document.body.classList.toggle("single-touch-controls", localDisabled);
+  els.modeLocal.disabled = localDisabled;
+  els.modeLocal.setAttribute("aria-disabled", String(localDisabled));
+  els.modeLocal.title = localDisabled ? "Local 2P is disabled on smaller screens." : "";
+
+  if (localDisabled && state.mode === "local") {
+    state.mode = "ai";
+    els.modeAi.classList.add("is-active");
+    els.modeLocal.classList.remove("is-active");
+    resetGame();
+  }
 }
 
 function resetGame() {
@@ -296,7 +348,7 @@ function resetGame() {
   state.showoff = null;
   state.graveyard = [];
   state.powerup = null;
-  state.powerupTurnsRemaining = rollPowerupTurnCount();
+  state.powerupTurnsRemaining = getInitialPowerupTurns();
   state.skipPowerupAdvance = false;
   state.nextPowerupId = 1;
   state.pendingChoice = null;
@@ -306,7 +358,7 @@ function resetGame() {
     [TEAM.BLACK]: 0
   };
   state.keys.clear();
-  state.touch.clear();
+  clearTouchInput();
   state.mouse.attack = false;
   state.mouse.block = false;
   state.floatingText = [];
@@ -699,6 +751,13 @@ function chooseAiMove(moves) {
 }
 
 function advancePowerupTurnCounter() {
+  if (!POWERUPS_ENABLED) {
+    state.powerup = null;
+    state.powerupTurnsRemaining = null;
+    state.skipPowerupAdvance = false;
+    return;
+  }
+
   if (state.winner || state.powerup || state.phase === "choice") {
     return;
   }
@@ -717,6 +776,12 @@ function advancePowerupTurnCounter() {
 }
 
 function scheduleNextPowerup() {
+  if (!POWERUPS_ENABLED) {
+    state.powerupTurnsRemaining = null;
+    state.skipPowerupAdvance = false;
+    return;
+  }
+
   if (state.winner) {
     state.powerupTurnsRemaining = null;
     return;
@@ -726,11 +791,22 @@ function scheduleNextPowerup() {
   state.skipPowerupAdvance = true;
 }
 
+function getInitialPowerupTurns() {
+  return POWERUPS_ENABLED ? rollPowerupTurnCount() : null;
+}
+
 function rollPowerupTurnCount() {
   return randomInt(POWERUP_TURN_RANGE.min, POWERUP_TURN_RANGE.max);
 }
 
 function spawnPowerup() {
+  if (!POWERUPS_ENABLED) {
+    state.powerup = null;
+    state.powerupTurnsRemaining = null;
+    state.skipPowerupAdvance = false;
+    return;
+  }
+
   const emptySquares = getEmptySquares();
   if (emptySquares.length === 0) {
     state.powerupTurnsRemaining = rollPowerupTurnCount();
@@ -779,6 +855,10 @@ function pickPowerupDefinition() {
 }
 
 function takePowerupAt(x, y) {
+  if (!POWERUPS_ENABLED) {
+    return null;
+  }
+
   if (!state.powerup || state.powerup.x !== x || state.powerup.y !== y) {
     return null;
   }
@@ -1750,7 +1830,28 @@ function clearCombatInput() {
   sendOnlineInputState();
 }
 
-function clearTouchInput() {
+function setTouchPointer(pointerId, touchKey) {
+  state.touchPointers.set(pointerId, touchKey);
+  syncTouchSetFromPointers();
+}
+
+function clearTouchPointer(pointerId) {
+  state.touchPointers.delete(pointerId);
+  syncTouchSetFromPointers();
+}
+
+function syncTouchSetFromPointers() {
+  state.touch = new Set(state.touchPointers.values());
+}
+
+function clearTouchInput(event) {
+  if (event?.pointerId !== undefined && state.touchPointers.has(event.pointerId)) {
+    clearTouchPointer(event.pointerId);
+    sendOnlineInputState();
+    return;
+  }
+
+  state.touchPointers.clear();
   state.touch.clear();
 }
 
@@ -2500,6 +2601,15 @@ function getLocalShowdownTeam() {
 }
 
 function syncPowerupHud() {
+  els.powerupCard.classList.toggle("is-hidden", !POWERUPS_ENABLED);
+  if (!POWERUPS_ENABLED) {
+    els.powerupOptions.classList.add("is-hidden");
+    els.powerupOptions.replaceChildren();
+    els.powerupLabel.textContent = "Powerups disabled";
+    els.powerupDetail.textContent = "Powerups are disabled for balance.";
+    return;
+  }
+
   if (state.pendingChoice) {
     els.powerupLabel.textContent = "Choose Revive Target";
     els.powerupDetail.textContent = state.pendingPowerupMove
@@ -2839,6 +2949,10 @@ function drawMoveHighlights(board) {
 }
 
 function drawPowerup(board) {
+  if (!POWERUPS_ENABLED) {
+    return;
+  }
+
   if (!state.powerup) {
     return;
   }

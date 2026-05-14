@@ -35,8 +35,8 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Critical hits have a 4 percent chance and deal double damage.
 - Blocking reduces incoming damage.
 - The game ends when a king is defeated.
-- A weighted random powerup spawns on an empty board square after a random 4-8 completed turn counts.
-- Current powerups: Heal, Dance, Revive, Restrict, Strength, Smash, and Extinct.
+- Powerups are currently disabled for balance.
+- Legacy powerup definitions remain in the code: Heal, Dance, Revive, Restrict, Strength, Smash, and Extinct.
 - Smash now arms only the receiving piece for one Showdown.
 - Every piece has a 100-mana ultimate skill. Mana resets to 0 only when a new Showdown starts.
 
@@ -162,3 +162,21 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Smaller-screen Showdown controls now use icon-only buttons.
 - The first compact row shows move-left, move-right, sword attack, and shield block icons.
 - The second compact row shows closed-fist ultimate and jump icons.
+
+## Patch Notes v1.1.4
+
+- Powerups are disabled for balance.
+- Local 2P is disabled on smaller/mobile screens.
+- Smaller-screen Showdown controls now show one shared control set.
+- The mobile Showdown control tray now matches the reference layout: arrows on the upper left, sword and shield on the upper right, and fist plus jump centered below.
+
+## Patch Notes v1.1.5
+
+- Holding movement, attack, and block touch buttons now keeps the action active until release.
+- Touch buttons no longer show sticky hold highlights on mobile.
+- Added a small gap between each pair of mobile Showdown control buttons.
+
+## Patch Notes v1.1.6
+
+- Held movement controls now continue moving while a separate attack or block button is tapped.
+- Mobile Showdown touch input now tracks each active pointer independently so one released button does not cancel another held button.
