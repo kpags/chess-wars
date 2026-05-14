@@ -112,6 +112,8 @@ const SHOWDOWN_ROUNDS_TO_WIN = 2;
 const MAX_MANA = 100;
 const SMASH_DAMAGE_BONUS = 0.5;
 const DASH_MULTIPLIER = 1.75;
+const SHOWDOWN_SPRITE_WIDTH = 240;
+const SHOWDOWN_SPRITE_HEIGHT = 272;
 const ULTIMATE_KEYS = ["e", "E", "KeyE"];
 const ULTIMATES = {
   pawn: { name: "Heavy Fist", detail: "25 damage" },
@@ -189,6 +191,7 @@ const state = {
   aiTimer: null,
   shake: 0,
   floatingText: [],
+  combatBanner: null,
   announcement: null
 };
 
@@ -297,6 +300,7 @@ function resetGame() {
   state.mouse.attack = false;
   state.mouse.block = false;
   state.floatingText = [];
+  state.combatBanner = null;
   state.announcement = null;
   online.showdownTargets.clear();
   syncHud();
@@ -484,6 +488,8 @@ function startShowoff(attacker, defender, move) {
   clearCombatInput();
   ensureCombatPieceState(attacker);
   ensureCombatPieceState(defender);
+  attacker.hp = attacker.maxHp;
+  defender.hp = defender.maxHp;
   attacker.mana = 0;
   defender.mana = 0;
   state.phase = "showoff";
@@ -505,8 +511,8 @@ function startShowoff(attacker, defender, move) {
       [defender.id]: 0
     },
     roundBaseHp: {
-      [attacker.id]: attacker.hp,
-      [defender.id]: defender.hp
+      [attacker.id]: attacker.maxHp,
+      [defender.id]: defender.maxHp
     },
     started: false,
     introTimer: SHOWDOWN_INTRO_SECONDS,
@@ -546,7 +552,9 @@ function createFighter(piece, x, facing, role) {
     block: false,
     blockTimer: 0,
     motionTime: 0,
+    moveBlend: 0,
     hitFlash: 0,
+    criticalFlash: 0,
     aiHoldBlock: 0,
     mana: piece.mana ?? 0,
     stunTimer: 0,
@@ -574,6 +582,7 @@ function endShowoff(winnerId, loserId) {
   }
 
   removePieceFromBoard(loser, "showdown");
+  winner.hp = winner.maxHp;
 
   if (winnerId === attacker.id) {
     movePiece(attacker, showoff.move.x, showoff.move.y);
@@ -1305,6 +1314,7 @@ function createSnapshot() {
     restrictTurns: state.restrictTurns,
     shake: state.shake,
     floatingText: state.floatingText,
+    combatBanner: state.combatBanner,
     announcement: state.announcement
   };
 }
@@ -1342,6 +1352,7 @@ function applyRemoteSnapshot(payload) {
   state.restrictTurns = snapshot.restrictTurns ?? { [TEAM.WHITE]: 0, [TEAM.BLACK]: 0 };
   state.shake = snapshot.shake ?? 0;
   state.floatingText = snapshot.floatingText ?? [];
+  state.combatBanner = snapshot.combatBanner ?? null;
   state.announcement = snapshot.announcement ?? null;
 
   if (remoteShowdownTargets) {
@@ -1367,7 +1378,9 @@ function createRemoteShowdownTargets(showoff) {
       attackTimer: fighter.attackTimer ?? 0,
       blockTimer: fighter.blockTimer ?? 0,
       hitFlash: fighter.hitFlash ?? 0,
+      criticalFlash: fighter.criticalFlash ?? 0,
       motionTime: fighter.motionTime ?? 0,
+      moveBlend: fighter.moveBlend ?? 0,
       mana: fighter.mana ?? 0,
       stunTimer: fighter.stunTimer ?? 0,
       fortifyTimer: fighter.fortifyTimer ?? 0,
@@ -1397,9 +1410,11 @@ function preserveRemoteShowdownVisuals(previousFighters) {
     fighter.vz = previous.vz ?? fighter.vz ?? 0;
     fighter.onGround = previous.onGround ?? fighter.onGround ?? true;
     fighter.motionTime = previous.motionTime ?? fighter.motionTime ?? 0;
+    fighter.moveBlend = previous.moveBlend ?? fighter.moveBlend ?? 0;
     fighter.attackTimer = Math.max(previous.attackTimer ?? 0, fighter.attackTimer ?? 0);
     fighter.blockTimer = Math.max(previous.blockTimer ?? 0, fighter.blockTimer ?? 0);
     fighter.hitFlash = Math.max(previous.hitFlash ?? 0, fighter.hitFlash ?? 0);
+    fighter.criticalFlash = Math.max(previous.criticalFlash ?? 0, fighter.criticalFlash ?? 0);
     fighter.ultimateTimer = Math.max(previous.ultimateTimer ?? 0, fighter.ultimateTimer ?? 0);
   }
 }
@@ -1682,10 +1697,14 @@ function updateRemoteShowdownVisuals(dt) {
 
     if (Math.abs(fighter.x - oldX) > 0.05 || Math.abs(fighter.y - oldY) > 0.05) {
       fighter.motionTime = (fighter.motionTime ?? 0) + dt;
+      fighter.moveBlend = Math.min(1, (fighter.moveBlend ?? 0) + dt * 10);
+    } else {
+      fighter.moveBlend = Math.max(0, (fighter.moveBlend ?? 0) - dt * 7);
     }
 
     fighter.facing = target.facing || fighter.facing;
     fighter.block = target.block;
+    fighter.moveBlend = Math.max(fighter.moveBlend ?? 0, target.moveBlend ?? 0);
     fighter.mana = target.mana ?? fighter.mana ?? 0;
     fighter.stunTimer = Math.max(0, target.stunTimer ?? fighter.stunTimer ?? 0);
     fighter.fortifyTimer = Math.max(0, target.fortifyTimer ?? fighter.fortifyTimer ?? 0);
@@ -1696,6 +1715,7 @@ function updateRemoteShowdownVisuals(dt) {
     fighter.attackTimer = Math.max(0, (fighter.attackTimer ?? target.attackTimer ?? 0) - dt);
     fighter.blockTimer = Math.max(0, (fighter.blockTimer ?? target.blockTimer ?? 0) - dt);
     fighter.hitFlash = Math.max(0, (fighter.hitFlash ?? target.hitFlash ?? 0) - dt);
+    fighter.criticalFlash = Math.max(0, (fighter.criticalFlash ?? target.criticalFlash ?? 0) - dt);
     fighter.ultimateTimer = Math.max(0, (fighter.ultimateTimer ?? target.ultimateTimer ?? 0) - dt);
   }
 }
@@ -1752,6 +1772,7 @@ function updateShowoff(dt) {
     fighter.attackTimer = Math.max(0, fighter.attackTimer - dt);
     fighter.blockTimer = Math.max(0, fighter.blockTimer - dt);
     fighter.hitFlash = Math.max(0, fighter.hitFlash - dt);
+    fighter.criticalFlash = Math.max(0, (fighter.criticalFlash ?? 0) - dt);
     fighter.stunTimer = Math.max(0, (fighter.stunTimer ?? 0) - dt);
     fighter.fortifyTimer = Math.max(0, (fighter.fortifyTimer ?? 0) - dt);
     fighter.dashTimer = Math.max(0, (fighter.dashTimer ?? 0) - dt);
@@ -1917,8 +1938,12 @@ function applyFighterInput(fighter, input, dt) {
     fighter.onGround = false;
   }
 
-  if (!stunned && input.x !== 0) {
-    fighter.motionTime += dt;
+  const moving = !stunned && Math.abs(input.x) > 0.01;
+  if (moving) {
+    fighter.motionTime += dt * (dashMultiplier > 1 ? 1.35 : 1);
+    fighter.moveBlend = Math.min(1, (fighter.moveBlend ?? 0) + dt * 10);
+  } else {
+    fighter.moveBlend = Math.max(0, (fighter.moveBlend ?? 0) - dt * 7);
   }
 
   if (!stunned) {
@@ -1979,7 +2004,7 @@ function tryAttack(fighter) {
   });
   addLog(`${describePiece(attackerPiece)} uses ${stat.weapon} for ${formatNumber(dealt)}${critical ? " critical" : ""}.`);
   if (critical) {
-    startAnnouncement("Critical Damage", `${describePiece(attackerPiece)} dealt ${formatNumber(dealt)} critical damage to ${describePiece(opponentPiece)}.`);
+    startCombatBanner("CRITICAL DAMAGE", `${describePiece(attackerPiece)} dealt ${formatNumber(dealt)} to ${describePiece(opponentPiece)}.`);
   }
 }
 
@@ -2000,6 +2025,9 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
 
   opponentPiece.hp = roundDamage(Math.max(0, opponentPiece.hp - damage));
   opponent.hitFlash = 0.22;
+  if (options.critical) {
+    opponent.criticalFlash = 0.5;
+  }
   opponent.stunTimer = Math.max(opponent.stunTimer ?? 0, options.stun ?? 0);
   state.shake = Math.max(state.shake, options.shake ?? 0.18);
   addFloatingText(`${options.critical ? "Crit " : ""}-${formatNumber(damage)}`, opponent.x, opponent.y - 120, options.color ?? "#f7efe0");
@@ -2162,7 +2190,7 @@ function syncHud() {
       els.selectionDetail.textContent = `Selected at ${toSquareName(selected.x, selected.y)}. Possible moves are hidden.`;
     } else {
       els.selectionLabel.textContent = describePiece(selected);
-      els.selectionDetail.textContent = `${formatNumber(selected.hp)}/${selected.maxHp} HP. Mana ${formatNumber(selected.mana ?? 0)}/${MAX_MANA}. Weapon: ${stat.weapon}. Ultimate: ${ULTIMATES[selected.type].name}. Damage bonus: ${formatPercent(stat.damageBonus)}.${perks.length ? ` Perks: ${perks.join(", ")}.` : ""}`;
+      els.selectionDetail.textContent = `HP activates at full value during Showdown. Mana ${formatNumber(selected.mana ?? 0)}/${MAX_MANA}. Weapon: ${stat.weapon}. Ultimate: ${ULTIMATES[selected.type].name}. Damage bonus: ${formatPercent(stat.damageBonus)}.${perks.length ? ` Perks: ${perks.join(", ")}.` : ""}`;
     }
   } else {
     els.selectionLabel.textContent = "None";
@@ -2296,6 +2324,12 @@ function updateFloatingText(dt) {
   state.floatingText = state.floatingText
     .map((item) => ({ ...item, y: item.y - 52 * dt, life: item.life - dt }))
     .filter((item) => item.life > 0);
+  if (state.combatBanner) {
+    state.combatBanner.timer -= dt;
+    if (state.combatBanner.timer <= 0) {
+      state.combatBanner = null;
+    }
+  }
 }
 
 function addFloatingText(text, x, y, color) {
@@ -2304,6 +2338,14 @@ function addFloatingText(text, x, y, color) {
 
 function announcePowerup(piece, powerup, effect) {
   startAnnouncement(`${powerup.name} Retrieved`, `${describePiece(piece)} has ${powerup.name}. ${effect}`);
+}
+
+function startCombatBanner(title, detail) {
+  state.combatBanner = {
+    title,
+    detail,
+    timer: 0.9
+  };
 }
 
 function startAnnouncement(title, detail) {
@@ -2344,6 +2386,7 @@ function render() {
 function drawBoard() {
   drawBackground();
   const board = getBoardRect();
+  drawBoardPlinth(board);
   drawWoodFrame(board);
 
   for (let y = 0; y < BOARD_SIZE; y += 1) {
@@ -2362,6 +2405,40 @@ function drawBoard() {
 
   drawBoardBanner(board);
   drawVictoryIndicator(board);
+}
+
+function drawBoardPlinth(board) {
+  const depth = 34;
+  const frame = 64;
+  const x = board.x - frame;
+  const y = board.y - frame;
+  const size = board.size + frame * 2;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.36)";
+  ctx.beginPath();
+  ctx.ellipse(board.x + board.size / 2, board.y + board.size + 50, board.size * 0.72, 42, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const side = ctx.createLinearGradient(0, y + size, 0, y + size + depth);
+  side.addColorStop(0, "#7a4326");
+  side.addColorStop(1, "#2b1710");
+  ctx.fillStyle = side;
+  ctx.beginPath();
+  ctx.moveTo(x + 10, y + size - 4);
+  ctx.lineTo(x + size - 10, y + size - 4);
+  ctx.lineTo(x + size - 34, y + size + depth);
+  ctx.lineTo(x + 34, y + size + depth);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255, 230, 174, 0.18)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x + 22, y + size + 5);
+  ctx.lineTo(x + size - 22, y + size + 5);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawBackground() {
@@ -2448,6 +2525,13 @@ function drawWoodSquare(board, x, y) {
 
   ctx.fillStyle = grain;
   ctx.fillRect(sx, sy, board.cell, board.cell);
+
+  ctx.fillStyle = isLight ? "rgba(255, 255, 255, 0.16)" : "rgba(255, 231, 179, 0.08)";
+  ctx.fillRect(sx, sy, board.cell, 3);
+  ctx.fillRect(sx, sy, 3, board.cell);
+  ctx.fillStyle = isLight ? "rgba(92, 50, 26, 0.18)" : "rgba(29, 16, 10, 0.28)";
+  ctx.fillRect(sx, sy + board.cell - 4, board.cell, 4);
+  ctx.fillRect(sx + board.cell - 4, sy, 4, board.cell);
 
   ctx.globalAlpha = isLight ? 0.13 : 0.18;
   ctx.strokeStyle = isLight ? "#8b542f" : "#f5d7a1";
@@ -2571,8 +2655,6 @@ function drawPiece(piece, board) {
   drawCarvedPieceBody(piece.type, colors);
   drawBoardWeaponIcon(piece.type, colors);
   drawPieceCrest(stat.short, colors);
-  ctx.scale(1 / scale, 1 / scale);
-  drawHealthBar(-board.cell * 0.34, board.cell * 0.22, board.cell * 0.68, 7, piece.hp, piece.maxHp);
   ctx.restore();
 }
 
@@ -2911,6 +2993,7 @@ function drawShowoff() {
   }
 
   drawDuelHeader();
+  drawCombatBanner();
   drawShowdownStateBanner();
   ctx.restore();
 }
@@ -2962,6 +3045,8 @@ function drawFighter(fighter) {
   const jumpHeight = fighter.z ?? 0;
   const viewX = getShowdownViewX(fighter.x);
   const viewFacing = shouldFlipShowdownPerspective() ? -fighter.facing : fighter.facing;
+  const spriteX = -SHOWDOWN_SPRITE_WIDTH / 2;
+  const spriteY = -235;
 
   ctx.save();
   ctx.translate(viewX, fighter.y);
@@ -2978,11 +3063,20 @@ function drawFighter(fighter) {
     drawAttackTrail(fighter);
   }
 
-  ctx.drawImage(sprite, -106, -188, 212, 232);
+  drawFighterAfterimages(fighter, sprite, spriteX, spriteY);
+  ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_SPRITE_WIDTH, SHOWDOWN_SPRITE_HEIGHT);
+
+  if ((fighter.criticalFlash ?? 0) > 0) {
+    const alpha = Math.min(0.72, (fighter.criticalFlash ?? 0) / 0.5);
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.fillStyle = `rgba(214, 37, 43, ${alpha})`;
+    ctx.fillRect(spriteX - 6, spriteY - 4, SHOWDOWN_SPRITE_WIDTH + 12, SHOWDOWN_SPRITE_HEIGHT + 8);
+    ctx.globalCompositeOperation = "source-over";
+  }
 
   if (fighter.hitFlash > 0) {
     ctx.globalAlpha = fighter.hitFlash / 0.22;
-    ctx.strokeStyle = "#ffd166";
+    ctx.strokeStyle = (fighter.criticalFlash ?? 0) > 0 ? "#ff2f3d" : "#ffd166";
     ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.ellipse(0, -54, 54, 78, 0, 0, Math.PI * 2);
@@ -2990,7 +3084,7 @@ function drawFighter(fighter) {
     ctx.globalAlpha = 1;
   }
 
-  ctx.scale(fighter.facing, 1);
+  ctx.scale(viewFacing, 1);
   ctx.fillStyle = "#fff8e8";
   ctx.font = "700 18px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
@@ -2998,6 +3092,24 @@ function drawFighter(fighter) {
   drawHealthBar(-68, -78, 136, 12, piece.hp, piece.maxHp);
   drawManaBar(-68, -61, 136, 8, piece.mana ?? 0, MAX_MANA);
   ctx.restore();
+}
+
+function drawFighterAfterimages(fighter, sprite, spriteX, spriteY) {
+  const attacking = fighter.attackTimer > 0;
+  const dashing = (fighter.dashTimer ?? 0) > 0 && (fighter.moveBlend ?? 0) > 0.15;
+  if (!attacking && !dashing) {
+    return;
+  }
+
+  const count = attacking ? 2 : 3;
+  const direction = attacking ? -fighter.facing : -Math.sign(fighter.facing || 1);
+  for (let i = count; i >= 1; i -= 1) {
+    ctx.save();
+    ctx.globalAlpha = attacking ? 0.1 * i : 0.075 * i;
+    ctx.translate(direction * i * (attacking ? 14 : 22), i * 2);
+    ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_SPRITE_WIDTH, SHOWDOWN_SPRITE_HEIGHT);
+    ctx.restore();
+  }
 }
 
 function getShowdownViewX(x) {
@@ -3013,21 +3125,38 @@ function shouldFlipShowdownPerspective() {
 }
 
 function getFighterFrame(fighter) {
+  if ((fighter.stunTimer ?? 0) > 0 || (fighter.criticalFlash ?? 0) > 0.08 || (fighter.hitFlash ?? 0) > 0.1) {
+    return "hit-stagger";
+  }
+
+  if ((fighter.ultimateTimer ?? 0) > 0) {
+    return "ultimate-cast";
+  }
+
   if (fighter.attackTimer > 0) {
-    return fighter.attackTimer > ARENA.attackDuration * 0.5 ? "attack-a" : "attack-b";
+    const progress = 1 - fighter.attackTimer / ARENA.attackDuration;
+    if (progress < 0.24) {
+      return "attack-windup";
+    }
+    if (progress < 0.52) {
+      return "attack-swing";
+    }
+    if (progress < 0.78) {
+      return "attack-strike";
+    }
+    return "attack-recover";
   }
 
   if (fighter.block) {
-    return fighter.blockTimer > 0.12 ? "block-a" : "block-b";
+    return fighter.blockTimer > 0.12 ? "block-brace" : "block-guard";
   }
 
   if ((fighter.z ?? 0) > 4) {
-    return "step";
+    return (fighter.vz ?? 0) > 0 ? "jump-rise" : "jump-fall";
   }
 
-  const walkFrame = Math.floor(fighter.motionTime * 8) % 2;
-  if (walkFrame === 1 && fighter.motionTime > 0) {
-    return "step";
+  if ((fighter.moveBlend ?? 0) > 0.05) {
+    return `run-${Math.floor((fighter.motionTime ?? 0) * 12) % 4}`;
   }
 
   return "idle";
@@ -3040,8 +3169,8 @@ function getShowdownSprite(piece, frame) {
   }
 
   const sprite = document.createElement("canvas");
-  sprite.width = 212;
-  sprite.height = 232;
+  sprite.width = SHOWDOWN_SPRITE_WIDTH;
+  sprite.height = SHOWDOWN_SPRITE_HEIGHT;
   const spriteCtx = sprite.getContext("2d");
   drawShowdownSprite(spriteCtx, piece, frame);
   spriteCache.set(key, sprite);
@@ -3051,67 +3180,697 @@ function getShowdownSprite(piece, frame) {
 function drawShowdownSprite(spriteCtx, piece, frame) {
   const colors = getPieceColors(piece.team);
   const stat = PIECE_STATS[piece.type];
+  const pose = getStickPose(frame);
   const attacking = frame.startsWith("attack");
   const blocking = frame.startsWith("block");
-  const stepping = frame === "step";
-  const reach = attacking ? (frame === "attack-a" ? 68 : 96) : 48;
+  const stickColor = "#050505";
+  const jointColor = "#000000";
 
   spriteCtx.save();
-  spriteCtx.translate(106, 162 + (stepping ? -5 : 0));
+  spriteCtx.translate(SHOWDOWN_SPRITE_WIDTH / 2, 198 + pose.bodyLift);
   spriteCtx.lineCap = "round";
   spriteCtx.lineJoin = "round";
 
-  spriteCtx.strokeStyle = blocking ? "#77d48e" : colors.stroke;
-  spriteCtx.lineWidth = blocking ? 14 : 9;
+  const aura = spriteCtx.createRadialGradient(0, -64, 10, 0, -64, 128);
+  aura.addColorStop(0, blocking ? "rgba(119, 212, 142, 0.24)" : "rgba(255, 209, 102, 0.12)");
+  aura.addColorStop(1, "rgba(255, 209, 102, 0)");
+  spriteCtx.fillStyle = aura;
   spriteCtx.beginPath();
-  spriteCtx.moveTo(24, -48);
-  spriteCtx.lineTo(reach, attacking ? -76 : -28);
-  spriteCtx.stroke();
-
-  drawWeaponGlyph(piece.type, reach + 8, attacking ? -78 : -30, attacking ? 0.82 : 0.58, colors.ink, spriteCtx);
-
-  const body = spriteCtx.createLinearGradient(-44, -148, 48, 30);
-  body.addColorStop(0, colors.light);
-  body.addColorStop(0.52, colors.main);
-  body.addColorStop(1, colors.dark);
-  spriteCtx.fillStyle = body;
-  spriteCtx.strokeStyle = blocking ? "#77d48e" : colors.stroke;
-  spriteCtx.lineWidth = blocking ? 6 : 4;
+  spriteCtx.arc(0, -70, 122, 0, Math.PI * 2);
+  spriteCtx.fill();
 
   spriteCtx.beginPath();
-  spriteCtx.ellipse(0, 38, 42, 16, 0, 0, Math.PI * 2);
+  spriteCtx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  spriteCtx.ellipse(0, 49, 58, 13, 0, 0, Math.PI * 2);
+  spriteCtx.fill();
+
+  const limbStroke = blocking ? "#111111" : stickColor;
+
+  // Bold stickman legs with GIF-like long strides.
+  drawStickLimb(spriteCtx, pose.hip, pose.leftKnee, pose.leftFoot, 17, limbStroke);
+  drawStickLimb(spriteCtx, pose.hip, pose.rightKnee, pose.rightFoot, 17, limbStroke);
+
+  // Springy torso.
+  drawStickLine(spriteCtx, pose.hip.x, pose.hip.y, pose.shoulder.x, pose.shoulder.y, 22, stickColor);
+
+  // Arms and weapon reach.
+  drawStickLimb(spriteCtx, pose.shoulder, pose.leftElbow, pose.leftHand, blocking ? 17 : 15, limbStroke);
+  drawStickLimb(spriteCtx, pose.shoulder, pose.rightElbow, pose.rightHand, blocking ? 17 : 15, limbStroke);
+
+  drawShowdownWeapon(spriteCtx, piece.type, pose, frame, colors);
+
+  spriteCtx.fillStyle = jointColor;
+  spriteCtx.strokeStyle = jointColor;
+  spriteCtx.lineWidth = 3;
+  spriteCtx.beginPath();
+  spriteCtx.arc(pose.head.x, pose.head.y, 25, 0, Math.PI * 2);
   spriteCtx.fill();
   spriteCtx.stroke();
-  spriteCtx.beginPath();
-  spriteCtx.ellipse(0, 16, 31, 12, 0, 0, Math.PI * 2);
-  spriteCtx.fill();
-  spriteCtx.stroke();
-  spriteCtx.beginPath();
-  spriteCtx.moveTo(-22, 14);
-  spriteCtx.bezierCurveTo(-35, -42, -20, -98, -7, -118);
-  spriteCtx.lineTo(7, -118);
-  spriteCtx.bezierCurveTo(20, -98, 35, -42, 22, 14);
-  spriteCtx.closePath();
-  spriteCtx.fill();
-  spriteCtx.stroke();
 
-  drawSpriteTop(spriteCtx, piece.type, colors);
+  drawStickmanHeadgear(spriteCtx, piece.type, colors, pose.head);
 
-  spriteCtx.fillStyle = colors.ink;
-  spriteCtx.font = "700 30px Georgia, serif";
+  spriteCtx.fillStyle = "#fff8e8";
+  spriteCtx.font = "900 20px Georgia, serif";
   spriteCtx.textAlign = "center";
   spriteCtx.textBaseline = "middle";
-  spriteCtx.fillText(stat.short, 0, -48);
+  spriteCtx.fillText(stat.short, pose.head.x, pose.head.y);
 
   if (blocking) {
-    spriteCtx.strokeStyle = "rgba(119, 212, 142, 0.8)";
-    spriteCtx.lineWidth = frame === "block-a" ? 8 : 5;
+    spriteCtx.strokeStyle = "rgba(119, 212, 142, 0.72)";
+    spriteCtx.lineWidth = frame === "block-brace" ? 9 : 6;
     spriteCtx.beginPath();
-    spriteCtx.arc(46, -44, 82, -0.95, 0.95);
+    spriteCtx.arc(48, -50, 82, -0.95, 0.95);
     spriteCtx.stroke();
   }
 
   spriteCtx.restore();
+}
+
+function getStickPose(frame) {
+  const pose = {
+    bodyLift: 0,
+    hip: { x: 0, y: -34 },
+    shoulder: { x: 0, y: -104 },
+    head: { x: 0, y: -132 },
+    leftKnee: { x: -20, y: -2 },
+    leftFoot: { x: -42, y: 38 },
+    rightKnee: { x: 24, y: 0 },
+    rightFoot: { x: 38, y: 38 },
+    leftElbow: { x: -28, y: -72 },
+    leftHand: { x: -52, y: -46 },
+    rightElbow: { x: 33, y: -74 },
+    rightHand: { x: 64, y: -58 },
+    weaponStart: { x: 36, y: -70 },
+    weaponEnd: { x: 92, y: -88 }
+  };
+
+  if (frame.startsWith("run-")) {
+    const step = Number(frame.slice(4)) || 0;
+    const phase = (step / 4) * Math.PI * 2;
+    const swing = Math.sin(phase);
+    const counter = Math.cos(phase);
+    pose.bodyLift = -Math.abs(counter) * 4;
+    pose.hip.x = swing * 7;
+    pose.shoulder.x = pose.hip.x + 8;
+    pose.head.x = pose.shoulder.x + 3;
+    pose.leftKnee = { x: -18 - swing * 18, y: -4 + Math.abs(counter) * 8 };
+    pose.leftFoot = { x: -44 - swing * 28, y: 38 - Math.max(0, counter) * 12 };
+    pose.rightKnee = { x: 24 + swing * 18, y: -2 + Math.abs(counter) * 8 };
+    pose.rightFoot = { x: 44 + swing * 28, y: 38 + Math.min(0, counter) * 12 };
+    pose.leftElbow = { x: -30 + swing * 22, y: -76 };
+    pose.leftHand = { x: -58 + swing * 34, y: -52 };
+    pose.rightElbow = { x: 34 - swing * 22, y: -76 };
+    pose.rightHand = { x: 66 - swing * 34, y: -58 };
+    pose.weaponStart = { x: pose.rightHand.x - 12, y: pose.rightHand.y - 8 };
+    pose.weaponEnd = { x: pose.rightHand.x + 36, y: pose.rightHand.y - 28 };
+    return pose;
+  }
+
+  if (frame === "jump-rise" || frame === "jump-fall") {
+    const fold = frame === "jump-rise" ? 1 : 0.55;
+    pose.bodyLift = -10;
+    pose.hip = { x: -4, y: -34 };
+    pose.shoulder = { x: -14, y: -105 };
+    pose.head = { x: -17, y: -133 };
+    pose.leftKnee = { x: -38, y: 2 };
+    pose.leftFoot = { x: -22, y: 30 - fold * 14 };
+    pose.rightKnee = { x: 18, y: -2 };
+    pose.rightFoot = { x: 52, y: 25 - fold * 20 };
+    pose.leftElbow = { x: -56, y: -102 };
+    pose.leftHand = { x: -38, y: -140 };
+    pose.rightElbow = { x: 18, y: -100 };
+    pose.rightHand = { x: 70, y: -126 };
+    pose.weaponStart = { x: -40, y: -140 };
+    pose.weaponEnd = { x: 62, y: -184 };
+    return pose;
+  }
+
+  if (frame === "attack-windup") {
+    pose.hip = { x: -10, y: -34 };
+    pose.shoulder = { x: -28, y: -108 };
+    pose.head = { x: -30, y: -136 };
+    pose.leftKnee = { x: -38, y: -4 };
+    pose.leftFoot = { x: -58, y: 38 };
+    pose.rightKnee = { x: 16, y: -2 };
+    pose.rightFoot = { x: 36, y: 38 };
+    pose.leftElbow = { x: -68, y: -100 };
+    pose.leftHand = { x: -80, y: -142 };
+    pose.rightElbow = { x: -4, y: -120 };
+    pose.rightHand = { x: 30, y: -156 };
+    pose.weaponStart = { x: -78, y: -142 };
+    pose.weaponEnd = { x: 74, y: -208 };
+    return pose;
+  }
+
+  if (frame === "attack-swing") {
+    pose.hip = { x: 4, y: -34 };
+    pose.shoulder = { x: 24, y: -102 };
+    pose.head = { x: 28, y: -130 };
+    pose.leftKnee = { x: -16, y: -2 };
+    pose.leftFoot = { x: -50, y: 38 };
+    pose.rightKnee = { x: 42, y: 2 };
+    pose.rightFoot = { x: 72, y: 30 };
+    pose.leftElbow = { x: 8, y: -84 };
+    pose.leftHand = { x: 42, y: -88 };
+    pose.rightElbow = { x: 70, y: -94 };
+    pose.rightHand = { x: 104, y: -74 };
+    pose.weaponStart = { x: 54, y: -108 };
+    pose.weaponEnd = { x: 138, y: -64 };
+    return pose;
+  }
+
+  if (frame === "attack-strike") {
+    pose.hip = { x: 10, y: -34 };
+    pose.shoulder = { x: 38, y: -96 };
+    pose.head = { x: 42, y: -123 };
+    pose.leftKnee = { x: -10, y: 0 };
+    pose.leftFoot = { x: -56, y: 38 };
+    pose.rightKnee = { x: 52, y: -4 };
+    pose.rightFoot = { x: 86, y: 22 };
+    pose.leftElbow = { x: 38, y: -72 };
+    pose.leftHand = { x: 82, y: -62 };
+    pose.rightElbow = { x: 78, y: -80 };
+    pose.rightHand = { x: 126, y: -58 };
+    pose.weaponStart = { x: 82, y: -82 };
+    pose.weaponEnd = { x: 156, y: -36 };
+    return pose;
+  }
+
+  if (frame === "attack-recover") {
+    pose.hip = { x: 7, y: -34 };
+    pose.shoulder = { x: 18, y: -100 };
+    pose.head = { x: 20, y: -128 };
+    pose.leftKnee = { x: -18, y: -2 };
+    pose.leftFoot = { x: -46, y: 38 };
+    pose.rightKnee = { x: 46, y: 2 };
+    pose.rightFoot = { x: 62, y: 38 };
+    pose.leftElbow = { x: -4, y: -72 };
+    pose.leftHand = { x: 20, y: -42 };
+    pose.rightElbow = { x: 58, y: -70 };
+    pose.rightHand = { x: 90, y: -42 };
+    pose.weaponStart = { x: 46, y: -58 };
+    pose.weaponEnd = { x: 126, y: -30 };
+    return pose;
+  }
+
+  if (frame === "block-brace" || frame === "block-guard") {
+    const brace = frame === "block-brace" ? 1 : 0;
+    pose.hip = { x: -4, y: -34 };
+    pose.shoulder = { x: -8, y: -103 };
+    pose.head = { x: -10, y: -132 };
+    pose.leftKnee = { x: -28, y: -2 };
+    pose.leftFoot = { x: -54, y: 38 };
+    pose.rightKnee = { x: 24, y: 0 };
+    pose.rightFoot = { x: 54, y: 38 };
+    pose.leftElbow = { x: 28, y: -88 };
+    pose.leftHand = { x: 62 + brace * 6, y: -78 };
+    pose.rightElbow = { x: 30, y: -68 };
+    pose.rightHand = { x: 70 + brace * 8, y: -48 };
+    pose.weaponStart = { x: 42, y: -88 };
+    pose.weaponEnd = { x: 92, y: -130 };
+    return pose;
+  }
+
+  if (frame === "hit-stagger") {
+    pose.hip = { x: -12, y: -34 };
+    pose.shoulder = { x: -38, y: -104 };
+    pose.head = { x: -48, y: -130 };
+    pose.leftKnee = { x: -46, y: 2 };
+    pose.leftFoot = { x: -76, y: 38 };
+    pose.rightKnee = { x: 18, y: -8 };
+    pose.rightFoot = { x: 46, y: 38 };
+    pose.leftElbow = { x: -74, y: -96 };
+    pose.leftHand = { x: -94, y: -126 };
+    pose.rightElbow = { x: -2, y: -108 };
+    pose.rightHand = { x: 22, y: -138 };
+    pose.weaponStart = { x: -8, y: -132 };
+    pose.weaponEnd = { x: 60, y: -170 };
+    return pose;
+  }
+
+  if (frame === "ultimate-cast") {
+    pose.bodyLift = -4;
+    pose.hip = { x: 0, y: -34 };
+    pose.shoulder = { x: 0, y: -110 };
+    pose.head = { x: 0, y: -140 };
+    pose.leftElbow = { x: -56, y: -116 };
+    pose.leftHand = { x: -90, y: -146 };
+    pose.rightElbow = { x: 56, y: -116 };
+    pose.rightHand = { x: 96, y: -146 };
+    pose.weaponStart = { x: 42, y: -150 };
+    pose.weaponEnd = { x: 112, y: -196 };
+  }
+
+  return pose;
+}
+
+function drawStickLine(target, x1, y1, x2, y2, width, color) {
+  target.save();
+  target.strokeStyle = color;
+  target.lineWidth = width;
+  target.lineCap = "round";
+  target.lineJoin = "round";
+  target.beginPath();
+  target.moveTo(x1, y1);
+  target.lineTo(x2, y2);
+  target.stroke();
+  target.restore();
+}
+
+function drawStickLimb(target, root, joint, end, width, color) {
+  target.save();
+  target.strokeStyle = color;
+  target.fillStyle = color;
+  target.lineWidth = width;
+  target.lineCap = "round";
+  target.lineJoin = "round";
+  target.beginPath();
+  target.moveTo(root.x, root.y);
+  target.lineTo(joint.x, joint.y);
+  target.lineTo(end.x, end.y);
+  target.stroke();
+
+  const jointRadius = Math.max(4, width * 0.34);
+  for (const point of [joint, end]) {
+    target.beginPath();
+    target.arc(point.x, point.y, jointRadius, 0, Math.PI * 2);
+    target.fill();
+  }
+  target.restore();
+}
+
+function drawShowdownWeapon(target, type, pose, frame, colors) {
+  const attacking = frame.startsWith("attack");
+  if (attacking && type !== "pawn") {
+    drawSpriteWeaponSweep(target, type, pose, frame);
+  }
+
+  if (type === "pawn") {
+    drawPawnFists(target, pose, frame);
+    return;
+  }
+
+  if (type === "rook") {
+    drawSpikeClubWeapon(target, pose.weaponStart, pose.weaponEnd, frame);
+    return;
+  }
+
+  if (type === "horse") {
+    drawSpearWeapon(target, pose.weaponStart, pose.weaponEnd, frame);
+    return;
+  }
+
+  if (type === "bishop") {
+    drawCrossWeapon(target, pose.weaponStart, pose.weaponEnd, frame);
+    return;
+  }
+
+  if (type === "queen") {
+    drawScytheWeapon(target, pose.weaponStart, pose.weaponEnd, frame);
+    return;
+  }
+
+  drawSwordAndShieldWeapon(target, pose, frame, colors);
+}
+
+function drawPawnFists(target, pose, frame) {
+  const attacking = frame.startsWith("attack");
+  const fists = [
+    { point: pose.leftHand, radius: attacking ? 9 : 8 },
+    { point: pose.rightHand, radius: attacking ? 12 : 9 }
+  ];
+
+  target.save();
+  for (const fist of fists) {
+    target.fillStyle = "#050505";
+    target.strokeStyle = attacking ? "rgba(255, 248, 232, 0.62)" : "rgba(255, 248, 232, 0.28)";
+    target.lineWidth = 2.5;
+    target.beginPath();
+    target.arc(fist.point.x, fist.point.y, fist.radius, 0, Math.PI * 2);
+    target.fill();
+    target.stroke();
+  }
+
+  if (attacking) {
+    target.strokeStyle = "rgba(255, 248, 232, 0.38)";
+    target.lineWidth = 5;
+    target.lineCap = "round";
+    target.beginPath();
+    target.moveTo(pose.rightHand.x - 34, pose.rightHand.y - 6);
+    target.lineTo(pose.rightHand.x + 22, pose.rightHand.y + 6);
+    target.stroke();
+    target.beginPath();
+    target.arc(pose.rightHand.x + 17, pose.rightHand.y + 3, 20, -0.4, 0.82);
+    target.stroke();
+  }
+  target.restore();
+}
+
+function drawSpikeClubWeapon(target, start, end, frame) {
+  const attacking = frame.startsWith("attack");
+  drawOrientedWeapon(target, start, end, (weapon, length) => {
+    const headStart = Math.max(22, length * 0.48);
+    const headEnd = length + 12;
+    weapon.lineCap = "round";
+    weapon.lineJoin = "round";
+    drawWeaponShaft(weapon, 0, headStart + 8, attacking ? 8 : 7);
+
+    weapon.fillStyle = "#050505";
+    weapon.strokeStyle = "#d8d8d8";
+    weapon.lineWidth = 2.5;
+    weapon.beginPath();
+    weapon.moveTo(headStart, -12);
+    weapon.lineTo(headStart + 7, -23);
+    weapon.lineTo(headStart + 15, -14);
+    weapon.lineTo(headStart + 25, -25);
+    weapon.lineTo(headStart + 34, -13);
+    weapon.lineTo(headEnd - 8, -17);
+    weapon.lineTo(headEnd + 4, -6);
+    weapon.lineTo(headEnd - 5, 3);
+    weapon.lineTo(headEnd + 5, 13);
+    weapon.lineTo(headEnd - 12, 16);
+    weapon.lineTo(headStart + 34, 13);
+    weapon.lineTo(headStart + 24, 25);
+    weapon.lineTo(headStart + 15, 13);
+    weapon.lineTo(headStart + 6, 22);
+    weapon.lineTo(headStart, 11);
+    weapon.closePath();
+    weapon.fill();
+    weapon.stroke();
+
+    weapon.strokeStyle = "rgba(255, 248, 232, 0.38)";
+    weapon.lineWidth = 3;
+    weapon.beginPath();
+    weapon.moveTo(headStart + 8, -7);
+    weapon.lineTo(headEnd - 10, -10);
+    weapon.stroke();
+  });
+}
+
+function drawSpearWeapon(target, start, end, frame) {
+  const attacking = frame.startsWith("attack");
+  drawOrientedWeapon(target, start, end, (weapon, length) => {
+    drawWeaponShaft(weapon, -8, length - 17, attacking ? 5 : 4);
+
+    weapon.fillStyle = "#050505";
+    weapon.strokeStyle = "#e0e0e0";
+    weapon.lineWidth = 2.2;
+    weapon.beginPath();
+    weapon.moveTo(length + 19, 0);
+    weapon.lineTo(length - 10, -12);
+    weapon.lineTo(length - 2, 0);
+    weapon.lineTo(length - 10, 12);
+    weapon.closePath();
+    weapon.fill();
+    weapon.stroke();
+
+    weapon.strokeStyle = "rgba(255, 248, 232, 0.42)";
+    weapon.lineWidth = 2;
+    weapon.beginPath();
+    weapon.moveTo(4, -2);
+    weapon.lineTo(length - 16, -2);
+    weapon.stroke();
+  });
+}
+
+function drawCrossWeapon(target, start, end, frame) {
+  const attacking = frame.startsWith("attack");
+  drawOrientedWeapon(target, start, end, (weapon, length) => {
+    drawWeaponShaft(weapon, -8, length + 8, attacking ? 8 : 7);
+
+    const barX = Math.max(24, length * 0.62);
+    weapon.strokeStyle = "#050505";
+    weapon.lineWidth = attacking ? 12 : 10;
+    weapon.lineCap = "round";
+    weapon.beginPath();
+    weapon.moveTo(barX, -26);
+    weapon.lineTo(barX, 26);
+    weapon.stroke();
+
+    weapon.strokeStyle = "rgba(255, 248, 232, 0.5)";
+    weapon.lineWidth = 3;
+    weapon.beginPath();
+    weapon.moveTo(barX - 4, -20);
+    weapon.lineTo(barX - 4, 20);
+    weapon.stroke();
+  });
+}
+
+function drawScytheWeapon(target, start, end, frame) {
+  const attacking = frame.startsWith("attack");
+  drawOrientedWeapon(target, start, end, (weapon, length) => {
+    weapon.strokeStyle = "#050505";
+    weapon.lineWidth = attacking ? 8 : 7;
+    weapon.lineCap = "round";
+    weapon.beginPath();
+    weapon.moveTo(-8, 8);
+    weapon.quadraticCurveTo(length * 0.44, -8, length * 0.82, 3);
+    weapon.stroke();
+
+    weapon.fillStyle = "#050505";
+    weapon.strokeStyle = "#d8d8d8";
+    weapon.lineWidth = 2.4;
+    weapon.beginPath();
+    weapon.moveTo(length * 0.58, -2);
+    weapon.quadraticCurveTo(length * 0.82, -56, length + 48, -30);
+    weapon.quadraticCurveTo(length + 8, -24, length * 0.78, 13);
+    weapon.quadraticCurveTo(length * 0.7, 2, length * 0.58, -2);
+    weapon.closePath();
+    weapon.fill();
+    weapon.stroke();
+
+    weapon.strokeStyle = "rgba(255, 248, 232, 0.44)";
+    weapon.lineWidth = 3;
+    weapon.beginPath();
+    weapon.moveTo(length * 0.76, -25);
+    weapon.quadraticCurveTo(length * 0.96, -42, length + 24, -30);
+    weapon.stroke();
+  });
+}
+
+function drawSwordAndShieldWeapon(target, pose, frame, colors) {
+  const blocking = frame.startsWith("block");
+  const shieldPoint = blocking
+    ? { x: (pose.leftHand.x + pose.rightHand.x) / 2 + 4, y: (pose.leftHand.y + pose.rightHand.y) / 2 - 8 }
+    : { x: pose.leftHand.x - 4, y: pose.leftHand.y + 5 };
+
+  if (!blocking) {
+    drawShieldSilhouette(target, shieldPoint, 0.82, colors);
+  }
+
+  drawOrientedWeapon(target, pose.weaponStart, pose.weaponEnd, (weapon, length) => {
+    weapon.fillStyle = "#050505";
+    weapon.strokeStyle = "#d8d8d8";
+    weapon.lineWidth = 2.3;
+    weapon.lineJoin = "round";
+    weapon.beginPath();
+    weapon.moveTo(8, -4);
+    weapon.lineTo(length - 13, -5);
+    weapon.lineTo(length + 15, 0);
+    weapon.lineTo(length - 13, 5);
+    weapon.lineTo(8, 4);
+    weapon.closePath();
+    weapon.fill();
+    weapon.stroke();
+
+    weapon.strokeStyle = "#050505";
+    weapon.lineWidth = 7;
+    weapon.lineCap = "round";
+    weapon.beginPath();
+    weapon.moveTo(18, -16);
+    weapon.lineTo(18, 16);
+    weapon.stroke();
+    weapon.beginPath();
+    weapon.moveTo(-13, 0);
+    weapon.lineTo(12, 0);
+    weapon.stroke();
+    weapon.fillStyle = "#050505";
+    weapon.beginPath();
+    weapon.arc(-17, 0, 6, 0, Math.PI * 2);
+    weapon.fill();
+  });
+
+  if (blocking) {
+    drawShieldSilhouette(target, shieldPoint, 1.14, colors);
+  }
+}
+
+function drawShieldSilhouette(target, point, scale, colors) {
+  target.save();
+  target.translate(point.x, point.y);
+  target.scale(scale, scale);
+  target.fillStyle = "#050505";
+  target.strokeStyle = "#d8d8d8";
+  target.lineWidth = 3;
+  target.beginPath();
+  target.moveTo(0, -33);
+  target.quadraticCurveTo(-25, -28, -30, -6);
+  target.quadraticCurveTo(-22, 22, 0, 38);
+  target.quadraticCurveTo(22, 22, 30, -6);
+  target.quadraticCurveTo(24, -28, 0, -33);
+  target.closePath();
+  target.fill();
+  target.stroke();
+
+  target.strokeStyle = colors.light;
+  target.globalAlpha = 0.38;
+  target.lineWidth = 4;
+  target.beginPath();
+  target.moveTo(-10, -20);
+  target.quadraticCurveTo(-17, 2, -2, 25);
+  target.stroke();
+  target.restore();
+}
+
+function drawSpriteWeaponSweep(target, type, pose, frame) {
+  const start = pose.weaponStart;
+  const end = pose.weaponEnd;
+  const midX = (start.x + end.x) / 2;
+  const scythe = type === "queen";
+  const spear = type === "horse";
+  const club = type === "rook";
+  const midY = Math.min(start.y, end.y) - (scythe ? 72 : spear ? 14 : 48);
+
+  target.save();
+  target.globalAlpha = scythe ? 0.42 : 0.32;
+  target.strokeStyle = "#f7f7f7";
+  target.lineWidth = scythe ? 22 : club ? 19 : 14;
+  target.lineCap = "round";
+  target.beginPath();
+  target.moveTo(start.x - (spear ? 10 : 26), start.y - (spear ? 4 : 18));
+  target.quadraticCurveTo(midX, midY, end.x + (scythe ? 28 : 0), end.y + (scythe ? -16 : 0));
+  target.stroke();
+
+  target.globalAlpha = 0.48;
+  target.strokeStyle = "#8a8a8a";
+  target.lineWidth = spear ? 3 : 5;
+  target.beginPath();
+  target.moveTo(start.x - 16, start.y - 12);
+  target.quadraticCurveTo(midX + 8, midY + 20, end.x + 8, end.y + 4);
+  target.stroke();
+  target.restore();
+}
+
+function drawOrientedWeapon(target, start, end, drawLocal) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.max(1, Math.hypot(dx, dy));
+
+  target.save();
+  target.translate(start.x, start.y);
+  target.rotate(Math.atan2(dy, dx));
+  drawLocal(target, length);
+  target.restore();
+}
+
+function drawWeaponShaft(target, fromX, toX, width) {
+  target.strokeStyle = "#050505";
+  target.lineWidth = width;
+  target.lineCap = "round";
+  target.beginPath();
+  target.moveTo(fromX, 0);
+  target.lineTo(toX, 0);
+  target.stroke();
+
+  target.strokeStyle = "rgba(255, 248, 232, 0.28)";
+  target.lineWidth = Math.max(2, width * 0.24);
+  target.beginPath();
+  target.moveTo(fromX + 4, -width * 0.18);
+  target.lineTo(toX - 5, -width * 0.18);
+  target.stroke();
+}
+
+function drawStickmanHeadgear(target, type, colors, head) {
+  target.save();
+  target.translate(head.x, head.y);
+  target.strokeStyle = colors.stroke;
+  target.fillStyle = colors.light;
+  target.lineCap = "round";
+  target.lineJoin = "round";
+  target.lineWidth = 4;
+
+  if (type === "pawn") {
+    target.beginPath();
+    target.arc(0, -30, 8, 0, Math.PI * 2);
+    target.fill();
+    target.stroke();
+    target.restore();
+    return;
+  }
+
+  if (type === "rook") {
+    target.beginPath();
+    target.rect(-24, -42, 48, 17);
+    target.fill();
+    target.stroke();
+    for (let i = -1; i <= 1; i += 1) {
+      target.beginPath();
+      target.rect(i * 18 - 5, -52, 10, 15);
+      target.fill();
+      target.stroke();
+    }
+    target.restore();
+    return;
+  }
+
+  if (type === "horse") {
+    target.beginPath();
+    target.moveTo(-18, -24);
+    target.bezierCurveTo(-12, -58, 24, -58, 22, -28);
+    target.bezierCurveTo(11, -35, -1, -35, -18, -24);
+    target.closePath();
+    target.fill();
+    target.stroke();
+    target.restore();
+    return;
+  }
+
+  if (type === "bishop") {
+    target.beginPath();
+    target.ellipse(0, -36, 18, 23, 0.12, 0, Math.PI * 2);
+    target.fill();
+    target.stroke();
+    target.strokeStyle = colors.ink;
+    target.lineWidth = 3.5;
+    target.beginPath();
+    target.moveTo(0, -57);
+    target.lineTo(0, -20);
+    target.moveTo(-12, -43);
+    target.lineTo(12, -43);
+    target.stroke();
+    target.restore();
+    return;
+  }
+
+  if (type === "queen") {
+    target.beginPath();
+    target.moveTo(-29, -26);
+    target.lineTo(-20, -48);
+    target.lineTo(-7, -33);
+    target.lineTo(0, -52);
+    target.lineTo(8, -33);
+    target.lineTo(20, -48);
+    target.lineTo(29, -26);
+    target.closePath();
+    target.fill();
+    target.stroke();
+    target.restore();
+    return;
+  }
+
+  target.beginPath();
+  target.arc(0, -31, 9, 0, Math.PI * 2);
+  target.fill();
+  target.stroke();
+  target.strokeStyle = colors.ink;
+  target.lineWidth = 4;
+  target.beginPath();
+  target.moveTo(0, -58);
+  target.lineTo(0, -22);
+  target.moveTo(-13, -46);
+  target.lineTo(13, -46);
+  target.stroke();
+  target.restore();
 }
 
 function drawSpriteTop(spriteCtx, type, colors) {
@@ -3250,6 +4009,27 @@ function drawShowdownStateBanner() {
     const detail = winner ? `${describePiece(winner)} wins round ${showoff.round}` : `Round ${showoff.round} finished`;
     drawShowdownBanner(title, detail, `Score ${score}`);
   }
+}
+
+function drawCombatBanner() {
+  if (!state.combatBanner) {
+    return;
+  }
+
+  const alpha = Math.min(1, state.combatBanner.timer / 0.28);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.72)";
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = "#ff2f3d";
+  ctx.font = "900 70px Georgia, serif";
+  ctx.fillText(state.combatBanner.title, canvas.width / 2, 292);
+  ctx.fillStyle = "#fff8e8";
+  ctx.font = "900 22px Inter, Arial, sans-serif";
+  ctx.fillText(state.combatBanner.detail, canvas.width / 2, 344);
+  ctx.restore();
 }
 
 function drawShowdownBanner(title, detail, subdetail) {

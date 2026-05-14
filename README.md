@@ -27,7 +27,7 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Local two-player mode and player-versus-AI mode.
 - Pawns, rooks, horses, bishops, queen, and king use chess-style movement.
 - Captures start a best-of-3 Showdown duel instead of instantly removing the defender.
-- Each Showdown round lasts 60 seconds. If time expires, the piece with higher health wins the round.
+- Each Showdown starts both pieces at full HP, and each round lasts 60 seconds. If time expires, the piece with higher health wins the round.
 - Piece HP starts from the v1.0.1 values: pawn 100, rook 115, horse 120, bishop 130, queen 150, king 200.
 - Showdown attacks deal 5-10 base damage.
 - Piece weapons are visible in Showdown: fists, spike club, javelin, cross, scythe, and sword & shield.
@@ -116,3 +116,22 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Confirmed mana capacity at 100.
 - Mana now resets only at the start of a Showdown, not between rounds or at Showdown end.
 - Selection-based powerups now require the player to make and use the selection before the board move is completed.
+
+## Patch Notes v1.0.9
+
+- Every Showdown now starts both involved pieces at full HP.
+- Piece HP is disabled on the board and no longer retains leftover Showdown HP after a duel.
+- Critical damage no longer pauses the action. It now shows a large red critical text and briefly tints the damaged fighter red.
+- Improved the board with extra 3D depth, bevels, and a raised plinth.
+- Improved Showdown fighter visuals with taller sprites and bold stickman-style combat animations.
+- Adjusted Showdown sprite height to prevent Bishop headgear from being cropped.
+
+## Showdown Animation Update
+
+- Improved Showdown fighters with GIF-inspired stickman movement: four-frame runs, jump/fall poses, windup/swing/strike/recover attacks, blocking braces, hit staggers, weapon sweep trails, and fast-motion afterimages.
+
+## Patch Notes v1.1.0
+
+- Improved Showdown weapons with reference-inspired silhouettes for spike clubs, spears/javelins, crosses, scythes, and sword-and-shield sets.
+- Pawns now keep a weaponless fist style during Showdown.
+- Weapons now attach to the fighter pose so they move with attacks, blocks, jumps, and running frames.
