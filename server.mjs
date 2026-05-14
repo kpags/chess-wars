@@ -6,6 +6,7 @@ import { extname, join, normalize, resolve } from "node:path";
 const root = process.cwd();
 const preferredPort = Number(process.env.PORT || 4173);
 const rooms = new Map();
+const STREAM_HEARTBEAT_MS = 15000;
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -54,7 +55,7 @@ async function handleApiRequest(request, response, url) {
       return;
     }
 
-    const roomMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{4,8})(?:\/(join|events))?$/);
+    const roomMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{4,8})(?:\/(join|events|stream))?$/);
     if (!roomMatch) {
       sendJson(response, 404, { error: "Unknown endpoint" });
       return;
@@ -63,6 +64,16 @@ async function handleApiRequest(request, response, url) {
     const roomId = roomMatch[1];
     const action = roomMatch[2];
     const room = getOrCreateRoom(roomId);
+
+    if (request.method === "GET" && action === "stream") {
+      const clientId = sanitizeClientId(url.searchParams.get("clientId") || "");
+      const since = Math.max(
+        Number(url.searchParams.get("since") || 0),
+        Number(request.headers["last-event-id"] || 0)
+      );
+      openEventStream(request, response, room, clientId, since);
+      return;
+    }
 
     if (request.method === "POST" && action === "join") {
       const body = await readJson(request);
@@ -114,6 +125,7 @@ function getOrCreateRoom(id) {
       hostId: null,
       guestId: null,
       events: [],
+      streams: new Set(),
       nextEventId: 1,
       updatedAt: Date.now()
     });
@@ -150,7 +162,52 @@ function addEvent(room, clientId, type, payload, role = null) {
   room.events.push(event);
   room.events = room.events.slice(-500);
   room.updatedAt = Date.now();
+  broadcastEvent(room, event);
   return event;
+}
+
+function openEventStream(request, response, room, clientId, since) {
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no"
+  });
+  response.write(`retry: 1200\n`);
+  response.write(`: connected ${Date.now()}\n\n`);
+
+  const stream = {
+    clientId,
+    response,
+    heartbeat: setInterval(() => {
+      response.write(`: ping ${Date.now()}\n\n`);
+    }, STREAM_HEARTBEAT_MS)
+  };
+  room.streams.add(stream);
+
+  for (const event of room.events.filter((candidate) => candidate.id > since && candidate.clientId !== clientId)) {
+    writeStreamEvent(stream, event);
+  }
+
+  request.on("close", () => {
+    clearInterval(stream.heartbeat);
+    room.streams.delete(stream);
+  });
+}
+
+function broadcastEvent(room, event) {
+  for (const stream of room.streams) {
+    if (stream.clientId === event.clientId) {
+      continue;
+    }
+    writeStreamEvent(stream, event);
+  }
+}
+
+function writeStreamEvent(stream, event) {
+  stream.response.write(`id: ${event.id}\n`);
+  stream.response.write(`event: room-event\n`);
+  stream.response.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
 function sanitizeClientId(value) {

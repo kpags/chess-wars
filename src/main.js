@@ -47,6 +47,7 @@ const els = {
   duelLeftMana: document.querySelector("#duel-left-mana"),
   duelRightMana: document.querySelector("#duel-right-mana"),
   battleLog: document.querySelector("#battle-log"),
+  battleLogCard: document.querySelector("#battle-log-card"),
   touchControls: document.querySelector("#showoff-touch")
 };
 
@@ -112,6 +113,7 @@ const SHOWDOWN_ROUNDS_TO_WIN = 2;
 const MAX_MANA = 100;
 const SMASH_DAMAGE_BONUS = 0.5;
 const DASH_MULTIPLIER = 1.75;
+const ULTIMATE_ATTACK_RANGE = ARENA.attackRange;
 const SHOWDOWN_SPRITE_WIDTH = 240;
 const SHOWDOWN_SPRITE_HEIGHT = 272;
 const ULTIMATE_KEYS = ["e", "E", "KeyE"];
@@ -152,9 +154,13 @@ const online = {
   lastEventId: 0,
   pollTimer: 0,
   pollInFlight: false,
+  stream: null,
+  streamConnected: false,
   snapshotTimer: 0,
   remoteInput: { x: 0, y: 0, attack: false, block: false, jump: false, ultimate: false },
   lastSentInput: "",
+  pendingSnapshotEvent: null,
+  pendingSnapshotFrame: 0,
   showdownTargets: new Map()
 };
 
@@ -562,7 +568,8 @@ function createFighter(piece, x, facing, role) {
     dashTimer: 0,
     barrageTimer: 0,
     barrageShots: 0,
-    ultimateTimer: 0
+    ultimateTimer: 0,
+    jumpHeld: false
   };
 }
 
@@ -1183,6 +1190,7 @@ async function joinOnlineRoom(roomId) {
     els.modeLocal.classList.remove("is-active");
     resetGame();
     state.message = getOnlineRoleMessage();
+    openOnlineStream();
     syncOnlineHud();
     syncHud();
     if (isOnlineHost()) {
@@ -1196,15 +1204,18 @@ async function joinOnlineRoom(roomId) {
 }
 
 function leaveOnlineRoom(resetUrl = true) {
+  closeOnlineStream();
   online.roomId = null;
   online.role = "offline";
   online.connected = false;
   online.lastEventId = 0;
   online.pollTimer = 0;
   online.pollInFlight = false;
+  online.streamConnected = false;
   online.snapshotTimer = 0;
   online.remoteInput = { x: 0, y: 0, attack: false, block: false, jump: false, ultimate: false };
   online.lastSentInput = "";
+  online.pendingSnapshotEvent = null;
   online.showdownTargets.clear();
   if (resetUrl && window.location.search.includes("room=")) {
     window.history.replaceState({}, "", window.location.pathname);
@@ -1217,10 +1228,14 @@ function updateOnline(dt) {
     return;
   }
 
-  online.pollTimer -= dt;
-  if (online.pollTimer <= 0 && !online.pollInFlight) {
+  if (!online.streamConnected) {
+    online.pollTimer -= dt;
+    if (online.pollTimer <= 0 && !online.pollInFlight) {
+      online.pollTimer = ONLINE_POLL_INTERVAL;
+      pollOnlineEvents();
+    }
+  } else {
     online.pollTimer = ONLINE_POLL_INTERVAL;
-    pollOnlineEvents();
   }
 
   if (isOnlineHost()) {
@@ -1238,6 +1253,51 @@ function shouldPublishPeriodicSnapshot() {
   return state.phase === "showoff" || Boolean(state.announcement);
 }
 
+function openOnlineStream() {
+  if (!online.roomId || !("EventSource" in window)) {
+    return;
+  }
+
+  closeOnlineStream();
+  const streamUrl = `/api/rooms/${online.roomId}/stream?clientId=${encodeURIComponent(online.clientId)}&since=${online.lastEventId}`;
+  const stream = new EventSource(streamUrl);
+  online.stream = stream;
+  online.streamConnected = false;
+
+  stream.addEventListener("open", () => {
+    online.streamConnected = true;
+    online.connected = true;
+    syncOnlineHud();
+  });
+
+  stream.addEventListener("room-event", (message) => {
+    try {
+      const event = JSON.parse(message.data);
+      handleOnlineEvent(event);
+    } catch {
+      online.streamConnected = false;
+    }
+  });
+
+  stream.addEventListener("error", () => {
+    online.streamConnected = false;
+    syncOnlineHud();
+  });
+}
+
+function closeOnlineStream() {
+  if (online.stream) {
+    online.stream.close();
+  }
+  online.stream = null;
+  online.streamConnected = false;
+  if (online.pendingSnapshotFrame) {
+    cancelAnimationFrame(online.pendingSnapshotFrame);
+  }
+  online.pendingSnapshotFrame = 0;
+  online.pendingSnapshotEvent = null;
+}
+
 async function pollOnlineEvents() {
   if (online.pollInFlight) {
     return;
@@ -1249,9 +1309,8 @@ async function pollOnlineEvents() {
     const events = data.events ?? [];
     const latestSnapshot = [...events].reverse().find((event) => event.type === "snapshot");
     for (const event of events) {
-      online.lastEventId = Math.max(online.lastEventId, event.id);
       if (event.type !== "snapshot" || event === latestSnapshot) {
-        processOnlineEvent(event);
+        handleOnlineEvent(event);
       }
     }
     online.connected = true;
@@ -1264,11 +1323,35 @@ async function pollOnlineEvents() {
   }
 }
 
+function handleOnlineEvent(event) {
+  online.lastEventId = Math.max(online.lastEventId, event.id ?? 0);
+  if ((isOnlineGuest() || isOnlineSpectator()) && event.type === "snapshot" && online.streamConnected) {
+    online.pendingSnapshotEvent = event;
+    if (!online.pendingSnapshotFrame) {
+      online.pendingSnapshotFrame = requestAnimationFrame(flushOnlineSnapshotEvent);
+    }
+    return;
+  }
+
+  processOnlineEvent(event);
+}
+
+function flushOnlineSnapshotEvent() {
+  online.pendingSnapshotFrame = 0;
+  const event = online.pendingSnapshotEvent;
+  online.pendingSnapshotEvent = null;
+  if (event) {
+    processOnlineEvent(event);
+  }
+}
+
 function processOnlineEvent(event) {
   if (isOnlineHost()) {
     if (event.type === "board-click" && state.currentTeam === TEAM.BLACK && !state.announcement) {
       handleBoardSquare(event.payload);
       publishSnapshot("move");
+    } else if (event.type === "presence") {
+      publishSnapshot("presence");
     } else if (event.type === "choice-action" && state.pendingChoice?.team === TEAM.BLACK && !state.announcement) {
       handlePowerupChoiceAction(event.payload.action, Number(event.payload.id));
       publishSnapshot("choice");
@@ -1933,9 +2016,17 @@ function applyFighterInput(fighter, input, dt) {
     fighter.blockTimer = 0.28;
   }
 
-  if (!stunned && input.jump && fighter.onGround) {
+  const jumpPressed = Boolean(input.jump);
+  fighter.jumpHeld ??= false;
+  if (!jumpPressed) {
+    fighter.jumpHeld = false;
+  }
+  if (!stunned && jumpPressed && !fighter.jumpHeld && fighter.onGround) {
     fighter.vz = 430 * dashMultiplier;
     fighter.onGround = false;
+  }
+  if (jumpPressed) {
+    fighter.jumpHeld = true;
   }
 
   const moving = !stunned && Math.abs(input.x) > 0.01;
@@ -2016,10 +2107,10 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
   }
 
   let damage = amount;
-  if (opponent.block) {
-    damage = roundDamage(Math.max(1, damage * ARENA.blockReduction));
-  }
-  if ((opponent.fortifyTimer ?? 0) > 0) {
+  const blocked = Boolean(opponent.block);
+  if (blocked) {
+    damage = randomInt(0, 2);
+  } else if ((opponent.fortifyTimer ?? 0) > 0) {
     damage = roundDamage(Math.max(1, damage * 0.5));
   }
 
@@ -2032,7 +2123,7 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
   state.shake = Math.max(state.shake, options.shake ?? 0.18);
   addFloatingText(`${options.critical ? "Crit " : ""}-${formatNumber(damage)}`, opponent.x, opponent.y - 120, options.color ?? "#f7efe0");
 
-  if (options.mana && damage > 0) {
+  if (options.mana && damage > 0 && !blocked) {
     grantMana(attackerPiece, attacker, randomInt(5, 10));
   }
 
@@ -2082,7 +2173,11 @@ function tryUltimate(fighter) {
 function dealUltimateDamage(fighter, opponent, damage, label, stun = 0) {
   const attackerPiece = getPieceById(state.pieces, fighter.id);
   if (!attackerPiece) {
-    return;
+    return 0;
+  }
+  if (!isUltimateAttackInRange(fighter, opponent)) {
+    missUltimateAttack(fighter, attackerPiece, label);
+    return 0;
   }
   const boostedDamage = applySmashDamageBonus(attackerPiece, damage);
   const dealt = dealCombatDamage(fighter, opponent, boostedDamage, {
@@ -2093,6 +2188,16 @@ function dealUltimateDamage(fighter, opponent, damage, label, stun = 0) {
     shake: 0.24
   });
   addLog(`${describePiece(attackerPiece)}'s ${label} deals ${formatNumber(dealt)}.`);
+  return dealt;
+}
+
+function isUltimateAttackInRange(fighter, opponent) {
+  return Math.abs(opponent.x - fighter.x) <= ULTIMATE_ATTACK_RANGE;
+}
+
+function missUltimateAttack(fighter, attackerPiece, label) {
+  addFloatingText(`${label} Miss`, fighter.x + fighter.facing * 82, fighter.y - 105, "#f2dfbb");
+  addLog(`${describePiece(attackerPiece)}'s ${label} misses.`);
 }
 
 function updateBarrage(fighter, dt) {
@@ -2106,11 +2211,7 @@ function updateBarrage(fighter, dt) {
     fighter.barrageShots -= 1;
     fighter.attackTimer = ARENA.attackDuration;
     const opponent = getOpponentFighter(fighter);
-    if (Math.abs(opponent.x - fighter.x) <= ARENA.attackRange + 110) {
-      dealUltimateDamage(fighter, opponent, 10, "Barrage", 0.32);
-    } else {
-      addFloatingText("Barrage Miss", fighter.x + fighter.facing * 82, fighter.y - 105, "#f2dfbb");
-    }
+    dealUltimateDamage(fighter, opponent, 10, "Barrage", 0.32);
   }
 }
 
@@ -2227,11 +2328,16 @@ function syncHud() {
     els.duelRightManaText.textContent = `Mana ${formatNumber(rightPiece.mana ?? 0)}/${MAX_MANA}`;
   }
 
-  els.battleLog.replaceChildren(...state.log.slice(0, 8).map((entry) => {
-    const li = document.createElement("li");
-    li.textContent = entry;
-    return li;
-  }));
+  els.battleLogCard.classList.toggle("is-hidden", state.phase !== "showoff");
+  if (state.phase === "showoff") {
+    els.battleLog.replaceChildren(...state.log.slice(0, 8).map((entry) => {
+      const li = document.createElement("li");
+      li.textContent = entry;
+      return li;
+    }));
+  } else {
+    els.battleLog.replaceChildren();
+  }
 }
 
 function getShowdownHudFighters() {

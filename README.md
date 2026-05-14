@@ -135,3 +135,17 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Improved Showdown weapons with reference-inspired silhouettes for spike clubs, spears/javelins, crosses, scythes, and sword-and-shield sets.
 - Pawns now keep a weaponless fist style during Showdown.
 - Weapons now attach to the fighter pose so they move with attacks, blocks, jumps, and running frames.
+
+## Online Performance Update
+
+- Added realtime room event streaming for deployed multiplayer so board moves and Showdown inputs reach the other player without waiting for the old polling loop.
+- Kept the polling path as a fallback for browsers or networks that cannot keep an event stream open.
+- Streamed Showdown snapshots are coalesced to animation frames to reduce invited-device stutter.
+
+## Patch Notes v1.1.1
+
+- Attack ultimates now only deal damage when the opponent is within hit range; Heavy Fist, Barrage, and Hard Swing miss when used too far away.
+- Holding the Showdown jump button no longer repeats jumps after landing. The player must release and press jump again.
+- Blocking now caps incoming damage to a random 0-2 damage and prevents the attacker from gaining mana on that hit.
+- The battle log now appears only during Showdown and is positioned below the chessboard.
+- The game title now sits at the top center instead of in the right-side HUD.

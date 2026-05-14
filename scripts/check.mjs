@@ -54,6 +54,7 @@ assert.ok(getAllLegalMoves(pieces, TEAM.BLACK).length > 0, "black should have le
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
+const styles = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
 assert.match(html, /Chess Wars/, "index should render Chess Wars");
 assert.match(html, /Showdown/, "index should render Showdown wording");
 assert.match(main, /SHOWDOWN/, "client should include Showdown phase rendering");
@@ -76,6 +77,11 @@ assert.match(main, /ANNOUNCEMENT_SECONDS = 1/, "client should pause announcement
 assert.match(main, /ONLINE_POLL_INTERVAL = 0\.08/, "online room polling should be responsive for invited-device moves");
 assert.match(main, /ONLINE_SNAPSHOT_INTERVAL = 0\.12/, "online Showdown snapshots should be frequent enough to avoid guest freezes");
 assert.match(main, /REMOTE_SHOWDOWN_LERP = 18/, "remote Showdown positions should be smoothed on invited devices");
+assert.match(main, /new EventSource/, "online rooms should use a realtime event stream when available");
+assert.match(main, /openOnlineStream/, "client should open a room event stream after joining");
+assert.match(main, /closeOnlineStream/, "client should close stale room event streams when leaving or switching rooms");
+assert.match(main, /streamConnected/, "client should keep polling only as a fallback when realtime streaming is unavailable");
+assert.match(main, /flushOnlineSnapshotEvent/, "streamed snapshots should be coalesced to animation frames");
 assert.match(main, /updateRemoteShowdownVisuals/, "invited devices should animate remote Showdown snapshots locally");
 assert.match(main, /preserveRemoteShowdownVisuals/, "invited devices should preserve local visual positions between snapshots");
 assert.match(main, /publishSnapshot\("showdown-end"\)/, "host should publish a final snapshot when Showdown ends");
@@ -140,9 +146,27 @@ assert.match(main, /pose\.weaponStart/, "Showdown weapons should attach to anima
 assert.match(main, /state\.mouse\.attack/, "client should support mouse attack controls");
 assert.match(main, /jump: \[\" \", \"Space\", \"Spacebar\"\]/, "client should support Space jump controls");
 assert.match(main, /Math\.random\(\) < 0\.04/, "critical chance should be 4 percent");
+assert.match(main, /ULTIMATE_ATTACK_RANGE = ARENA\.attackRange/, "attack ultimates should use normal attack range checks");
+assert.match(main, /isUltimateAttackInRange/, "attack ultimates should miss when the target is out of range");
+assert.match(main, /missUltimateAttack/, "missed attack ultimates should show and log misses");
+assert.match(main, /dealUltimateDamage\(fighter, opponent, 10, "Barrage"/, "Barrage shots should share the attack ultimate hit check");
+assert.doesNotMatch(main, /ARENA\.attackRange \+ 110/, "Barrage should not use the old extended hit range");
+assert.match(main, /fighter\.jumpHeld/, "Showdown jump should require a new press after landing");
+assert.match(main, /randomInt\(0, 2\)/, "blocking should reduce incoming damage to a 0-2 roll");
+assert.match(main, /options\.mana && damage > 0 && !blocked/, "attacking a blocking fighter should not grant mana");
+assert.match(main, /battleLogCard\.classList\.toggle\("is-hidden", state\.phase !== "showoff"\)/, "battle log should only be visible during Showdown");
+assert.match(html, /<header class="brand-block game-title">/, "game title should sit in the top header");
+assert.match(html, /<section class="board-column"[\s\S]*id="battle-log-card"[\s\S]*<\/section>\s*<aside class="hud"/, "battle log should live below the chessboard column");
+assert.doesNotMatch(html, /<aside class="hud"[\s\S]*<div class="log-card"/, "battle log should no longer live in the right-side HUD");
+assert.match(styles, /grid-template-areas:\s*"title title"\s*"board hud"/, "desktop layout should place the title above board and HUD");
+assert.match(styles, /\.game-title\s*\{[\s\S]*justify-self: center/, "game title should be centered at the top");
+assert.match(styles, /\.board-column \.log-card\s*\{/, "battle log should have board-column layout styling");
 
 const server = readFileSync(new URL("../server.mjs", import.meta.url), "utf8");
 assert.match(server, /\/api\/rooms/, "server should expose room endpoints");
 assert.match(server, /0\.0\.0\.0/, "server should bind beyond localhost for two-device room links");
+assert.match(server, /text\/event-stream/, "server should expose a realtime room event stream");
+assert.match(server, /broadcastEvent/, "server should broadcast room events to open streams");
+assert.match(server, /last-event-id/, "server should resume event streams without replaying stale events");
 
 console.log("Chess Wars checks passed.");

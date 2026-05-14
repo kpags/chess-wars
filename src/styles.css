@@ -38,20 +38,26 @@ button {
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(320px, 1fr) 380px;
+  grid-template-areas:
+    "title title"
+    "board hud";
   gap: 22px;
   padding: 22px;
+  align-items: start;
 }
 
 .board-column {
+  grid-area: board;
   min-width: 0;
   display: grid;
-  align-content: center;
+  align-content: start;
+  justify-items: center;
   gap: 14px;
 }
 
 #game-canvas {
-  width: min(100%, calc(100vh - 44px));
-  max-height: calc(100vh - 44px);
+  width: min(100%, calc(100vh - 150px));
+  max-height: calc(100vh - 150px);
   aspect-ratio: 1;
   display: block;
   justify-self: center;
@@ -62,10 +68,11 @@ button {
 }
 
 .hud {
+  grid-area: hud;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  align-self: center;
+  align-self: start;
 }
 
 .brand-block,
@@ -90,10 +97,21 @@ button {
   padding: 20px;
 }
 
+.game-title {
+  grid-area: title;
+  width: min(760px, 100%);
+  justify-self: center;
+  padding: 0 0 4px;
+  text-align: center;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .brand-block h1 {
   margin: 2px 0 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  font-size: 3.8rem;
   line-height: 0.92;
 }
 
@@ -315,6 +333,12 @@ meter::-webkit-meter-optimum-value {
   min-height: 168px;
 }
 
+.board-column .log-card {
+  width: min(100%, 960px);
+  min-height: 142px;
+  justify-self: center;
+}
+
 .log-card ol {
   display: grid;
   gap: 8px;
@@ -370,6 +394,10 @@ meter::-webkit-meter-optimum-value {
 @media (max-width: 1020px) {
   .game-shell {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "board"
+      "hud";
     min-height: auto;
   }
 
@@ -384,8 +412,8 @@ meter::-webkit-meter-optimum-value {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .brand-block,
-  .log-card {
+  .game-title,
+  .board-column .log-card {
     grid-column: 1 / -1;
   }
 }
@@ -406,6 +434,10 @@ meter::-webkit-meter-optimum-value {
 
   .touch-bank > button {
     min-height: 48px;
+  }
+
+  .brand-block h1 {
+    font-size: 2.5rem;
   }
 }
 

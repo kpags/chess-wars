@@ -8,6 +8,11 @@
   </head>
   <body>
     <main class="game-shell">
+      <header class="brand-block game-title">
+        <p class="eyebrow">Board tactics with duels</p>
+        <h1>Chess Wars</h1>
+      </header>
+
       <section class="board-column" aria-label="Chess Wars board">
         <canvas id="game-canvas" width="960" height="960" aria-label="Game canvas"></canvas>
         <div id="showoff-touch" class="touch-controls is-hidden" aria-label="Showdown touch controls">
@@ -34,14 +39,13 @@
             <button data-touch="p2-block">Block</button>
           </div>
         </div>
+        <div id="battle-log-card" class="log-card is-hidden">
+          <span class="label">Battle Log</span>
+          <ol id="battle-log"></ol>
+        </div>
       </section>
 
       <aside class="hud" aria-label="Game controls and status">
-        <div class="brand-block">
-          <p class="eyebrow">Board tactics with duels</p>
-          <h1>Chess Wars</h1>
-        </div>
-
         <div class="mode-card">
           <div class="segmented" role="group" aria-label="Game mode">
             <button id="mode-ai" class="is-active" type="button">Vs AI</button>
@@ -110,11 +114,6 @@
               <meter id="duel-right-mana" class="mana-meter" min="0" max="100" value="0"></meter>
             </div>
           </div>
-        </div>
-
-        <div class="log-card">
-          <span class="label">Battle Log</span>
-          <ol id="battle-log"></ol>
         </div>
 
         <details class="rules-card">
