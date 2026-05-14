@@ -114,13 +114,17 @@ const MAX_MANA = 100;
 const SMASH_DAMAGE_BONUS = 0.5;
 const DASH_MULTIPLIER = 1.75;
 const ULTIMATE_ATTACK_RANGE = ARENA.attackRange;
+const STAMPEDE_DURATION = 3;
+const STAMPEDE_SPEED_MULTIPLIER = 2;
+const STAMPEDE_DAMAGE = 8;
+const STAMPEDE_HIT_COOLDOWN = 0.18;
 const SHOWDOWN_SPRITE_WIDTH = 240;
 const SHOWDOWN_SPRITE_HEIGHT = 272;
 const ULTIMATE_KEYS = ["e", "E", "KeyE"];
 const ULTIMATES = {
   pawn: { name: "Heavy Fist", detail: "25 damage" },
   rook: { name: "Fortify", detail: "50% damage reduction for 5s" },
-  horse: { name: "Dash", detail: "75% speed and jump for 5s" },
+  horse: { name: "Stampede", detail: "200% speed for 3s, 8 damage on each pass" },
   bishop: { name: "Blessing", detail: "Restore 30% HP" },
   queen: { name: "Barrage", detail: "5 hits at 10 damage" },
   king: { name: "Hard Swing", detail: "80 damage and 3s stun" }
@@ -566,10 +570,17 @@ function createFighter(piece, x, facing, role) {
     stunTimer: 0,
     fortifyTimer: 0,
     dashTimer: 0,
+    stampedeTimer: 0,
+    stampedeDirection: facing,
+    stampedeHitCooldown: 0,
     barrageTimer: 0,
     barrageShots: 0,
     ultimateTimer: 0,
-    jumpHeld: false
+    jumpHeld: false,
+    fallen: false,
+    fallTimer: 0,
+    victoryPose: false,
+    victoryTimer: 0
   };
 }
 
@@ -1468,9 +1479,16 @@ function createRemoteShowdownTargets(showoff) {
       stunTimer: fighter.stunTimer ?? 0,
       fortifyTimer: fighter.fortifyTimer ?? 0,
       dashTimer: fighter.dashTimer ?? 0,
+      stampedeTimer: fighter.stampedeTimer ?? 0,
+      stampedeDirection: fighter.stampedeDirection ?? fighter.facing,
+      stampedeHitCooldown: fighter.stampedeHitCooldown ?? 0,
       barrageTimer: fighter.barrageTimer ?? 0,
       barrageShots: fighter.barrageShots ?? 0,
-      ultimateTimer: fighter.ultimateTimer ?? 0
+      ultimateTimer: fighter.ultimateTimer ?? 0,
+      fallen: Boolean(fighter.fallen),
+      fallTimer: fighter.fallTimer ?? 0,
+      victoryPose: Boolean(fighter.victoryPose),
+      victoryTimer: fighter.victoryTimer ?? 0
     });
   }
   return targets;
@@ -1499,6 +1517,13 @@ function preserveRemoteShowdownVisuals(previousFighters) {
     fighter.hitFlash = Math.max(previous.hitFlash ?? 0, fighter.hitFlash ?? 0);
     fighter.criticalFlash = Math.max(previous.criticalFlash ?? 0, fighter.criticalFlash ?? 0);
     fighter.ultimateTimer = Math.max(previous.ultimateTimer ?? 0, fighter.ultimateTimer ?? 0);
+    fighter.stampedeTimer = Math.max(previous.stampedeTimer ?? 0, fighter.stampedeTimer ?? 0);
+    fighter.stampedeDirection = previous.stampedeDirection ?? fighter.stampedeDirection ?? fighter.facing;
+    fighter.stampedeHitCooldown = Math.max(previous.stampedeHitCooldown ?? 0, fighter.stampedeHitCooldown ?? 0);
+    fighter.fallen = previous.fallen ?? fighter.fallen ?? false;
+    fighter.fallTimer = Math.max(previous.fallTimer ?? 0, fighter.fallTimer ?? 0);
+    fighter.victoryPose = previous.victoryPose ?? fighter.victoryPose ?? false;
+    fighter.victoryTimer = Math.max(previous.victoryTimer ?? 0, fighter.victoryTimer ?? 0);
   }
 }
 
@@ -1792,8 +1817,15 @@ function updateRemoteShowdownVisuals(dt) {
     fighter.stunTimer = Math.max(0, target.stunTimer ?? fighter.stunTimer ?? 0);
     fighter.fortifyTimer = Math.max(0, target.fortifyTimer ?? fighter.fortifyTimer ?? 0);
     fighter.dashTimer = Math.max(0, target.dashTimer ?? fighter.dashTimer ?? 0);
+    fighter.stampedeTimer = Math.max(0, target.stampedeTimer ?? fighter.stampedeTimer ?? 0);
+    fighter.stampedeDirection = target.stampedeDirection ?? fighter.stampedeDirection ?? fighter.facing;
+    fighter.stampedeHitCooldown = Math.max(0, target.stampedeHitCooldown ?? fighter.stampedeHitCooldown ?? 0);
     fighter.barrageTimer = Math.max(0, target.barrageTimer ?? fighter.barrageTimer ?? 0);
     fighter.barrageShots = target.barrageShots ?? fighter.barrageShots ?? 0;
+    fighter.fallen = target.fallen ?? fighter.fallen ?? false;
+    fighter.fallTimer = Math.max(fighter.fallTimer ?? 0, target.fallTimer ?? 0);
+    fighter.victoryPose = target.victoryPose ?? fighter.victoryPose ?? false;
+    fighter.victoryTimer = Math.max(fighter.victoryTimer ?? 0, target.victoryTimer ?? 0);
     fighter.cooldown = Math.max(0, (fighter.cooldown ?? target.cooldown ?? 0) - dt);
     fighter.attackTimer = Math.max(0, (fighter.attackTimer ?? target.attackTimer ?? 0) - dt);
     fighter.blockTimer = Math.max(0, (fighter.blockTimer ?? target.blockTimer ?? 0) - dt);
@@ -1801,6 +1833,7 @@ function updateRemoteShowdownVisuals(dt) {
     fighter.criticalFlash = Math.max(0, (fighter.criticalFlash ?? target.criticalFlash ?? 0) - dt);
     fighter.ultimateTimer = Math.max(0, (fighter.ultimateTimer ?? target.ultimateTimer ?? 0) - dt);
   }
+  updateShowdownEndAnimations(dt);
 }
 
 function updateShowoff(dt) {
@@ -1817,6 +1850,7 @@ function updateShowoff(dt) {
 
   if (showoff.ended) {
     showoff.endTimer += dt;
+    updateShowdownEndAnimations(dt);
     if (showoff.finished && showoff.endTimer > ROUND_RESULT_SECONDS) {
       endShowoff(showoff.roundWinnerId, showoff.roundLoserId);
     } else if (!showoff.finished && showoff.endTimer > ROUND_RESULT_SECONDS) {
@@ -1843,7 +1877,11 @@ function updateShowoff(dt) {
   const fighters = Object.values(showoff.fighters);
   for (const fighter of fighters) {
     const input = getFighterInput(fighter, dt);
-    applyFighterInput(fighter, input, dt);
+    if ((fighter.stampedeTimer ?? 0) > 0) {
+      updateStampede(fighter, dt);
+    } else {
+      applyFighterInput(fighter, input, dt);
+    }
   }
 
   const [a, b] = fighters;
@@ -1898,6 +1936,7 @@ function finishShowdownRound(winnerId, loserId, reason) {
   showoff.finished = showoff.roundWins[winnerId] >= SHOWDOWN_ROUNDS_TO_WIN;
   showoff.ended = true;
   showoff.endTimer = 0;
+  markShowdownEndPoses(showoff, winnerId, loserId);
 
   const score = `${showoff.roundWins[showoff.attackerId] ?? 0}-${showoff.roundWins[showoff.defenderId] ?? 0}`;
   const reasonText = reason === "timer" ? "by higher health" : "by knockout";
@@ -1906,6 +1945,46 @@ function finishShowdownRound(winnerId, loserId, reason) {
 
   if (!showoff.finished) {
     addFloatingText(`Round ${showoff.round}`, 480, 250, "#ffd166");
+  }
+}
+
+function markShowdownEndPoses(showoff, winnerId, loserId) {
+  const winnerFighter = showoff.fighters[winnerId];
+  const loserFighter = showoff.fighters[loserId];
+
+  if (winnerFighter) {
+    winnerFighter.victoryPose = true;
+    winnerFighter.victoryTimer = 0;
+    winnerFighter.block = false;
+    winnerFighter.attackTimer = 0;
+    winnerFighter.stampedeTimer = 0;
+    winnerFighter.barrageShots = 0;
+    winnerFighter.ultimateTimer = 0;
+  }
+
+  if (loserFighter) {
+    loserFighter.fallen = true;
+    loserFighter.fallTimer = 0;
+    loserFighter.z = 0;
+    loserFighter.vz = 0;
+    loserFighter.onGround = true;
+    loserFighter.block = false;
+    loserFighter.attackTimer = 0;
+    loserFighter.stampedeTimer = 0;
+    loserFighter.barrageShots = 0;
+    loserFighter.ultimateTimer = 0;
+  }
+}
+
+function updateShowdownEndAnimations(dt) {
+  const fighters = Object.values(state.showoff?.fighters ?? {});
+  for (const fighter of fighters) {
+    if (fighter.fallen) {
+      fighter.fallTimer = (fighter.fallTimer ?? 0) + dt;
+    }
+    if (fighter.victoryPose) {
+      fighter.victoryTimer = (fighter.victoryTimer ?? 0) + dt;
+    }
   }
 }
 
@@ -2153,8 +2232,7 @@ function tryUltimate(fighter) {
     fighter.fortifyTimer = 5;
     addFloatingText("Fortify", fighter.x, fighter.y - 118, "#68c284");
   } else if (piece.type === "horse") {
-    fighter.dashTimer = 5;
-    addFloatingText("Dash", fighter.x, fighter.y - 118, "#ffd166");
+    startStampede(fighter, opponent);
   } else if (piece.type === "bishop") {
     const restored = roundDamage(piece.maxHp * 0.3);
     piece.hp = roundDamage(Math.min(piece.maxHp, piece.hp + restored));
@@ -2168,6 +2246,65 @@ function tryUltimate(fighter) {
 
   syncHud();
   return true;
+}
+
+function startStampede(fighter, opponent) {
+  const direction = opponent.x >= fighter.x ? 1 : -1;
+  fighter.stampedeTimer = STAMPEDE_DURATION;
+  fighter.stampedeDirection = direction;
+  fighter.stampedeHitCooldown = 0;
+  fighter.block = false;
+  fighter.moveBlend = 1;
+  fighter.attackTimer = Math.max(fighter.attackTimer, 0.16);
+  fighter.facing = direction;
+  addFloatingText("Stampede", fighter.x, fighter.y - 118, "#ffd166");
+}
+
+function updateStampede(fighter, dt) {
+  const opponent = getOpponentFighter(fighter);
+  const attackerPiece = getPieceById(state.pieces, fighter.id);
+  const opponentPiece = opponent ? getPieceById(state.pieces, opponent.id) : null;
+  if (!attackerPiece || !opponentPiece) {
+    fighter.stampedeTimer = 0;
+    return;
+  }
+
+  const previousX = fighter.x;
+  const speed = ARENA.speed * STAMPEDE_SPEED_MULTIPLIER;
+  let direction = fighter.stampedeDirection || fighter.facing || 1;
+  let nextX = fighter.x + direction * speed * dt;
+
+  if (nextX >= ARENA.maxX) {
+    nextX = ARENA.maxX;
+    direction = -1;
+  } else if (nextX <= ARENA.minX) {
+    nextX = ARENA.minX;
+    direction = 1;
+  }
+
+  fighter.x = nextX;
+  fighter.facing = direction;
+  fighter.stampedeDirection = direction;
+  fighter.stampedeTimer = Math.max(0, (fighter.stampedeTimer ?? 0) - dt);
+  fighter.stampedeHitCooldown = Math.max(0, (fighter.stampedeHitCooldown ?? 0) - dt);
+  fighter.block = false;
+  fighter.motionTime = (fighter.motionTime ?? 0) + dt * STAMPEDE_SPEED_MULTIPLIER * 2.4;
+  fighter.moveBlend = 1;
+  fighter.attackTimer = Math.max(fighter.attackTimer, 0.12);
+
+  const crossedOpponent =
+    (previousX < opponent.x && fighter.x >= opponent.x) ||
+    (previousX > opponent.x && fighter.x <= opponent.x);
+  if (crossedOpponent && fighter.stampedeHitCooldown <= 0) {
+    const dealt = dealCombatDamage(fighter, opponent, STAMPEDE_DAMAGE, {
+      label: "Stampede",
+      mana: false,
+      color: "#ffd166",
+      shake: 0.22
+    });
+    fighter.stampedeHitCooldown = STAMPEDE_HIT_COOLDOWN;
+    addLog(`${describePiece(attackerPiece)} stampedes past ${describePiece(opponentPiece)} for ${formatNumber(dealt)}.`);
+  }
 }
 
 function dealUltimateDamage(fighter, opponent, damage, label, stun = 0) {
@@ -3202,12 +3339,12 @@ function drawFighter(fighter) {
 
 function drawFighterAfterimages(fighter, sprite, spriteX, spriteY) {
   const attacking = fighter.attackTimer > 0;
-  const dashing = (fighter.dashTimer ?? 0) > 0 && (fighter.moveBlend ?? 0) > 0.15;
+  const dashing = ((fighter.dashTimer ?? 0) > 0 || (fighter.stampedeTimer ?? 0) > 0) && (fighter.moveBlend ?? 0) > 0.15;
   if (!attacking && !dashing) {
     return;
   }
 
-  const count = attacking ? 2 : 3;
+  const count = attacking ? 2 : (fighter.stampedeTimer ?? 0) > 0 ? 4 : 3;
   const direction = attacking ? -fighter.facing : -Math.sign(fighter.facing || 1);
   for (let i = count; i >= 1; i -= 1) {
     ctx.save();
@@ -3231,8 +3368,20 @@ function shouldFlipShowdownPerspective() {
 }
 
 function getFighterFrame(fighter) {
+  if (fighter.fallen) {
+    return `defeated-fall-${Math.min(3, Math.floor((fighter.fallTimer ?? 0) * 8))}`;
+  }
+
+  if (fighter.victoryPose) {
+    return `victory-wave-${Math.floor((fighter.victoryTimer ?? 0) * 8) % 4}`;
+  }
+
   if ((fighter.stunTimer ?? 0) > 0 || (fighter.criticalFlash ?? 0) > 0.08 || (fighter.hitFlash ?? 0) > 0.1) {
     return "hit-stagger";
+  }
+
+  if ((fighter.stampedeTimer ?? 0) > 0) {
+    return `run-${Math.floor((fighter.motionTime ?? 0) * 16) % 4}`;
   }
 
   if ((fighter.ultimateTimer ?? 0) > 0) {
@@ -3494,6 +3643,79 @@ function getStickPose(frame) {
     pose.rightHand = { x: 70 + brace * 8, y: -48 };
     pose.weaponStart = { x: 42, y: -88 };
     pose.weaponEnd = { x: 92, y: -130 };
+    return pose;
+  }
+
+  if (frame.startsWith("defeated-fall")) {
+    const step = Number(frame.split("-").pop()) || 0;
+    if (step === 0) {
+      pose.hip = { x: -18, y: -30 };
+      pose.shoulder = { x: -52, y: -86 };
+      pose.head = { x: -72, y: -102 };
+      pose.leftKnee = { x: -44, y: 2 };
+      pose.leftFoot = { x: -72, y: 38 };
+      pose.rightKnee = { x: 10, y: -8 };
+      pose.rightFoot = { x: 38, y: 38 };
+      pose.leftElbow = { x: -82, y: -74 };
+      pose.leftHand = { x: -104, y: -96 };
+      pose.rightElbow = { x: -28, y: -104 };
+      pose.rightHand = { x: -2, y: -128 };
+      pose.weaponStart = { x: -16, y: -120 };
+      pose.weaponEnd = { x: 48, y: -158 };
+      return pose;
+    }
+
+    if (step === 1) {
+      pose.hip = { x: -22, y: -10 };
+      pose.shoulder = { x: 0, y: -46 };
+      pose.head = { x: 28, y: -56 };
+      pose.leftKnee = { x: -48, y: 18 };
+      pose.leftFoot = { x: -82, y: 42 };
+      pose.rightKnee = { x: 18, y: 16 };
+      pose.rightFoot = { x: 62, y: 38 };
+      pose.leftElbow = { x: -26, y: -22 };
+      pose.leftHand = { x: -62, y: -8 };
+      pose.rightElbow = { x: 28, y: -20 };
+      pose.rightHand = { x: 68, y: -12 };
+      pose.weaponStart = { x: 20, y: -18 };
+      pose.weaponEnd = { x: 86, y: -10 };
+      return pose;
+    }
+
+    pose.bodyLift = 10;
+    pose.hip = { x: -42, y: 20 };
+    pose.shoulder = { x: 12, y: 26 };
+    pose.head = { x: 66, y: 20 };
+    pose.leftKnee = { x: -70, y: 32 };
+    pose.leftFoot = { x: -108, y: 42 };
+    pose.rightKnee = { x: -18, y: 36 };
+    pose.rightFoot = { x: 22, y: 44 };
+    pose.leftElbow = { x: -8, y: 14 };
+    pose.leftHand = { x: -48, y: 6 };
+    pose.rightElbow = { x: 32, y: 36 };
+    pose.rightHand = { x: 78, y: 38 };
+    pose.weaponStart = { x: 8, y: 30 };
+    pose.weaponEnd = { x: 90, y: 34 };
+    return pose;
+  }
+
+  if (frame.startsWith("victory-wave")) {
+    const step = Number(frame.split("-").pop()) || 0;
+    const wave = Math.sin((step / 4) * Math.PI * 2);
+    pose.bodyLift = -8 - Math.abs(wave) * 4;
+    pose.hip = { x: 0, y: -34 };
+    pose.shoulder = { x: 0, y: -110 };
+    pose.head = { x: 0, y: -140 };
+    pose.leftKnee = { x: -26, y: -2 };
+    pose.leftFoot = { x: -54, y: 38 };
+    pose.rightKnee = { x: 28, y: -2 };
+    pose.rightFoot = { x: 56, y: 38 };
+    pose.leftElbow = { x: -40, y: -130 };
+    pose.leftHand = { x: -76 + wave * 10, y: -172 + Math.abs(wave) * 6 };
+    pose.rightElbow = { x: 42, y: -130 };
+    pose.rightHand = { x: 78 - wave * 10, y: -172 + Math.abs(wave) * 6 };
+    pose.weaponStart = { x: pose.rightHand.x - 8, y: pose.rightHand.y + 8 };
+    pose.weaponEnd = { x: pose.rightHand.x + 54, y: pose.rightHand.y - 28 };
     return pose;
   }
 

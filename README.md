@@ -149,3 +149,16 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Blocking now caps incoming damage to a random 0-2 damage and prevents the attacker from gaining mana on that hit.
 - The battle log now appears only during Showdown and is positioned below the chessboard.
 - The game title now sits at the top center instead of in the right-side HUD.
+
+## Patch Notes v1.1.2
+
+- Compact Showdown touch controls now follow the requested order: Move Left, Move Right, Attack, Block, Ult, Jump.
+- Horse ultimate is now Stampede: 200% speed for 3 seconds, dealing 8 damage each time the horse passes the opponent.
+- Defeated Showdown pieces now fall down onto the floor.
+- Winning Showdown pieces now celebrate by raising both hands and waving smoothly.
+
+## Patch Notes v1.1.3
+
+- Smaller-screen Showdown controls now use icon-only buttons.
+- The first compact row shows move-left, move-right, sword attack, and shield block icons.
+- The second compact row shows closed-fist ultimate and jump icons.

@@ -35,3 +35,17 @@ Original prompt: Based on the attached GIF, improve the showdown animations like
 - Updated Showdown jumping so holding jump cannot auto-repeat after landing.
 - Updated blocking so it rolls 0-2 damage and blocks mana gain from the attacker.
 - Moved the title to the top center and relocated the battle log under the chessboard, visible only during Showdown.
+
+## 2026-05-14 v1.1.2
+
+- Extracted Patch Notes v1.1.2 from `Chess_wars.docx` using a temporary workspace copy.
+- Reordered compact Showdown touch controls to Move Left, Move Right, Attack, Block, Ult, Jump.
+- Replaced the Horse Dash ultimate with Stampede: a 3-second 200% speed back-and-forth charge that deals 8 damage when passing the opponent.
+- Added Showdown end poses so defeated pieces fall to the floor and winners raise both hands in a smooth wave celebration.
+
+## 2026-05-14 v1.1.3
+
+- Extracted Patch Notes v1.1.3 from `Chess_wars.docx` using a temporary workspace copy.
+- Replaced compact Showdown touch-control labels with icon buttons.
+- Added the requested smaller-screen two-row arrangement: left arrow, right arrow, sword, shield, then closed fist and jump.
+- Kept accessible screen-reader labels and button titles for each icon control.
