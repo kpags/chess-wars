@@ -123,7 +123,10 @@ assert.match(main, /CRITICAL DAMAGE/, "client should show bold critical damage t
 assert.match(main, /startCombatBanner/, "critical damage should use non-pausing combat banner");
 assert.match(main, /criticalFlash/, "critical damage should tint the defender red briefly");
 assert.match(main, /drawCriticalModelTint/, "critical damage should tint only the fighter model");
+assert.match(main, /drawHitModelTint/, "normal Showdown damage should tint the fighter model gray-white");
+assert.match(main, /rgba\(226, 232, 232, \$\{alpha\}\)/, "normal damage tint should use a grayish white overlay");
 assert.doesNotMatch(main, /ctx\.globalCompositeOperation = "source-atop";\s+ctx\.fillStyle = `rgba\(214, 37, 43,/s, "critical damage should not draw a red rectangle over the arena");
+assert.doesNotMatch(main, /ctx\.ellipse\(0, -81, 81, 117/, "Showdown damage feedback should not draw the old circular hit ring");
 assert.doesNotMatch(main, /startAnnouncement\("Critical Damage"/, "critical damage should not pause the action with an announcement");
 assert.match(main, /ANNOUNCEMENT_SECONDS = 1/, "client should pause announcements for 1 second");
 assert.match(main, /ONLINE_POLL_INTERVAL = 0\.08/, "online room polling should be responsive for invited-device moves");
@@ -214,6 +217,11 @@ assert.match(main, /consumeSmashAfterShowdown/, "Smash should expire after one S
 assert.match(main, /powerupRequiresPieceSelection/, "selection-based powerups should be identified before turn completion");
 assert.match(main, /pendingPowerupMove/, "selection-based powerups should hold the board move open");
 assert.match(main, /finishPendingPowerupMove/, "selection-based powerups should finish the move only after the choice is used");
+assert.match(main, /pendingShowdownPreview/, "capturing board moves should preview before Showdown starts");
+assert.match(main, /SHOWDOWN_PREVIEW_SECONDS/, "Showdown-starting captures should have a visible board move preview duration");
+assert.match(main, /beginShowdownMovePreview/, "capture moves should begin a board preview before Showdown");
+assert.match(main, /updateShowdownMovePreview/, "board preview should start Showdown after the preview finishes");
+assert.match(main, /drawShowdownMovePreview/, "board should draw the move that started Showdown");
 assert.match(main, /attacker\.hp = attacker\.maxHp;\s+defender\.hp = defender\.maxHp;/s, "each Showdown should start both pieces at full HP");
 assert.match(main, /winner\.hp = winner\.maxHp/, "remaining HP should not be retained after a Showdown");
 assert.match(main, /HP activates at full value during Showdown/, "board state should not present retained HP as active");

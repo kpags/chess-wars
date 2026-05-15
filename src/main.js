@@ -133,6 +133,7 @@ const PAWN_GIF_ANIMATIONS = {
   [TEAM.WHITE]: WHITE_PAWN_GIF_ANIMATIONS
 };
 const BOARD_MOVE_ANIMATION_SECONDS = 0.52;
+const SHOWDOWN_PREVIEW_SECONDS = 0.68;
 const PAWN_SPRITE_ATLAS = {
   board: {
     idle: [{ x: 18, y: 758, w: 82, h: 84 }]
@@ -348,6 +349,7 @@ const state = {
   nextPowerupId: 1,
   pendingChoice: null,
   pendingPowerupMove: null,
+  pendingShowdownPreview: null,
   restrictTurns: {
     [TEAM.WHITE]: 0,
     [TEAM.BLACK]: 0
@@ -567,6 +569,7 @@ function resetGame() {
   state.nextPowerupId = 1;
   state.pendingChoice = null;
   state.pendingPowerupMove = null;
+  state.pendingShowdownPreview = null;
   state.restrictTurns = {
     [TEAM.WHITE]: 0,
     [TEAM.BLACK]: 0
@@ -670,7 +673,7 @@ function getClickedSquare(event) {
   const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
   const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
 
-  if (state.phase !== "board") {
+  if (state.phase !== "board" || state.pendingShowdownPreview) {
     return null;
   }
 
@@ -715,7 +718,7 @@ function performBoardMove(piece, move) {
     const defender = getPieceById(state.pieces, move.targetId);
     if (defender) {
       consumeDanceMove(piece, usedDance);
-      startShowoff(piece, defender, move);
+      beginShowdownMovePreview(piece, defender, move, usedDance);
     }
     return;
   }
@@ -736,6 +739,29 @@ function performBoardMove(piece, move) {
   }
 
   endTurn();
+}
+
+function beginShowdownMovePreview(attacker, defender, move, usedDance) {
+  state.selectedId = null;
+  state.legalMoves = [];
+  state.pendingShowdownPreview = {
+    attackerId: attacker.id,
+    defenderId: defender.id,
+    move,
+    usedDance,
+    fromX: attacker.x,
+    fromY: attacker.y,
+    toX: move.x,
+    toY: move.y,
+    elapsed: 0,
+    duration: SHOWDOWN_PREVIEW_SECONDS
+  };
+  state.message = `${describePiece(attacker)} attacks ${describePiece(defender)} at ${toSquareName(move.x, move.y)}.`;
+  addLog(`${describePiece(attacker)} moves in to challenge ${describePiece(defender)}.`);
+  if (isOnlineHost()) {
+    publishSnapshot("showdown-preview");
+  }
+  syncHud();
 }
 
 function movePiece(piece, x, y) {
@@ -784,6 +810,7 @@ function maybePromote(piece) {
 
 function startShowoff(attacker, defender, move) {
   clearCombatInput();
+  state.pendingShowdownPreview = null;
   ensureCombatPieceState(attacker);
   ensureCombatPieceState(defender);
   attacker.hp = attacker.maxHp;
@@ -1750,6 +1777,7 @@ function createSnapshot() {
     skipPowerupAdvance: state.skipPowerupAdvance,
     pendingChoice: state.pendingChoice,
     pendingPowerupMove: state.pendingPowerupMove,
+    pendingShowdownPreview: state.pendingShowdownPreview,
     restrictTurns: state.restrictTurns,
     shake: state.shake,
     floatingText: state.floatingText,
@@ -1789,6 +1817,7 @@ function applyRemoteSnapshot(payload) {
   state.skipPowerupAdvance = Boolean(snapshot.skipPowerupAdvance);
   state.pendingChoice = snapshot.pendingChoice ?? null;
   state.pendingPowerupMove = snapshot.pendingPowerupMove ?? null;
+  state.pendingShowdownPreview = snapshot.pendingShowdownPreview ?? null;
   state.restrictTurns = snapshot.restrictTurns ?? { [TEAM.WHITE]: 0, [TEAM.BLACK]: 0 };
   state.shake = snapshot.shake ?? 0;
   state.floatingText = snapshot.floatingText ?? [];
@@ -2181,6 +2210,7 @@ function setWinner(team, reason) {
   state.legalMoves = [];
   state.pendingChoice = null;
   state.pendingPowerupMove = null;
+  state.pendingShowdownPreview = null;
   state.powerup = null;
   state.powerupTurnsRemaining = null;
   state.skipPowerupAdvance = false;
@@ -2255,6 +2285,7 @@ function loop(time) {
 
   updateOnline(dt);
   updateBoardMoveAnimations(dt);
+  updateShowdownMovePreview(dt);
   const paused = updateAnnouncement(dt);
 
   if (!paused && state.phase === "showoff") {
@@ -2353,6 +2384,25 @@ function updateBoardMoveAnimations(dt) {
     if (animation.elapsed >= animation.duration) {
       state.boardMoveAnimations.delete(id);
     }
+  }
+}
+
+function updateShowdownMovePreview(dt) {
+  const preview = state.pendingShowdownPreview;
+  if (!preview) {
+    return;
+  }
+
+  preview.elapsed += dt;
+  if (preview.elapsed < preview.duration || isRemoteOnlineClient()) {
+    return;
+  }
+
+  const attacker = getPieceById(state.pieces, preview.attackerId);
+  const defender = getPieceById(state.pieces, preview.defenderId);
+  state.pendingShowdownPreview = null;
+  if (attacker && defender) {
+    startShowoff(attacker, defender, preview.move);
   }
 }
 
@@ -3347,6 +3397,7 @@ function drawBoard() {
 
   drawCoordinates(board);
   drawMoveHighlights(board);
+  drawShowdownMovePreview(board);
   drawPowerup(board);
 
   for (const piece of [...state.pieces].sort((a, b) => a.y - b.y || a.x - b.x)) {
@@ -3545,6 +3596,48 @@ function drawMoveHighlights(board) {
   }
 }
 
+function drawShowdownMovePreview(board) {
+  const preview = state.pendingShowdownPreview;
+  if (!preview) {
+    return;
+  }
+
+  const progress = easeOutCubic(clamp(preview.elapsed / preview.duration, 0, 1));
+  const fromX = board.x + preview.fromX * board.cell + board.cell / 2;
+  const fromY = board.y + preview.fromY * board.cell + board.cell / 2;
+  const toX = board.x + preview.toX * board.cell + board.cell / 2;
+  const toY = board.y + preview.toY * board.cell + board.cell / 2;
+  const pulse = 1 + Math.sin(performance.now() / 120) * 0.05;
+
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  ctx.strokeStyle = "rgba(255, 209, 102, 0.95)";
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(fromX, fromY);
+  ctx.lineTo(lerp(fromX, toX, progress), lerp(fromY, toY, progress));
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(214, 77, 67, 0.42)";
+  ctx.strokeStyle = "rgba(255, 248, 232, 0.92)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(toX, toY, board.cell * 0.38 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(23, 21, 18, 0.78)";
+  roundRect(toX - board.cell * 0.56, toY - board.cell * 0.55, board.cell * 1.12, 26, 7);
+  ctx.fill();
+  ctx.fillStyle = "#ffd166";
+  ctx.font = "900 13px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("SHOWDOWN", toX, toY - board.cell * 0.55 + 13);
+  ctx.restore();
+}
+
 function drawPowerup(board) {
   if (!POWERUPS_ENABLED) {
     return;
@@ -3630,7 +3723,7 @@ function getPieceColors(team) {
 }
 
 function getBoardPieceVisualPosition(piece) {
-  const animation = state.boardMoveAnimations.get(String(piece.id));
+  const animation = getBoardPieceMoveAnimation(piece);
   if (!animation) {
     return { x: piece.x, y: piece.y };
   }
@@ -3640,6 +3733,15 @@ function getBoardPieceVisualPosition(piece) {
     x: lerp(animation.fromX, animation.toX, progress),
     y: lerp(animation.fromY, animation.toY, progress)
   };
+}
+
+function getBoardPieceMoveAnimation(piece) {
+  const preview = state.pendingShowdownPreview;
+  if (preview?.attackerId === piece.id) {
+    return preview;
+  }
+
+  return state.boardMoveAnimations.get(String(piece.id));
 }
 
 function drawPawnBoardSprite(piece) {
@@ -3684,7 +3786,7 @@ function getPawnBoardGifSprite(piece) {
 }
 
 function getPawnBoardGifFrameIndex(piece, config) {
-  const animation = state.boardMoveAnimations.get(String(piece.id));
+  const animation = getBoardPieceMoveAnimation(piece);
   if (!animation) {
     return 0;
   }
@@ -4790,19 +4892,14 @@ function drawFighter(fighter) {
   drawFighterAfterimages(fighter, sprite, spriteX, spriteY);
   ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
 
+  if (fighter.hitFlash > 0) {
+    const alpha = Math.min(0.46, (fighter.hitFlash / 0.22) * 0.46);
+    drawHitModelTint(sprite, spriteX, spriteY, alpha);
+  }
+
   if ((fighter.criticalFlash ?? 0) > 0) {
     const alpha = Math.min(0.42, ((fighter.criticalFlash ?? 0) / 0.5) * 0.42);
     drawCriticalModelTint(sprite, spriteX, spriteY, alpha);
-  }
-
-  if (fighter.hitFlash > 0) {
-    ctx.globalAlpha = fighter.hitFlash / 0.22;
-    ctx.strokeStyle = (fighter.criticalFlash ?? 0) > 0 ? "#ff2f3d" : "#ffd166";
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.ellipse(0, -81, 81, 117, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
   }
 
   ctx.scale(viewFacing, 1);
@@ -4812,6 +4909,14 @@ function drawFighter(fighter) {
 }
 
 function drawCriticalModelTint(sprite, spriteX, spriteY, alpha) {
+  drawShowdownModelTint(sprite, spriteX, spriteY, alpha, `rgba(214, 37, 43, ${alpha})`);
+}
+
+function drawHitModelTint(sprite, spriteX, spriteY, alpha) {
+  drawShowdownModelTint(sprite, spriteX, spriteY, alpha, `rgba(226, 232, 232, ${alpha})`);
+}
+
+function drawShowdownModelTint(sprite, spriteX, spriteY, alpha, tint) {
   if (alpha <= 0) {
     return;
   }
@@ -4826,7 +4931,7 @@ function drawCriticalModelTint(sprite, spriteX, spriteY, alpha) {
   showdownTintCtx.globalAlpha = 1;
   showdownTintCtx.drawImage(sprite, 0, 0, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
   showdownTintCtx.globalCompositeOperation = "source-atop";
-  showdownTintCtx.fillStyle = `rgba(214, 37, 43, ${alpha})`;
+  showdownTintCtx.fillStyle = tint;
   showdownTintCtx.fillRect(0, 0, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
   showdownTintCtx.globalCompositeOperation = "source-over";
 

@@ -138,3 +138,5 @@ Original prompt: Based on the attached GIF, improve the showdown animations like
 - Moved Showdown HP and mana bars into a top HUD, centered the timer between the bars, added two round-win boxes per side, and hid the old start text overlay.
 - Added a large ready-count overlay for Showdown intro, full-mana light-blue glow, delayed HP damage trail animation, and closer fighter shadows.
 - Moved fighter shadows closer again, changed critical feedback to a model-only red tint, and made blocked critical hits deal 50% damage.
+- Replaced the Showdown circular hit ring with a grayish-white model flash for normal damage.
+- Added a short board attack preview before capture moves enter Showdown.

@@ -143,6 +143,8 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Showdown HP, mana, timer, and round wins now live in a top fighting-game style HUD instead of overlapping the fighters.
 - Showdown intro uses a large ready-count overlay, full mana glows light blue, HP damage uses a delayed drain trail, and fighter shadows sit closer to the models.
 - Critical damage now briefly tints only the damaged fighter model red. If the target is blocking, a critical hit deals 50% damage instead of using the normal tiny block roll.
+- Normal Showdown damage now flashes the damaged model grayish white instead of drawing a circular hit ring.
+- Capturing moves now show the board attack movement briefly before the Showdown scene starts.
 
 ## Showdown Animation Update
 
