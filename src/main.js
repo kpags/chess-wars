@@ -6225,7 +6225,6 @@ function drawShowdownHudSide(piece, x, y, width, side) {
   ctx.fill();
   ctx.shadowColor = "transparent";
 
-  drawShowdownHudPortrait(piece, portraitX, y + 26, colors);
   drawShowdownHudName(piece, labelX, y - 11, side);
   drawShowdownHudBar(x, y + 8, width, 20, health.ratio, side, "#ffcf5a", "#ff5a3f", "rgba(59, 25, 18, 0.92)", {
     trailRatio: health.trailRatio,
@@ -6236,6 +6235,7 @@ function drawShowdownHudSide(piece, x, y, width, side) {
     glowColor: SHOWDOWN_MANA_FULL_GLOW
   });
   drawShowdownRoundBoxes(innerEdge, y + 61, side, roundWins);
+  drawShowdownHudPortrait(piece, portraitX, y + 26, colors);
   ctx.restore();
 }
 
