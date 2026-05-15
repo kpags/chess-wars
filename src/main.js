@@ -19,6 +19,9 @@ const showdownTintCtx = showdownTintCanvas.getContext("2d");
 const els = {
   modeAi: document.querySelector("#mode-ai"),
   modeLocal: document.querySelector("#mode-local"),
+  aiSidePicker: document.querySelector("#ai-side-picker"),
+  aiSideWhite: document.querySelector("#ai-side-white"),
+  aiSideBlack: document.querySelector("#ai-side-black"),
   newGame: document.querySelector("#new-game"),
   createRoom: document.querySelector("#create-room"),
   joinRoom: document.querySelector("#join-room"),
@@ -132,6 +135,33 @@ const PAWN_GIF_ANIMATIONS = {
   [TEAM.BLACK]: BLACK_PAWN_GIF_ANIMATIONS,
   [TEAM.WHITE]: WHITE_PAWN_GIF_ANIMATIONS
 };
+const BLACK_ROOK_SPRITE_BASE = "assets/sprites/rooks/black";
+const BLACK_ROOK_SHOWDOWN_DRAW = { width: 380, height: 286 };
+const BLACK_ROOK_SHOWDOWN_ANIMATIONS = {
+  idle_ready: { path: `${BLACK_ROOK_SPRITE_BASE}/idle_ready`, frames: 4, frameMs: 140, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  walk: { path: `${BLACK_ROOK_SPRITE_BASE}/walk`, frames: 5, frameMs: 140, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  charge_dash: { path: `${BLACK_ROOK_SPRITE_BASE}/charge_dash`, frames: 5, frameMs: 120, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  light_attack_punch: { path: `${BLACK_ROOK_SPRITE_BASE}/light_attack_punch`, frames: 4, frameMs: 150, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  heavy_attack_double_crush: { path: `${BLACK_ROOK_SPRITE_BASE}/heavy_attack_double_crush`, frames: 4, frameMs: 170, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  ground_smash: { path: `${BLACK_ROOK_SPRITE_BASE}/ground_smash`, frames: 5, frameMs: 170, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  jump: { path: `${BLACK_ROOK_SPRITE_BASE}/jump`, frames: 5, frameMs: 120, draw: BLACK_ROOK_SHOWDOWN_DRAW, floorOffset: 18 },
+  guard_block: { path: `${BLACK_ROOK_SPRITE_BASE}/guard_block`, frames: 4, frameMs: 150, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  hit_hurt: { path: `${BLACK_ROOK_SPRITE_BASE}/hit_hurt`, frames: 4, frameMs: 150, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  victory: { path: `${BLACK_ROOK_SPRITE_BASE}/victory`, frames: 5, frameMs: 180, draw: BLACK_ROOK_SHOWDOWN_DRAW },
+  knocked_down_defeat: { path: `${BLACK_ROOK_SPRITE_BASE}/knocked_down_defeat`, frames: 4, frameMs: 220, draw: BLACK_ROOK_SHOWDOWN_DRAW }
+};
+const BLACK_ROOK_BOARD_ANIMATIONS = {
+  idle: { path: `${BLACK_ROOK_SPRITE_BASE}/board_idle`, frames: 1, frameMs: 700, draw: { width: 88, height: 92 } },
+  up: { path: `${BLACK_ROOK_SPRITE_BASE}/board_up`, frames: 1, frameMs: 700, draw: { width: 92, height: 92 } },
+  down: { path: `${BLACK_ROOK_SPRITE_BASE}/board_down`, frames: 1, frameMs: 700, draw: { width: 88, height: 90 } },
+  left: { path: `${BLACK_ROOK_SPRITE_BASE}/board_left`, frames: 1, frameMs: 700, draw: { width: 82, height: 92 } },
+  right: { path: `${BLACK_ROOK_SPRITE_BASE}/board_right`, frames: 1, frameMs: 700, draw: { width: 82, height: 92 } },
+  up_left: { path: `${BLACK_ROOK_SPRITE_BASE}/board_up_left`, frames: 1, frameMs: 700, draw: { width: 86, height: 92 } },
+  up_right: { path: `${BLACK_ROOK_SPRITE_BASE}/board_up_right`, frames: 1, frameMs: 700, draw: { width: 78, height: 92 } },
+  down_left: { path: `${BLACK_ROOK_SPRITE_BASE}/board_down_left`, frames: 1, frameMs: 700, draw: { width: 94, height: 90 } },
+  down_right: { path: `${BLACK_ROOK_SPRITE_BASE}/board_down_right`, frames: 1, frameMs: 700, draw: { width: 98, height: 90 } }
+};
+const BLACK_ROOK_BOARD_MOVE_ACTIONS = ["idle", "up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"];
 const BOARD_MOVE_ANIMATION_SECONDS = 0.52;
 const SHOWDOWN_PREVIEW_SECONDS = 0.68;
 const PAWN_SPRITE_ATLAS = {
@@ -206,6 +236,8 @@ const pawnSpriteSheets = new Map();
 const pawnSpriteFrameCache = new Map();
 const pawnGifFrames = new Map();
 const pawnGifRenderCache = new Map();
+const blackRookAnimationFrames = new Map();
+const blackRookRenderCache = new Map();
 
 const ARENA = {
   width: 960,
@@ -272,6 +304,9 @@ const SHOWDOWN_FIGHTER_SCALE = 1.5;
 const SHOWDOWN_DRAW_WIDTH = Math.round(SHOWDOWN_SPRITE_WIDTH * SHOWDOWN_FIGHTER_SCALE);
 const SHOWDOWN_DRAW_HEIGHT = Math.round(SHOWDOWN_SPRITE_HEIGHT * SHOWDOWN_FIGHTER_SCALE);
 const SHOWDOWN_DRAW_FLOOR_Y = Math.round(SHOWDOWN_SPRITE_FLOOR_Y * SHOWDOWN_FIGHTER_SCALE);
+const SHOWDOWN_READY_PANEL_WIDTH = 380;
+const SHOWDOWN_READY_PANEL_HEIGHT = 208;
+const SHOWDOWN_READY_COUNT_FONT = 84;
 const SHOWDOWN_HEALTH_TRAIL_HOLD_SECONDS = 1.25;
 const SHOWDOWN_HEALTH_TRAIL_DRAIN_SPEED = 3.8;
 const SHOWDOWN_MANA_FULL_GLOW = "#8eeeff";
@@ -332,6 +367,7 @@ const online = {
 
 const state = {
   mode: "ai",
+  playerTeam: TEAM.WHITE,
   phase: "board",
   pieces: createInitialPieces(),
   selectedId: null,
@@ -374,6 +410,7 @@ const showdownHudHealthTrails = new Map();
 function boot() {
   loadPawnSpriteSheets();
   loadPawnGifFrames();
+  loadBlackRookAnimations();
   bindEvents();
   syncResponsiveMode();
   syncOnlineHud();
@@ -403,6 +440,8 @@ function bindEvents() {
     }
   });
   els.modeAi.addEventListener("click", () => setMode("ai"));
+  els.aiSideWhite.addEventListener("click", () => setAiPlayerTeam(TEAM.WHITE));
+  els.aiSideBlack.addEventListener("click", () => setAiPlayerTeam(TEAM.BLACK));
   els.modeLocal.addEventListener("click", () => {
     if (isSmallScreenMode()) {
       state.message = "Local 2P is disabled on smaller screens.";
@@ -514,6 +553,40 @@ function loadPawnGifFrames() {
   }
 }
 
+function loadBlackRookAnimations() {
+  const sets = {
+    showdown: BLACK_ROOK_SHOWDOWN_ANIMATIONS,
+    board: BLACK_ROOK_BOARD_ANIMATIONS
+  };
+
+  for (const [section, animations] of Object.entries(sets)) {
+    for (const [action, config] of Object.entries(animations)) {
+      const cacheKey = `${section}:${action}`;
+      if (blackRookAnimationFrames.has(cacheKey)) {
+        continue;
+      }
+
+      const frames = [];
+      blackRookAnimationFrames.set(cacheKey, frames);
+      for (let index = 0; index < config.frames; index += 1) {
+        const image = new Image();
+        const record = { image, loaded: false, failed: false };
+        frames.push(record);
+        image.onload = () => {
+          record.loaded = true;
+          record.failed = false;
+          blackRookRenderCache.clear();
+        };
+        image.onerror = () => {
+          record.loaded = false;
+          record.failed = true;
+        };
+        image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
+      }
+    }
+  }
+}
+
 function setMode(mode) {
   if (mode === "local" && isSmallScreenMode()) {
     state.message = "Local 2P is disabled on smaller screens.";
@@ -527,7 +600,32 @@ function setMode(mode) {
   state.mode = mode;
   els.modeAi.classList.toggle("is-active", mode === "ai");
   els.modeLocal.classList.toggle("is-active", mode === "local");
+  syncAiSidePicker();
   resetGame();
+}
+
+function setAiPlayerTeam(team) {
+  if (team !== TEAM.WHITE && team !== TEAM.BLACK) {
+    return;
+  }
+
+  if (state.playerTeam === team) {
+    return;
+  }
+
+  state.playerTeam = team;
+  syncAiSidePicker();
+  if (state.mode === "ai") {
+    resetGame();
+  } else {
+    syncHud();
+  }
+}
+
+function syncAiSidePicker() {
+  els.aiSidePicker.classList.toggle("is-hidden", state.mode !== "ai");
+  els.aiSideWhite.classList.toggle("is-active", state.playerTeam === TEAM.WHITE);
+  els.aiSideBlack.classList.toggle("is-active", state.playerTeam === TEAM.BLACK);
 }
 
 function isSmallScreenMode() {
@@ -557,7 +655,7 @@ function resetGame() {
   state.selectedId = null;
   state.legalMoves = [];
   state.currentTeam = TEAM.WHITE;
-  state.message = state.mode === "ai" ? "Select a white piece. Black is controlled by AI." : "White starts. Both players use the same board.";
+  state.message = getNewGameMessage();
   state.log = ["New war begins."];
   state.winner = null;
   state.victoryReason = "";
@@ -585,9 +683,24 @@ function resetGame() {
   showdownHudHealthTrails.clear();
   online.showdownTargets.clear();
   syncHud();
+  if (isAiBoardTurn()) {
+    queueAiBoardTurn();
+  }
   if (isOnlineHost()) {
     publishSnapshot("reset");
   }
+}
+
+function getNewGameMessage() {
+  if (state.mode !== "ai") {
+    return "White starts. Both players use the same board.";
+  }
+
+  if (isAiBoardTurn()) {
+    return `${capitalize(getAiTeam())} AI is choosing a move.`;
+  }
+
+  return `Select a ${state.playerTeam} piece. ${capitalize(getAiTeam())} is controlled by AI.`;
 }
 
 function onCanvasClick(event) {
@@ -771,7 +884,7 @@ function movePiece(piece, x, y) {
 }
 
 function startBoardMoveAnimation(piece, fromX, fromY, toX, toY) {
-  if (piece.type !== "pawn" || !PAWN_GIF_ANIMATIONS[piece.team]?.board_move_animation) {
+  if (!hasBoardMoveAnimation(piece)) {
     return;
   }
 
@@ -787,6 +900,14 @@ function startBoardMoveAnimation(piece, fromX, fromY, toX, toY) {
     elapsed: 0,
     duration: BOARD_MOVE_ANIMATION_SECONDS
   });
+}
+
+function hasBoardMoveAnimation(piece) {
+  if (piece?.type === "pawn" && PAWN_GIF_ANIMATIONS[piece.team]?.board_move_animation) {
+    return true;
+  }
+
+  return isBlackRookSpritePiece(piece);
 }
 
 function finishBoardMove(piece, usedDance) {
@@ -970,9 +1091,9 @@ function endTurn() {
   syncHud();
 
   if (isAiBoardTurn()) {
-    state.message = "Black AI is choosing a move.";
+    state.message = `${capitalize(state.currentTeam)} AI is choosing a move.`;
     syncHud();
-    state.aiTimer = setTimeout(runAiBoardTurn, 650);
+    queueAiBoardTurn();
   }
 
   if (isOnlineHost()) {
@@ -991,14 +1112,21 @@ function resolveRestrictedTurns() {
   }
 }
 
+function queueAiBoardTurn(delay = 650) {
+  clearTimeout(state.aiTimer);
+  state.aiTimer = setTimeout(runAiBoardTurn, delay);
+}
+
 function runAiBoardTurn() {
-  if (state.phase !== "board" || state.currentTeam !== TEAM.BLACK || state.winner) {
+  const aiTeam = getAiTeam();
+  if (state.phase !== "board" || state.currentTeam !== aiTeam || state.winner) {
     return;
   }
 
-  const allMoves = getAllLegalMovesForTeam(TEAM.BLACK);
+  const allMoves = getAllLegalMovesForTeam(aiTeam);
   if (allMoves.length === 0) {
-    setWinner(TEAM.WHITE, "White wins. Black has no legal moves.");
+    const winner = otherTeam(aiTeam);
+    setWinner(winner, `${capitalize(winner)} wins. ${capitalize(aiTeam)} has no legal moves.`);
     state.phase = "gameover";
     syncHud();
     return;
@@ -2199,7 +2327,15 @@ function canViewPieceMoves(piece) {
 }
 
 function isAiControlled(team) {
-  return state.mode === "ai" && team === TEAM.BLACK;
+  return state.mode === "ai" && team === getAiTeam();
+}
+
+function getAiTeam() {
+  return otherTeam(state.playerTeam);
+}
+
+function getHumanTeam() {
+  return state.playerTeam;
 }
 
 function setWinner(team, reason) {
@@ -2218,11 +2354,11 @@ function setWinner(team, reason) {
 }
 
 function isAiBoardTurn() {
-  return state.mode === "ai" && state.currentTeam === TEAM.BLACK;
+  return state.mode === "ai" && state.currentTeam === getAiTeam();
 }
 
 function isAiFighter(team) {
-  return state.mode === "ai" && team === TEAM.BLACK;
+  return state.mode === "ai" && team === getAiTeam();
 }
 
 function onKeyDown(event) {
@@ -2645,8 +2781,9 @@ function getFighterInput(fighter, dt) {
     return getAiFighterInput(fighter, dt);
   }
 
-  const slot = fighter.team === TEAM.WHITE ? "p1" : "p2";
+  const slot = getLocalControlSlot(fighter);
   const mouseControlsThisFighter =
+    (state.mode === "ai" && fighter.team === getHumanTeam()) ||
     (isOnlineHost() && fighter.team === TEAM.WHITE) ||
     (isOnlineGuest() && fighter.team === TEAM.BLACK) ||
     (!online.connected && fighter.team === TEAM.WHITE);
@@ -2658,6 +2795,14 @@ function getFighterInput(fighter, dt) {
     jump: readAction(slot, "jump"),
     ultimate: readUltimateAction(fighter, slot)
   };
+}
+
+function getLocalControlSlot(fighter) {
+  if (state.mode === "ai") {
+    return fighter.team === getHumanTeam() ? "p1" : "p2";
+  }
+
+  return fighter.team === TEAM.WHITE ? "p1" : "p2";
 }
 
 function getAiFighterInput(fighter, dt) {
@@ -3121,7 +3266,7 @@ function readAction(slot, action) {
 }
 
 function readUltimateAction(fighter, slot) {
-  if ((state.mode === "ai" && fighter.team === TEAM.WHITE) || isOnlineHost() || isOnlineGuest()) {
+  if ((state.mode === "ai" && fighter.team === getHumanTeam()) || isOnlineHost() || isOnlineGuest()) {
     return readOnlineUltimateAction();
   }
 
@@ -3137,6 +3282,7 @@ function readKeyGroup(keys) {
 }
 
 function syncHud() {
+  syncAiSidePicker();
   els.turnLabel.textContent = state.winner ? `${capitalize(state.winner)} wins` : capitalize(state.currentTeam);
   els.status.textContent = state.message;
   syncPowerupHud();
@@ -3242,6 +3388,10 @@ function getShowdownHudFighters() {
 function getLocalShowdownTeam() {
   if (isOnlineGuest()) {
     return TEAM.BLACK;
+  }
+
+  if (state.mode === "ai") {
+    return getHumanTeam();
   }
 
   return TEAM.WHITE;
@@ -3710,6 +3860,11 @@ function drawPiece(piece, board) {
     return;
   }
 
+  if (drawBlackRookBoardSprite(piece)) {
+    ctx.restore();
+    return;
+  }
+
   drawCarvedPieceBody(piece.type, colors);
   drawBoardWeaponIcon(piece.type, colors);
   drawPieceCrest(stat.short, colors);
@@ -3836,6 +3991,195 @@ function getBoardMoveDirectionFrame(animation, invertVertical = false) {
     return 8;
   }
   return 0;
+}
+
+function drawBlackRookBoardSprite(piece) {
+  const config = getBlackRookBoardAnimationConfig(piece);
+  if (!config) {
+    return false;
+  }
+
+  const frameIndex = getBlackRookBoardFrameIndex(piece, config);
+  const image = getBlackRookAnimationFrame("board", config.action, frameIndex);
+  if (!image) {
+    return false;
+  }
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  drawImageBottomCentered(ctx, image, 0, 36, config.draw.width, config.draw.height);
+  ctx.restore();
+  return true;
+}
+
+function getBlackRookBoardAnimationConfig(piece) {
+  if (!isBlackRookSpritePiece(piece)) {
+    return null;
+  }
+
+  const animation = getBoardPieceMoveAnimation(piece);
+  const action = animation ? getBlackRookBoardMoveAction(animation) : "idle";
+  const config = BLACK_ROOK_BOARD_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS.idle;
+  return { ...config, action };
+}
+
+function getBlackRookBoardMoveAction(animation) {
+  const index = getBoardMoveDirectionFrame(animation);
+  return BLACK_ROOK_BOARD_MOVE_ACTIONS[index] ?? "idle";
+}
+
+function getBlackRookBoardFrameIndex(piece, config) {
+  const animation = getBoardPieceMoveAnimation(piece);
+  if (animation) {
+    return getBlackRookProgressFrameForConfig(config, animation.elapsed / Math.max(animation.duration, 0.01), true);
+  }
+
+  return getBlackRookLoopFrameForConfig(config, performance.now() / 1000);
+}
+
+function getBlackRookShowdownSprite(piece, frame, fighter) {
+  if (!isBlackRookSpritePiece(piece)) {
+    return null;
+  }
+
+  const frameInfo = getBlackRookShowdownFrameInfo(frame, fighter);
+  if (!frameInfo) {
+    return null;
+  }
+
+  const config = BLACK_ROOK_SHOWDOWN_ANIMATIONS[frameInfo.action];
+  const image = getBlackRookAnimationFrame("showdown", frameInfo.action, frameInfo.index);
+  if (!config || !image) {
+    return null;
+  }
+
+  const key = `black-rook-render:${frameInfo.action}:${frameInfo.index}`;
+  if (blackRookRenderCache.has(key)) {
+    return blackRookRenderCache.get(key);
+  }
+
+  const sprite = document.createElement("canvas");
+  sprite.width = SHOWDOWN_SPRITE_WIDTH;
+  sprite.height = SHOWDOWN_SPRITE_HEIGHT;
+  const spriteCtx = sprite.getContext("2d");
+  spriteCtx.imageSmoothingEnabled = false;
+
+  const floorY = SHOWDOWN_SPRITE_FLOOR_Y - (config.floorOffset ?? 0);
+  drawImageBottomCentered(spriteCtx, image, SHOWDOWN_SPRITE_WIDTH / 2, floorY, config.draw.width, config.draw.height);
+  blackRookRenderCache.set(key, sprite);
+  return sprite;
+}
+
+function getBlackRookShowdownAction(frame, fighter) {
+  return getBlackRookShowdownFrameInfo(frame, fighter)?.action ?? "idle_ready";
+}
+
+function getBlackRookShowdownFrameInfo(frame, fighter) {
+  if (frame.startsWith("defeated-fall")) {
+    return {
+      action: "knocked_down_defeat",
+      index: getBlackRookProgressFrame("knocked_down_defeat", fighter?.fallTimer ?? 0)
+    };
+  }
+  if (frame.startsWith("victory-wave")) {
+    return {
+      action: "victory",
+      index: getBlackRookLoopFrame("victory", fighter?.victoryTimer ?? performance.now() / 1000)
+    };
+  }
+  if (frame === "hit-stagger") {
+    return {
+      action: "hit_hurt",
+      index: getBlackRookLoopFrame("hit_hurt", performance.now() / 1000)
+    };
+  }
+  if (frame === "ultimate-cast") {
+    const timer = fighter?.ultimateTimer ?? 0;
+    const progress = timer > 0 ? 1 - timer / 0.45 : 1;
+    return {
+      action: "ground_smash",
+      index: getBlackRookProgressFrame("ground_smash", progress, true)
+    };
+  }
+  if (frame === "critical-strike") {
+    const timer = fighter?.criticalAttackTimer ?? 0;
+    const progress = timer > 0 ? 1 - timer / Math.max(CRITICAL_ATTACK_FLASH_SECONDS, 0.01) : 1;
+    return {
+      action: "heavy_attack_double_crush",
+      index: getBlackRookProgressFrame("heavy_attack_double_crush", progress, true)
+    };
+  }
+  if (frame.startsWith("attack-")) {
+    const attackFrames = ["attack-windup", "attack-swing", "attack-strike", "attack-recover"];
+    return {
+      action: "light_attack_punch",
+      index: Math.max(0, attackFrames.indexOf(frame))
+    };
+  }
+  if (frame.startsWith("block")) {
+    return {
+      action: "guard_block",
+      index: frame === "block-brace" ? 2 : getBlackRookLoopFrame("guard_block", performance.now() / 1000)
+    };
+  }
+  if (frame === "jump-rise") {
+    return { action: "jump", index: 1 };
+  }
+  if (frame === "jump-fall") {
+    return { action: "jump", index: 3 };
+  }
+  if (frame.startsWith("run-")) {
+    const action = (fighter?.dashTimer ?? 0) > 0 ? "charge_dash" : "walk";
+    return {
+      action,
+      index: getBlackRookLoopFrame(action, fighter?.motionTime ?? performance.now() / 1000)
+    };
+  }
+  return {
+    action: "idle_ready",
+    index: getBlackRookLoopFrame("idle_ready", performance.now() / 1000)
+  };
+}
+
+function getBlackRookLoopFrame(action, seconds) {
+  const config = BLACK_ROOK_SHOWDOWN_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS[action];
+  return getBlackRookLoopFrameForConfig(config, seconds);
+}
+
+function getBlackRookLoopFrameForConfig(config, seconds) {
+  if (!config) {
+    return 0;
+  }
+
+  return Math.floor((seconds * 1000) / config.frameMs) % config.frames;
+}
+
+function getBlackRookProgressFrame(action, value, normalized = false) {
+  const config = BLACK_ROOK_SHOWDOWN_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS[action];
+  return getBlackRookProgressFrameForConfig(config, value, normalized);
+}
+
+function getBlackRookProgressFrameForConfig(config, value, normalized = false) {
+  if (!config) {
+    return 0;
+  }
+
+  const progress = normalized ? value : value * 1000 / Math.max(config.frameMs * config.frames, 1);
+  return clamp(Math.floor(progress * config.frames), 0, config.frames - 1);
+}
+
+function getBlackRookAnimationFrame(section, action, index) {
+  const records = blackRookAnimationFrames.get(`${section}:${action}`);
+  if (!records?.length) {
+    return null;
+  }
+
+  const record = records[clamp(Math.floor(index), 0, records.length - 1)];
+  return record?.loaded ? record.image : null;
+}
+
+function isBlackRookSpritePiece(piece) {
+  return piece?.team === TEAM.BLACK && piece?.type === "rook";
 }
 
 function getPawnShowdownSprite(piece, frame, fighter) {
@@ -5137,6 +5481,11 @@ function getShowdownSprite(piece, frame, fighter = null) {
   const pawnSprite = getPawnShowdownSprite(piece, frame, fighter);
   if (pawnSprite) {
     return pawnSprite;
+  }
+
+  const blackRookSprite = getBlackRookShowdownSprite(piece, frame, fighter);
+  if (blackRookSprite) {
+    return blackRookSprite;
   }
 
   const key = `${piece.team}-${piece.type}-${frame}`;
@@ -6452,7 +6801,9 @@ function drawShowdownStateBanner() {
 
 function drawShowdownReadyOverlay(showoff) {
   const count = Math.max(1, Math.ceil(showoff.introTimer ?? SHOWDOWN_INTRO_SECONDS));
-  const pulse = 1 + (1 - ((showoff.introTimer ?? 0) % 1)) * 0.08;
+  const pulse = 1 + (1 - ((showoff.introTimer ?? 0) % 1)) * 0.04;
+  const panelWidth = SHOWDOWN_READY_PANEL_WIDTH;
+  const panelHeight = SHOWDOWN_READY_PANEL_HEIGHT;
 
   ctx.save();
   ctx.textAlign = "center";
@@ -6463,7 +6814,7 @@ function drawShowdownReadyOverlay(showoff) {
   ctx.shadowBlur = 24;
 
   ctx.fillStyle = "rgba(31, 24, 18, 0.6)";
-  roundRect(-176, -78, 352, 154, 16);
+  roundRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 16);
   ctx.fill();
   ctx.strokeStyle = "rgba(255, 209, 102, 0.82)";
   ctx.lineWidth = 4;
@@ -6471,10 +6822,10 @@ function drawShowdownReadyOverlay(showoff) {
 
   ctx.fillStyle = "#fff8e8";
   ctx.font = "900 34px Inter, Arial, sans-serif";
-  ctx.fillText("READY", 0, -30);
+  ctx.fillText("READY", 0, -42);
 
   ctx.fillStyle = "#ffd166";
-  ctx.font = "900 92px Georgia, serif";
+  ctx.font = `900 ${SHOWDOWN_READY_COUNT_FONT}px Georgia, serif`;
   ctx.fillText(count, 0, 42);
   ctx.restore();
 }

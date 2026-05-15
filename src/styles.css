@@ -189,6 +189,16 @@ button {
   background: var(--gold);
 }
 
+.ai-side-picker {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ai-side-picker.is-hidden {
+  display: none;
+}
+
 .segmented button:disabled {
   opacity: 0.44;
   cursor: not-allowed;

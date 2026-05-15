@@ -1,0 +1,276 @@
+﻿{
+    "piece":  "rook",
+    "team":  "black",
+    "source":  "assets/gif/black_rooks",
+    "showdownFrameSize":  {
+                              "width":  223,
+                              "height":  168
+                          },
+    "actions":  {
+                    "board_down":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  104,
+                                       "frameHeight":  91,
+                                       "path":  "assets/sprites/rooks/black/board_down"
+                                   },
+                    "board_down_left":  {
+                                            "frames":  1,
+                                            "durationsMs":  700,
+                                            "frameWidth":  89,
+                                            "frameHeight":  91,
+                                            "path":  "assets/sprites/rooks/black/board_down_left"
+                                        },
+                    "board_down_right":  {
+                                             "frames":  1,
+                                             "durationsMs":  700,
+                                             "frameWidth":  86,
+                                             "frameHeight":  86,
+                                             "path":  "assets/sprites/rooks/black/board_down_right"
+                                         },
+                    "board_idle":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  100,
+                                       "frameHeight":  92,
+                                       "path":  "assets/sprites/rooks/black/board_idle"
+                                   },
+                    "board_left":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  97,
+                                       "frameHeight":  91,
+                                       "path":  "assets/sprites/rooks/black/board_left"
+                                   },
+                    "board_right":  {
+                                        "frames":  1,
+                                        "durationsMs":  700,
+                                        "frameWidth":  101,
+                                        "frameHeight":  92,
+                                        "path":  "assets/sprites/rooks/black/board_right"
+                                    },
+                    "board_step_1":  {
+                                         "frames":  1,
+                                         "durationsMs":  700,
+                                         "frameWidth":  76,
+                                         "frameHeight":  91,
+                                         "path":  "assets/sprites/rooks/black/board_step_1"
+                                     },
+                    "board_step_2":  {
+                                         "frames":  1,
+                                         "durationsMs":  700,
+                                         "frameWidth":  61,
+                                         "frameHeight":  91,
+                                         "path":  "assets/sprites/rooks/black/board_step_2"
+                                     },
+                    "board_turn":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  96,
+                                       "frameHeight":  106,
+                                       "path":  "assets/sprites/rooks/black/board_turn"
+                                   },
+                    "board_up":  {
+                                     "frames":  1,
+                                     "durationsMs":  700,
+                                     "frameWidth":  107,
+                                     "frameHeight":  92,
+                                     "path":  "assets/sprites/rooks/black/board_up"
+                                 },
+                    "board_up_left":  {
+                                          "frames":  1,
+                                          "durationsMs":  700,
+                                          "frameWidth":  96,
+                                          "frameHeight":  89,
+                                          "path":  "assets/sprites/rooks/black/board_up_left"
+                                      },
+                    "board_up_right":  {
+                                           "frames":  1,
+                                           "durationsMs":  700,
+                                           "frameWidth":  93,
+                                           "frameHeight":  90,
+                                           "path":  "assets/sprites/rooks/black/board_up_right"
+                                       },
+                    "charge_dash":  {
+                                        "frames":  5,
+                                        "durationsMs":  [
+                                                            120,
+                                                            120,
+                                                            120,
+                                                            120,
+                                                            120
+                                                        ],
+                                        "frameWidth":  223,
+                                        "frameHeight":  168,
+                                        "path":  "assets/sprites/rooks/black/charge_dash"
+                                    },
+                    "crouch":  {
+                                   "frames":  4,
+                                   "durationsMs":  [
+                                                       160,
+                                                       160,
+                                                       160,
+                                                       160
+                                                   ],
+                                   "frameWidth":  223,
+                                   "frameHeight":  168,
+                                   "path":  "assets/sprites/rooks/black/crouch"
+                               },
+                    "ground_smash":  {
+                                         "frames":  5,
+                                         "durationsMs":  [
+                                                             170,
+                                                             170,
+                                                             170,
+                                                             170,
+                                                             170
+                                                         ],
+                                         "frameWidth":  223,
+                                         "frameHeight":  168,
+                                         "path":  "assets/sprites/rooks/black/ground_smash"
+                                     },
+                    "guard_block":  {
+                                        "frames":  4,
+                                        "durationsMs":  [
+                                                            150,
+                                                            150,
+                                                            150,
+                                                            150
+                                                        ],
+                                        "frameWidth":  223,
+                                        "frameHeight":  168,
+                                        "path":  "assets/sprites/rooks/black/guard_block"
+                                    },
+                    "heavy_attack_double_crush":  {
+                                                      "frames":  4,
+                                                      "durationsMs":  [
+                                                                          170,
+                                                                          170,
+                                                                          170,
+                                                                          170
+                                                                      ],
+                                                      "frameWidth":  223,
+                                                      "frameHeight":  168,
+                                                      "path":  "assets/sprites/rooks/black/heavy_attack_double_crush"
+                                                  },
+                    "hit_hurt":  {
+                                     "frames":  4,
+                                     "durationsMs":  [
+                                                         150,
+                                                         150,
+                                                         150,
+                                                         150
+                                                     ],
+                                     "frameWidth":  223,
+                                     "frameHeight":  168,
+                                     "path":  "assets/sprites/rooks/black/hit_hurt"
+                                 },
+                    "idle_ready":  {
+                                       "frames":  4,
+                                       "durationsMs":  [
+                                                           140,
+                                                           140,
+                                                           140,
+                                                           140
+                                                       ],
+                                       "frameWidth":  223,
+                                       "frameHeight":  168,
+                                       "path":  "assets/sprites/rooks/black/idle_ready"
+                                   },
+                    "jump":  {
+                                 "frames":  5,
+                                 "durationsMs":  [
+                                                     120,
+                                                     120,
+                                                     120,
+                                                     120,
+                                                     120
+                                                 ],
+                                 "frameWidth":  223,
+                                 "frameHeight":  168,
+                                 "path":  "assets/sprites/rooks/black/jump"
+                             },
+                    "knocked_down_defeat":  {
+                                                "frames":  4,
+                                                "durationsMs":  [
+                                                                    220,
+                                                                    220,
+                                                                    220,
+                                                                    220
+                                                                ],
+                                                "frameWidth":  223,
+                                                "frameHeight":  168,
+                                                "path":  "assets/sprites/rooks/black/knocked_down_defeat"
+                                            },
+                    "light_attack_punch":  {
+                                               "frames":  4,
+                                               "durationsMs":  [
+                                                                   150,
+                                                                   150,
+                                                                   150,
+                                                                   150
+                                                               ],
+                                               "frameWidth":  223,
+                                               "frameHeight":  168,
+                                               "path":  "assets/sprites/rooks/black/light_attack_punch"
+                                           },
+                    "taunt_command":  {
+                                          "frames":  4,
+                                          "durationsMs":  [
+                                                              180,
+                                                              180,
+                                                              180,
+                                                              180
+                                                          ],
+                                          "frameWidth":  223,
+                                          "frameHeight":  168,
+                                          "path":  "assets/sprites/rooks/black/taunt_command"
+                                      },
+                    "top_view_board_move":  {
+                                                "frames":  12,
+                                                "durationsMs":  [
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160
+                                                                ],
+                                                "frameWidth":  107,
+                                                "frameHeight":  106,
+                                                "path":  "assets/sprites/rooks/black/top_view_board_move"
+                                            },
+                    "victory":  {
+                                    "frames":  5,
+                                    "durationsMs":  [
+                                                        180,
+                                                        180,
+                                                        180,
+                                                        180,
+                                                        180
+                                                    ],
+                                    "frameWidth":  223,
+                                    "frameHeight":  168,
+                                    "path":  "assets/sprites/rooks/black/victory"
+                                },
+                    "walk":  {
+                                 "frames":  5,
+                                 "durationsMs":  [
+                                                     140,
+                                                     140,
+                                                     140,
+                                                     140,
+                                                     140
+                                                 ],
+                                 "frameWidth":  223,
+                                 "frameHeight":  168,
+                                 "path":  "assets/sprites/rooks/black/walk"
+                             }
+                }
+}

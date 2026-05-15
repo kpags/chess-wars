@@ -7,6 +7,7 @@
     "dev": "node server.mjs",
     "check": "node scripts/check.mjs",
     "build:pawn-sprites": "python scripts/convert_black_pawn_gifs.py",
-    "build:black-pawn-sprites": "python scripts/convert_black_pawn_gifs.py"
+    "build:black-pawn-sprites": "python scripts/convert_black_pawn_gifs.py",
+    "build:black-rook-sprites": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/convert_black_rook_gifs.ps1"
   }
 }

@@ -13,6 +13,14 @@ import {
 
 const pieces = createInitialPieces();
 
+function readPngSize(path) {
+  const png = readFileSync(path);
+  return {
+    width: png.readUInt32BE(16),
+    height: png.readUInt32BE(20)
+  };
+}
+
 assert.equal(BOARD_SIZE, 8, "board should be 8x8");
 assert.equal(pieces.length, 32, "initial chess setup should have 32 pieces");
 assert.equal(pieces[0].mana, 0, "pieces should start with empty ultimate mana");
@@ -70,6 +78,7 @@ assert.ok(getAllLegalMoves(pieces, TEAM.BLACK).length > 0, "black should have le
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+const server = readFileSync(new URL("../server.mjs", import.meta.url), "utf8");
 const pawnGeneratedFrames = {
   charge_dash: 4,
   crouch: 4,
@@ -99,11 +108,105 @@ for (const team of [TEAM.BLACK, TEAM.WHITE]) {
 }
 assert.ok(existsSync(new URL("../assets/sprites/pawns/white/top_view_board_move/frame-00.png", import.meta.url)), "white top-view board frames should be generated for future board variants");
 
+const blackRookSourceGifs = [
+  "idle_ready.gif",
+  "walk.gif",
+  "charge_dash.gif",
+  "light_attack_punch.gif",
+  "heavy_attack_double_crush.gif",
+  "ground_smash.gif",
+  "jump.gif",
+  "guard_block.gif",
+  "hit_hurt.gif",
+  "victory.gif",
+  "knocked_down_defeat.gif",
+  "board_idle.gif",
+  "board_up.gif",
+  "board_down.gif",
+  "board_left.gif",
+  "board_right.gif",
+  "board_up_left.gif",
+  "board_up_right.gif",
+  "board_down_left.gif",
+  "board_down_right.gif"
+];
+
+for (const asset of blackRookSourceGifs) {
+  assert.ok(existsSync(new URL(`../assets/gif/black_rooks/${asset}`, import.meta.url)), `black rook source GIF should exist: ${asset}`);
+}
+
+const blackRookGeneratedFrames = {
+  board_down: 1,
+  board_down_left: 1,
+  board_down_right: 1,
+  board_idle: 1,
+  board_left: 1,
+  board_right: 1,
+  board_step_1: 1,
+  board_step_2: 1,
+  board_turn: 1,
+  board_up: 1,
+  board_up_left: 1,
+  board_up_right: 1,
+  charge_dash: 5,
+  crouch: 4,
+  ground_smash: 5,
+  guard_block: 4,
+  heavy_attack_double_crush: 4,
+  hit_hurt: 4,
+  idle_ready: 4,
+  jump: 5,
+  knocked_down_defeat: 4,
+  light_attack_punch: 4,
+  taunt_command: 4,
+  top_view_board_move: 12,
+  victory: 5,
+  walk: 5
+};
+
+const blackRookShowdownGeneratedFrames = new Set([
+  "charge_dash",
+  "crouch",
+  "ground_smash",
+  "guard_block",
+  "heavy_attack_double_crush",
+  "hit_hurt",
+  "idle_ready",
+  "jump",
+  "knocked_down_defeat",
+  "light_attack_punch",
+  "taunt_command",
+  "victory",
+  "walk"
+]);
+let blackRookShowdownFrameSize = null;
+
+for (const [action, expectedFrames] of Object.entries(blackRookGeneratedFrames)) {
+  const actionDir = new URL(`../assets/sprites/rooks/black/${action}/`, import.meta.url);
+  assert.ok(existsSync(actionDir), `generated black rook action folder should exist for ${action}`);
+  const frames = readdirSync(actionDir).filter((name) => /^frame-\d+\.png$/.test(name));
+  assert.equal(frames.length, expectedFrames, `generated black rook action ${action} should have ${expectedFrames} frames`);
+
+  if (blackRookShowdownGeneratedFrames.has(action)) {
+    for (const frame of frames) {
+      const size = readPngSize(new URL(frame, actionDir));
+      blackRookShowdownFrameSize ??= size;
+      assert.deepEqual(size, blackRookShowdownFrameSize, `black rook Showdown frame ${action}/${frame} should use the shared canvas size`);
+    }
+  }
+}
+assert.ok(existsSync(new URL("../assets/sprites/rooks/black/preview-sheet.png", import.meta.url)), "generated black rook preview sheet should exist");
+assert.ok(existsSync(new URL("../assets/sprites/rooks/black/manifest.json", import.meta.url)), "generated black rook manifest should exist");
+
+assert.match(server, /"\.webp": "image\/webp"/, "dev server should serve WebP animation assets with the right MIME type");
+
 assert.match(html, /Chess Wars/, "index should render Chess Wars");
 assert.match(html, /Showdown/, "index should render Showdown wording");
 assert.match(html, /id="online-presence"/, "online room should include invited-player presence indicator");
 assert.match(html, /id="online-chat"/, "online room should include a text-only chat panel");
 assert.match(html, /id="online-chat-input"[\s\S]*maxlength="160"/, "online chat input should limit message length");
+assert.match(html, /id="ai-side-picker"/, "Vs AI mode should include a side picker");
+assert.match(html, /id="ai-side-white"[\s\S]*id="ai-side-black"/, "AI side picker should let the user choose White or Black");
 assert.match(main, /SHOWDOWN/, "client should include Showdown phase rendering");
 assert.match(main, /clearCombatInput/, "client should clear combat input to prevent stuck movement");
 assert.match(main, /getShowdownSprite/, "client should use generated sprite frames for showdown");
@@ -244,6 +347,8 @@ assert.match(main, /drawShowdownTimerBadge/, "Showdown timer should be centered 
 assert.match(main, /drawShowdownRoundBoxes/, "Showdown HUD should show two round-win boxes for each side");
 assert.match(main, /drawShowdownReadyOverlay/, "Showdown intro should use a big ready-count overlay");
 assert.match(main, /timer === null \? "VS"/, "Showdown intro countdown should not appear between the top bars");
+assert.match(main, /SHOWDOWN_READY_PANEL_HEIGHT = 208/, "Showdown ready countdown should fit inside a taller panel");
+assert.match(main, /SHOWDOWN_READY_COUNT_FONT = 84/, "Showdown ready countdown number should not spill outside the panel");
 assert.match(main, /SHOWDOWN_MANA_FULL_GLOW/, "full mana bars should glow light blue");
 assert.match(main, /showdownHudHealthTrails/, "Showdown health bars should track delayed damage animation state");
 assert.match(main, /SHOWDOWN_HEALTH_TRAIL_HOLD_SECONDS/, "Showdown health damage trail should wait before draining");
@@ -285,6 +390,22 @@ assert.doesNotMatch(main, /assets\/sprites\/pawns\/white\/white_pawn_board_move_
 assert.match(main, /function shouldFlipPawnBoardSprite\(piece\)/, "white pawn board sprites should have an orientation helper");
 assert.match(main, /return piece\?\.team === TEAM\.WHITE;/, "white pawn board sprites should face toward black's side");
 assert.match(main, /dy \*= -1;/, "white pawn board movement frames should keep their visual direction after flipping");
+assert.match(main, /BLACK_ROOK_SHOWDOWN_ANIMATIONS/, "black rooks should support generated Showdown frame animations");
+assert.match(main, /BLACK_ROOK_SHOWDOWN_DRAW/, "black rook Showdown actions should share one rendered size");
+assert.match(main, /draw: BLACK_ROOK_SHOWDOWN_DRAW/, "black rook Showdown configs should use the shared rendered size");
+assert.match(main, /BLACK_ROOK_BOARD_ANIMATIONS/, "black rooks should support generated board frame models");
+assert.match(main, /loadBlackRookAnimations/, "black rook animations should be preloaded at boot");
+assert.match(main, /getBlackRookShowdownSprite/, "black rook Showdown rendering should prefer loaded generated frames");
+assert.match(main, /drawBlackRookBoardSprite/, "black rook board rendering should prefer loaded top-view frames");
+assert.match(main, /blackRookAnimationFrames/, "black rook frame folders should be cached like pawn GIF-derived frames");
+assert.match(main, /getBlackRookAnimationFrame/, "black rook rendering should pick individual generated frames");
+assert.match(main, /heavy_attack_double_crush/, "black rook critical strikes should use the double-crush animation frames");
+assert.match(main, /ground_smash/, "black rook ultimate casting should use the ground-smash animation frames");
+assert.match(main, /isBlackRookSpritePiece/, "black rook sprite support should stay scoped to black rooks");
+assert.match(main, /playerTeam: TEAM\.WHITE/, "AI games should track the human player's selected side");
+assert.match(main, /function setAiPlayerTeam/, "AI side picker should update the selected human side");
+assert.match(main, /function getAiTeam/, "AI ownership should be derived from the player's selected side");
+assert.match(main, /state\.currentTeam !== aiTeam/, "AI board turns should work for either selected side");
 assert.match(main, /boardMoveAnimations/, "board move animation state should be tracked");
 assert.match(main, /startBoardMoveAnimation/, "pawn board moves should trigger top-view animations");
 assert.match(main, /criticalAttackTimer/, "critical attacks should have an attacker animation state");
@@ -353,7 +474,6 @@ assert.match(styles, /grid-template-areas:\s*"title title"\s*"board hud"/, "desk
 assert.match(styles, /\.game-title\s*\{[\s\S]*justify-self: center/, "game title should be centered at the top");
 assert.match(styles, /\.board-column \.log-card\s*\{/, "battle log should have board-column layout styling");
 
-const server = readFileSync(new URL("../server.mjs", import.meta.url), "utf8");
 assert.match(server, /\/api\/rooms/, "server should expose room endpoints");
 assert.match(server, /0\.0\.0\.0/, "server should bind beyond localhost for two-device room links");
 assert.match(server, /text\/event-stream/, "server should expose a realtime room event stream");
