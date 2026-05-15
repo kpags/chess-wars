@@ -28,10 +28,11 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Pawns, rooks, knights, bishops, queen, and king use chess-style movement.
 - Captures start a best-of-3 Showdown duel instead of instantly removing the defender.
 - Each Showdown starts both pieces at full HP, and each round lasts 60 seconds. If time expires, the piece with higher health wins the round.
-- Piece HP starts from the v1.0.1 values: pawn 100, rook 115, knight 120, bishop 130, queen 150, king 200.
+- Piece HP starts from the v1.2.0 values: pawn 60, rook 85, knight 70, bishop 100, queen 130, king 150.
 - Showdown attacks deal 5-10 base damage.
 - Piece weapons are visible in Showdown: fists, spike club, javelin, cross, scythe, and sword & shield.
-- Damage bonuses are applied by piece: pawn fixed, rook +4%, knight +5%, bishop +7%, queen +12%, king +15%.
+- Damage bonuses are applied by piece: pawn fixed, rook +4%, knight +5%, bishop +3%, queen +8%, king +10%.
+- Each class has armor equipment that reduces incoming Showdown damage.
 - Critical hits have a 4 percent chance and deal double damage.
 - Blocking reduces incoming damage.
 - The game ends when a king is defeated.
@@ -39,6 +40,7 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Legacy powerup definitions remain in the code: Heal, Dance, Revive, Restrict, Strength, Smash, and Extinct.
 - Smash now arms only the receiving piece for one Showdown.
 - Every piece has a 100-mana ultimate skill. Mana resets to 0 only when a new Showdown starts.
+- Online rooms show whether the invited player has joined and include text-only room chat.
 
 ## Patch Notes v1.0.0
 
@@ -201,3 +203,22 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Showdown sprites now have more canvas room so weapon arcs are not cropped.
 - Added 25% class passive activations during Showdown attacks: Pawn Plus Damage, Rook Stun, Knight Speed, Bishop Life Steal, Queen Intimidate, and King Dominance.
 - Passive activations now show an in-combat indicator and log which piece activated the skill.
+
+## Patch Notes v1.2.0
+
+- Online rooms now show whether the invited player has joined.
+- Online rooms now include a text-only chat panel.
+- Knight board labels now use `K`.
+- Passive activation chance reduced from 25% to 10%.
+- Bishop Life Steal now steals 8 HP, Rook Stun lasts 1 second, Queen Intimidate slows attack speed by 25%, and King Dominance lasts 3 seconds.
+- Added armor equipment and class defaults: Pawn 60 HP Iron Plate, Rook 85 HP War Plate, Knight 70 HP Black Steel Cuirass, Bishop 100 HP Lionheart Mail, Queen 130 HP Royal Armor, and King 150 HP Royal Armor.
+
+## Patch Notes v1.2.1
+
+- Damage-dealing ultimate skills now ignore block damage reduction.
+- Showdown jump height increased by 20%.
+
+## Patch Notes v1.2.2
+
+- Armor is now carried on each piece and used when reducing damage received.
+- Showdown jump height increased by 40%.

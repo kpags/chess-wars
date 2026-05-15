@@ -268,6 +268,82 @@ button {
   font-size: 0.82rem;
 }
 
+.online-presence {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 28px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 4px 9px;
+  border: 1px solid rgba(139, 215, 255, 0.38);
+  border-radius: 7px;
+  color: #8bd7ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: rgba(139, 215, 255, 0.1);
+}
+
+.online-chat {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.online-chat-log {
+  display: grid;
+  min-height: 76px;
+  max-height: 132px;
+  align-content: end;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid rgba(255, 232, 184, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 248, 232, 0.06);
+}
+
+.online-chat-message {
+  display: grid;
+  gap: 2px;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.online-chat-message strong {
+  color: var(--gold);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.online-chat-message.is-mine {
+  text-align: right;
+}
+
+.online-chat-form {
+  display: grid;
+  grid-template-columns: 1fr 70px;
+  gap: 8px;
+}
+
+.online-chat-form input,
+.online-chat-form button {
+  min-height: 38px;
+  border: 1px solid rgba(255, 232, 184, 0.2);
+  border-radius: 7px;
+  color: var(--ink);
+  background: rgba(255, 248, 232, 0.08);
+}
+
+.online-chat-form input {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.online-chat-form button {
+  cursor: pointer;
+  font-weight: 800;
+}
+
 .powerup-card {
   border-color: rgba(104, 194, 132, 0.34);
 }

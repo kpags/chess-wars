@@ -58,6 +58,7 @@
           <span class="label">Online Room</span>
           <strong id="online-status">Offline</strong>
           <p id="online-detail">Create a room, then share the same link with player 2.</p>
+          <p id="online-presence" class="online-presence is-hidden">Invited player: Waiting</p>
           <div class="online-actions">
             <button id="create-room" type="button">Create Room</button>
             <div class="join-row">
@@ -66,6 +67,13 @@
             </div>
           </div>
           <p id="online-link" class="online-link"></p>
+          <div id="online-chat" class="online-chat is-hidden" aria-label="Online text chat">
+            <div id="online-chat-log" class="online-chat-log" aria-live="polite"></div>
+            <form id="online-chat-form" class="online-chat-form">
+              <input id="online-chat-input" type="text" maxlength="160" autocomplete="off" placeholder="Type a message" aria-label="Online chat message" />
+              <button type="submit">Send</button>
+            </form>
+          </div>
         </div>
 
         <div class="status-card">

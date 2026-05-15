@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  ARMORS,
   BOARD_SIZE,
   PIECE_STATS,
   TEAM,
@@ -16,14 +17,15 @@ assert.equal(BOARD_SIZE, 8, "board should be 8x8");
 assert.equal(pieces.length, 32, "initial chess setup should have 32 pieces");
 assert.equal(pieces[0].mana, 0, "pieces should start with empty ultimate mana");
 assert.equal(pieces[0].smashShowdowns, 0, "pieces should start without Smash armed");
-assert.equal(PIECE_STATS.pawn.hp, 100, "pawn hp follows v1.0.1 patch notes");
-assert.equal(PIECE_STATS.rook.hp, 115, "rook hp follows v1.0.1 patch notes");
-assert.equal(PIECE_STATS.horse.hp, 120, "horse hp follows v1.0.1 patch notes");
+assert.equal(pieces[0].armor, "warPlate", "pieces should carry their class armor on themselves");
+assert.equal(PIECE_STATS.pawn.hp, 60, "pawn hp follows v1.2.0 patch notes");
+assert.equal(PIECE_STATS.rook.hp, 85, "rook hp follows v1.2.0 patch notes");
+assert.equal(PIECE_STATS.horse.hp, 70, "knight hp follows v1.2.0 patch notes");
 assert.equal(PIECE_STATS.horse.name, "Knight", "horse piece should be named Knight in the UI");
-assert.equal(PIECE_STATS.horse.short, "N", "horse piece should use the Knight board marker");
-assert.equal(PIECE_STATS.bishop.hp, 130, "bishop hp follows v1.0.1 patch notes");
-assert.equal(PIECE_STATS.queen.hp, 150, "queen hp follows v1.0.1 patch notes");
-assert.equal(PIECE_STATS.king.hp, 200, "king hp follows v1.0.1 patch notes");
+assert.equal(PIECE_STATS.horse.short, "K", "knight piece should use the requested K board marker");
+assert.equal(PIECE_STATS.bishop.hp, 100, "bishop hp follows v1.2.0 patch notes");
+assert.equal(PIECE_STATS.queen.hp, 130, "queen hp follows v1.2.0 patch notes");
+assert.equal(PIECE_STATS.king.hp, 150, "king hp follows v1.2.0 patch notes");
 assert.equal(PIECE_STATS.pawn.weapon, "Fists", "pawn weapon follows v1 patch notes");
 assert.equal(PIECE_STATS.rook.weapon, "Spike Club", "rook weapon follows v1 patch notes");
 assert.equal(PIECE_STATS.horse.weapon, "Javelin", "horse weapon follows v1 patch notes");
@@ -33,9 +35,20 @@ assert.equal(PIECE_STATS.king.weapon, "Sword & Shield", "king weapon follows v1 
 assert.equal(PIECE_STATS.pawn.damageBonus, 0, "pawn has fixed damage");
 assert.equal(PIECE_STATS.rook.damageBonus, 0.04, "rook damage bonus follows v1.0.3 patch notes");
 assert.equal(PIECE_STATS.horse.damageBonus, 0.05, "horse damage bonus follows v1.0.3 patch notes");
-assert.equal(PIECE_STATS.bishop.damageBonus, 0.07, "bishop damage bonus follows v1.0.3 patch notes");
-assert.equal(PIECE_STATS.queen.damageBonus, 0.12, "queen damage bonus follows v1.0.3 patch notes");
-assert.equal(PIECE_STATS.king.damageBonus, 0.15, "king damage bonus follows v1.0.3 patch notes");
+assert.equal(PIECE_STATS.bishop.damageBonus, 0.03, "bishop damage bonus follows v1.2.0 patch notes");
+assert.equal(PIECE_STATS.queen.damageBonus, 0.08, "queen damage bonus follows v1.2.0 patch notes");
+assert.equal(PIECE_STATS.king.damageBonus, 0.1, "king damage bonus follows v1.2.0 patch notes");
+assert.equal(PIECE_STATS.pawn.armor, "ironPlate", "pawn should use Iron Plate armor");
+assert.equal(PIECE_STATS.rook.armor, "warPlate", "rook should use War Plate armor");
+assert.equal(PIECE_STATS.horse.armor, "blackSteelCuirass", "knight should use Black Steel Cuirass armor");
+assert.equal(PIECE_STATS.bishop.armor, "lionheartMail", "bishop should use Lionheart Mail armor");
+assert.equal(PIECE_STATS.queen.armor, "royalArmor", "queen should use Royal Armor");
+assert.equal(PIECE_STATS.king.armor, "royalArmor", "king should use Royal Armor");
+assert.equal(ARMORS.ironPlate.reduction, 0.015, "Iron Plate should reduce damage by 1.5 percent");
+assert.equal(ARMORS.lionheartMail.reduction, 0.02, "Lionheart Mail should reduce damage by 2 percent");
+assert.equal(ARMORS.blackSteelCuirass.reduction, 0.04, "Black Steel Cuirass should reduce damage by 4 percent");
+assert.equal(ARMORS.warPlate.reduction, 0.07, "War Plate should reduce damage by 7 percent");
+assert.equal(ARMORS.royalArmor.reduction, 0.15, "Royal Armor should reduce damage by 15 percent");
 
 const whitePawn = getPieceAt(pieces, 4, 6);
 assert.deepEqual(
@@ -59,6 +72,9 @@ const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
 assert.match(html, /Chess Wars/, "index should render Chess Wars");
 assert.match(html, /Showdown/, "index should render Showdown wording");
+assert.match(html, /id="online-presence"/, "online room should include invited-player presence indicator");
+assert.match(html, /id="online-chat"/, "online room should include a text-only chat panel");
+assert.match(html, /id="online-chat-input"[\s\S]*maxlength="160"/, "online chat input should limit message length");
 assert.match(main, /SHOWDOWN/, "client should include Showdown phase rendering");
 assert.match(main, /clearCombatInput/, "client should clear combat input to prevent stuck movement");
 assert.match(main, /getShowdownSprite/, "client should use generated sprite frames for showdown");
@@ -86,6 +102,11 @@ assert.match(main, /new EventSource/, "online rooms should use a realtime event 
 assert.match(main, /openOnlineStream/, "client should open a room event stream after joining");
 assert.match(main, /closeOnlineStream/, "client should close stale room event streams when leaving or switching rooms");
 assert.match(main, /streamConnected/, "client should keep polling only as a fallback when realtime streaming is unavailable");
+assert.match(main, /guestJoined/, "online rooms should track whether the invited player has joined");
+assert.match(main, /getOnlinePresenceMessage/, "online HUD should show invited-player join status");
+assert.match(main, /sendOnlineChatMessage/, "online rooms should support sending text chat messages");
+assert.match(main, /receiveOnlineChatMessage/, "online rooms should support receiving text chat messages");
+assert.match(main, /sendOnlineEvent\("chat"/, "chat should use the existing online room event channel");
 assert.match(main, /flushOnlineSnapshotEvent/, "streamed snapshots should be coalesced to animation frames");
 assert.match(main, /updateRemoteShowdownVisuals/, "invited devices should animate remote Showdown snapshots locally");
 assert.match(main, /preserveRemoteShowdownVisuals/, "invited devices should preserve local visual positions between snapshots");
@@ -104,6 +125,9 @@ assert.match(main, /startNextShowdownRound/, "Showdown should reset into the nex
 assert.match(main, /y: 0/, "Showdown input should be 2D horizontal only");
 assert.match(main, /shouldFlipShowdownPerspective/, "online guests should see their piece on the left");
 assert.match(main, /MAX_MANA = 100/, "ultimate mana capacity should be 100");
+assert.match(main, /SHOWDOWN_JUMP_HEIGHT_MULTIPLIER = 1\.4/, "Showdown jump height should be increased by 40 percent");
+assert.match(main, /SHOWDOWN_JUMP_VELOCITY = Math\.round\(SHOWDOWN_BASE_JUMP_VELOCITY \* Math\.sqrt\(SHOWDOWN_JUMP_HEIGHT_MULTIPLIER\)\)/, "jump velocity should scale to produce 40 percent more height");
+assert.match(main, /fighter\.vz = SHOWDOWN_JUMP_VELOCITY \* dashMultiplier/, "Showdown jumps should use the v1.2.1 jump velocity");
 assert.match(main, /attacker\.mana = 0;\s+defender\.mana = 0;/s, "ultimate mana should reset at the start of each Showdown");
 assert.doesNotMatch(main, /resetShowdownMana/, "ultimate mana should not be reset at round start or Showdown end");
 assert.match(main, /Heavy Fist/, "pawn ultimate should be Heavy Fist");
@@ -112,6 +136,7 @@ assert.match(main, /Stampede/, "horse ultimate should be Stampede");
 assert.match(main, /STAMPEDE_DURATION = 3/, "horse Stampede should last 3 seconds");
 assert.match(main, /STAMPEDE_SPEED_MULTIPLIER = 2/, "horse Stampede should move at 200 percent speed");
 assert.match(main, /STAMPEDE_DAMAGE = 12/, "horse Stampede should deal 12 damage on each pass");
+assert.match(main, /label: "Stampede",\s+mana: false,\s+ignoreBlock: true,/s, "Stampede should ignore block damage reduction");
 assert.match(main, /updateStampede/, "horse Stampede should move back and forth during Showdown");
 assert.match(main, /STAMPEDE_DASH_INTERVAL = 0\.07/, "horse Stampede should use frequent dash frames");
 assert.match(main, /STAMPEDE_DASH_DISTANCE = 96/, "horse Stampede should use shorter smooth dash bursts");
@@ -129,16 +154,18 @@ assert.match(main, /barrageShots = 5/, "queen Barrage should launch 5 attacks");
 assert.match(main, /Hard Swing/, "king ultimate should be Hard Swing");
 assert.match(main, /grantMana/, "basic attacks should grant ultimate mana");
 assert.match(main, /tryUltimate/, "fighters should be able to activate ultimate skills");
-assert.match(main, /PASSIVE_TRIGGER_CHANCE = 0\.25/, "class passive skills should have a 25 percent activation chance");
+assert.match(main, /const blocked = !options\.ignoreBlock && Boolean\(opponent\.block\)/, "damage ultimates should be able to ignore block effects");
+assert.match(main, /dealCombatDamage\(fighter, opponent, boostedDamage,[\s\S]*ignoreBlock: true/, "damage-dealing ultimates should ignore block effects");
+assert.match(main, /PASSIVE_TRIGGER_CHANCE = 0\.1/, "class passive skills should have a 10 percent activation chance");
 assert.match(main, /PASSIVE_PLUS_DAMAGE = 3/, "pawn passive should add 3 attack damage");
 assert.match(main, /PASSIVE_PLUS_DAMAGE_SECONDS = 3/, "pawn passive should last 3 seconds");
-assert.match(main, /PASSIVE_STUN_SECONDS = 1\.5/, "rook passive should stun for 1.5 seconds");
+assert.match(main, /PASSIVE_STUN_SECONDS = 1/, "rook passive should stun for 1 second");
 assert.match(main, /PASSIVE_SPEED_MULTIPLIER = 1\.5/, "knight passive should add a 50 percent speed boost");
 assert.match(main, /PASSIVE_SPEED_SECONDS = 3/, "knight passive should last 3 seconds");
-assert.match(main, /PASSIVE_LIFE_STEAL = 15/, "bishop passive should steal 15 HP");
+assert.match(main, /PASSIVE_LIFE_STEAL = 8/, "bishop passive should steal 8 HP");
 assert.match(main, /PASSIVE_INTIMIDATE_SECONDS = 2/, "queen passive should last 2 seconds");
-assert.match(main, /PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER = 2/, "queen passive should halve opponent attack speed");
-assert.match(main, /PASSIVE_DOMINANCE_SECONDS = 5/, "king passive should last 5 seconds");
+assert.match(main, /PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER = 4 \/ 3/, "queen passive should reduce opponent attack speed by 25 percent");
+assert.match(main, /PASSIVE_DOMINANCE_SECONDS = 3/, "king passive should last 3 seconds");
 assert.match(main, /PASSIVE_DOMINANCE_DAMAGE = 10/, "king passive should add 10 attack damage");
 assert.match(main, /PASSIVE_DOMINANCE_REDUCTION = 5/, "king passive should reduce incoming damage by 5");
 assert.match(main, /maybeActivatePassiveSkill/, "Showdown attacks should roll for class passives");
@@ -146,6 +173,10 @@ assert.match(main, /showPassiveActivation/, "passive activations should show the
 assert.match(main, /drawPassiveIndicator/, "active passives should draw an in-Showdown indicator");
 assert.match(main, /drawStunEffect/, "stunned pieces should show a stun effect above the head");
 assert.match(main, /opponent\.stunTimer = Math\.max\(opponent\.stunTimer \?\? 0, options\.stun \?\? 0\)/, "stun effects should disappear when the stun timer ends");
+assert.match(main, /applyArmorReduction/, "armor should reduce incoming Showdown damage");
+assert.match(main, /getPieceArmor/, "piece equipment should be read from armor stats");
+assert.match(main, /piece\.armor = piece\.armor \?\? PIECE_STATS\[piece\.type\]\.armor/, "each piece should keep its own class armor assignment");
+assert.match(main, /return ARMORS\[piece\?\.armor \?\? PIECE_STATS\[piece\?\.type\]\?\.armor\] \?\? null;/, "damage reduction should read armor from the receiving piece");
 assert.match(main, /smashShowdowns = 1/, "Smash should arm only the receiving piece");
 assert.match(main, /SMASH_DAMAGE_BONUS/, "Smash should affect Showdown damage for one duel");
 assert.match(main, /consumeSmashAfterShowdown/, "Smash should expire after one Showdown");
@@ -203,6 +234,9 @@ assert.match(html, /sr-only/, "touch icon buttons should keep accessible text fo
 assert.match(styles, /@media \(max-width: 1020px\)[\s\S]*\.touch-grid\s*\{[\s\S]*grid-template-columns: repeat\(4, minmax\(48px, 1fr\)\)/, "smaller screens should place four touch icons on the first row and two on the second");
 assert.match(styles, /body\.single-touch-controls \.touch-bank\[data-side="p2"\]\s*\{\s+display: none;/, "small screens should show only one touch-control set");
 assert.match(styles, /\.touch-controls\.hide-p2-touch-controls \.touch-bank\[data-side="p2"\]\s*\{\s+display: none;/, "AI and online Showdowns should hide the P2 touch-control bank");
+assert.match(styles, /\.online-presence\s*\{/, "online presence indicator should be styled");
+assert.match(styles, /\.online-chat-log\s*\{/, "online chat log should be styled");
+assert.match(styles, /\.online-chat-form\s*\{/, "online chat form should be styled");
 assert.match(styles, /grid-template-areas:\s*"left right \. \. attack block"\s*"\. \. ultimate jump \. \."/s, "single touch controls should match the reference image layout");
 assert.match(styles, /column-gap: 14px/, "single touch controls should keep a small gap between each button pair");
 assert.match(styles, /-webkit-tap-highlight-color: transparent/, "held touch controls should not show mobile tap highlights");
@@ -238,5 +272,6 @@ assert.match(server, /0\.0\.0\.0/, "server should bind beyond localhost for two-
 assert.match(server, /text\/event-stream/, "server should expose a realtime room event stream");
 assert.match(server, /broadcastEvent/, "server should broadcast room events to open streams");
 assert.match(server, /last-event-id/, "server should resume event streams without replaying stale events");
+assert.match(server, /hasGuest: Boolean\(room\.guestId\)/, "server should report whether the invited guest has joined");
 
 console.log("Chess Wars checks passed.");

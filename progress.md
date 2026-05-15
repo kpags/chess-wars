@@ -93,3 +93,24 @@ Original prompt: Based on the attached GIF, improve the showdown animations like
 - Expanded the Showdown sprite canvas and adjusted the sprite anchor so weapon arcs are no longer cropped.
 - Added 25% Showdown class passive activations for Pawns, Rooks, Knights, Bishops, Queen, and King.
 - Added passive activation indicators and combat log entries showing which piece activated each passive skill.
+
+## 2026-05-15 v1.2.0
+
+- Extracted Patch Notes v1.2.0 from `Chess_wars.docx` using a temporary workspace copy.
+- Added an online invited-player joined indicator to the room HUD.
+- Added text-only online room chat using the existing room event stream and polling fallback.
+- Changed the Knight board label to `K`.
+- Rebalanced passive activation chance and passive durations/values.
+- Added armor equipment with incoming-damage reduction and updated all class HP and damage defaults.
+
+## 2026-05-15 v1.2.1
+
+- Extracted Patch Notes v1.2.1 from `Chess_wars.docx` using a temporary workspace copy.
+- Updated damage-dealing ultimate skills so blocking no longer reduces their damage.
+- Increased Showdown jump height by 20% by scaling jump velocity against the physics height curve.
+
+## 2026-05-15 v1.2.2
+
+- Extracted Patch Notes v1.2.2 from `Chess_wars.docx` using a temporary workspace copy.
+- Added armor as a per-piece state field so each piece carries its own class armor when damage reduction is applied.
+- Increased Showdown jump height to 40% above the original jump height.

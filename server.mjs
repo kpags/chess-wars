@@ -79,8 +79,8 @@ async function handleApiRequest(request, response, url) {
       const body = await readJson(request);
       const clientId = sanitizeClientId(body.clientId);
       const role = assignRole(room, clientId);
-      addEvent(room, clientId, "presence", { role });
-      sendJson(response, 200, { roomId, role, lastEventId: room.nextEventId - 1 });
+      addEvent(room, clientId, "presence", { role, hasGuest: Boolean(room.guestId) });
+      sendJson(response, 200, { roomId, role, hasGuest: Boolean(room.guestId), lastEventId: room.nextEventId - 1 });
       return;
     }
 

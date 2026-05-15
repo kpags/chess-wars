@@ -1,4 +1,5 @@
 import {
+  ARMORS,
   BOARD_SIZE,
   PIECE_STATS,
   TEAM,
@@ -22,7 +23,12 @@ const els = {
   roomCode: document.querySelector("#room-code"),
   onlineStatus: document.querySelector("#online-status"),
   onlineDetail: document.querySelector("#online-detail"),
+  onlinePresence: document.querySelector("#online-presence"),
   onlineLink: document.querySelector("#online-link"),
+  onlineChat: document.querySelector("#online-chat"),
+  onlineChatLog: document.querySelector("#online-chat-log"),
+  onlineChatForm: document.querySelector("#online-chat-form"),
+  onlineChatInput: document.querySelector("#online-chat-input"),
   turnLabel: document.querySelector("#turn-label"),
   status: document.querySelector("#status-message"),
   selectionLabel: document.querySelector("#selection-label"),
@@ -113,6 +119,9 @@ const SHOWDOWN_ROUNDS_TO_WIN = 2;
 const MAX_MANA = 100;
 const SMASH_DAMAGE_BONUS = 0.5;
 const DASH_MULTIPLIER = 1.75;
+const SHOWDOWN_BASE_JUMP_VELOCITY = 430;
+const SHOWDOWN_JUMP_HEIGHT_MULTIPLIER = 1.4;
+const SHOWDOWN_JUMP_VELOCITY = Math.round(SHOWDOWN_BASE_JUMP_VELOCITY * Math.sqrt(SHOWDOWN_JUMP_HEIGHT_MULTIPLIER));
 const ULTIMATE_ATTACK_RANGE = ARENA.attackRange;
 const STAMPEDE_DURATION = 3;
 const STAMPEDE_SPEED_MULTIPLIER = 2;
@@ -121,17 +130,17 @@ const STAMPEDE_HIT_COOLDOWN = 0.18;
 const STAMPEDE_DASH_INTERVAL = 0.07;
 const STAMPEDE_DASH_DISTANCE = 96;
 const STAMPEDE_TRAIL_SECONDS = 0.1;
-const PASSIVE_TRIGGER_CHANCE = 0.25;
+const PASSIVE_TRIGGER_CHANCE = 0.1;
 const PASSIVE_FLASH_SECONDS = 1.35;
 const PASSIVE_PLUS_DAMAGE = 3;
 const PASSIVE_PLUS_DAMAGE_SECONDS = 3;
-const PASSIVE_STUN_SECONDS = 1.5;
+const PASSIVE_STUN_SECONDS = 1;
 const PASSIVE_SPEED_MULTIPLIER = 1.5;
 const PASSIVE_SPEED_SECONDS = 3;
-const PASSIVE_LIFE_STEAL = 15;
+const PASSIVE_LIFE_STEAL = 8;
 const PASSIVE_INTIMIDATE_SECONDS = 2;
-const PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER = 2;
-const PASSIVE_DOMINANCE_SECONDS = 5;
+const PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER = 4 / 3;
+const PASSIVE_DOMINANCE_SECONDS = 3;
 const PASSIVE_DOMINANCE_DAMAGE = 10;
 const PASSIVE_DOMINANCE_REDUCTION = 5;
 const PASSIVE_SKILLS = {
@@ -190,12 +199,14 @@ const online = {
   pollInFlight: false,
   stream: null,
   streamConnected: false,
+  guestJoined: false,
   snapshotTimer: 0,
   remoteInput: { x: 0, y: 0, attack: false, block: false, jump: false, ultimate: false },
   lastSentInput: "",
   pendingSnapshotEvent: null,
   pendingSnapshotFrame: 0,
-  showdownTargets: new Map()
+  showdownTargets: new Map(),
+  chatMessages: []
 };
 
 const state = {
@@ -286,6 +297,7 @@ function bindEvents() {
   });
   els.createRoom.addEventListener("click", createOnlineRoom);
   els.joinRoom.addEventListener("click", joinTypedRoom);
+  els.onlineChatForm.addEventListener("submit", sendOnlineChatMessage);
   els.powerupOptions.addEventListener("click", onPowerupChoiceClick);
   ensureCombatStateForPieces();
   if (smallScreenModeQuery.addEventListener) {
@@ -1151,6 +1163,7 @@ function ensureCombatStateForPieces() {
 }
 
 function ensureCombatPieceState(piece) {
+  piece.armor = piece.armor ?? PIECE_STATS[piece.type].armor;
   piece.mana = clamp(Number(piece.mana ?? 0), 0, MAX_MANA);
   piece.smashShowdowns = Number(piece.smashShowdowns ?? 0);
   piece.danceTurns = Number(piece.danceTurns ?? 0);
@@ -1167,6 +1180,7 @@ function removePieceFromBoard(piece, reason) {
     type: piece.type,
     hp: 0,
     maxHp: PIECE_STATS[piece.type].hp,
+    armor: piece.armor ?? PIECE_STATS[piece.type].armor,
     hasMoved: false,
     reason
   });
@@ -1308,9 +1322,11 @@ async function joinOnlineRoom(roomId) {
     online.lastEventId = data.lastEventId ?? 0;
     online.pollTimer = 0;
     online.pollInFlight = false;
+    online.guestJoined = Boolean(data.hasGuest) || data.role === "guest";
     online.snapshotTimer = 0;
     online.remoteInput = { x: 0, y: 0, attack: false, block: false, jump: false, ultimate: false };
     online.lastSentInput = "";
+    online.chatMessages = [];
     online.showdownTargets.clear();
     state.mode = "online";
     els.modeAi.classList.remove("is-active");
@@ -1339,10 +1355,12 @@ function leaveOnlineRoom(resetUrl = true) {
   online.pollTimer = 0;
   online.pollInFlight = false;
   online.streamConnected = false;
+  online.guestJoined = false;
   online.snapshotTimer = 0;
   online.remoteInput = { x: 0, y: 0, attack: false, block: false, jump: false, ultimate: false };
   online.lastSentInput = "";
   online.pendingSnapshotEvent = null;
+  online.chatMessages = [];
   online.showdownTargets.clear();
   if (resetUrl && window.location.search.includes("room=")) {
     window.history.replaceState({}, "", window.location.pathname);
@@ -1473,12 +1491,23 @@ function flushOnlineSnapshotEvent() {
 }
 
 function processOnlineEvent(event) {
+  if (event.type === "chat") {
+    receiveOnlineChatMessage(event);
+    return;
+  }
+
+  if (event.type === "presence") {
+    updateOnlinePresence(event);
+    if (isOnlineHost()) {
+      publishSnapshot("presence");
+    }
+    return;
+  }
+
   if (isOnlineHost()) {
     if (event.type === "board-click" && state.currentTeam === TEAM.BLACK && !state.announcement) {
       handleBoardSquare(event.payload);
       publishSnapshot("move");
-    } else if (event.type === "presence") {
-      publishSnapshot("presence");
     } else if (event.type === "choice-action" && state.pendingChoice?.team === TEAM.BLACK && !state.announcement) {
       handlePowerupChoiceAction(event.payload.action, Number(event.payload.id));
       publishSnapshot("choice");
@@ -1718,6 +1747,72 @@ function normalizeRemoteInput(input) {
   };
 }
 
+function updateOnlinePresence(event) {
+  const role = event.payload?.role ?? event.role;
+  if (role === "guest" || event.payload?.hasGuest) {
+    online.guestJoined = true;
+  }
+  syncOnlineHud();
+}
+
+function sendOnlineChatMessage(event) {
+  event.preventDefault();
+  const text = sanitizeChatText(els.onlineChatInput.value);
+  if (!text || !online.connected || !online.roomId) {
+    return;
+  }
+
+  const message = {
+    text,
+    role: online.role,
+    at: Date.now()
+  };
+  els.onlineChatInput.value = "";
+  addOnlineChatMessage({ ...message, mine: true });
+  sendOnlineEvent("chat", message);
+}
+
+function receiveOnlineChatMessage(event) {
+  const text = sanitizeChatText(event.payload?.text ?? "");
+  if (!text) {
+    return;
+  }
+
+  addOnlineChatMessage({
+    text,
+    role: event.payload?.role ?? event.role ?? "player",
+    at: event.payload?.at ?? event.at ?? Date.now(),
+    mine: event.clientId === online.clientId
+  });
+}
+
+function addOnlineChatMessage(message) {
+  online.chatMessages.push(message);
+  online.chatMessages = online.chatMessages.slice(-40);
+  renderOnlineChat();
+}
+
+function sanitizeChatText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, 160);
+}
+
+function renderOnlineChat() {
+  els.onlineChat.classList.toggle("is-hidden", !online.connected || !online.roomId);
+  els.onlineChatLog.replaceChildren(
+    ...online.chatMessages.map((message) => {
+      const row = document.createElement("div");
+      row.className = `online-chat-message${message.mine ? " is-mine" : ""}`;
+      const author = document.createElement("strong");
+      author.textContent = message.mine ? "You" : capitalize(message.role || "player");
+      const body = document.createElement("span");
+      body.textContent = message.text;
+      row.append(author, body);
+      return row;
+    })
+  );
+  els.onlineChatLog.scrollTop = els.onlineChatLog.scrollHeight;
+}
+
 async function sendOnlineEvent(type, payload) {
   if (!online.roomId || !online.connected) {
     return;
@@ -1752,13 +1847,19 @@ function syncOnlineHud() {
   if (!online.connected || !online.roomId) {
     els.onlineStatus.textContent = "Offline";
     els.onlineDetail.textContent = "Create a room, then share the same link with player 2.";
+    els.onlinePresence.classList.add("is-hidden");
+    els.onlinePresence.textContent = "";
     els.onlineLink.textContent = "";
+    renderOnlineChat();
     return;
   }
 
   els.onlineStatus.textContent = `${online.roomId} - ${capitalize(online.role)}`;
   els.onlineDetail.textContent = getOnlineRoleMessage();
+  els.onlinePresence.classList.remove("is-hidden");
+  els.onlinePresence.textContent = getOnlinePresenceMessage();
   els.onlineLink.textContent = getRoomLink(online.roomId);
+  renderOnlineChat();
 }
 
 function getOnlineRoleMessage() {
@@ -1775,6 +1876,22 @@ function getOnlineRoleMessage() {
   }
 
   return "Create a room, then share the same link with player 2.";
+}
+
+function getOnlinePresenceMessage() {
+  if (isOnlineHost()) {
+    return online.guestJoined ? "Invited player: Joined" : "Invited player: Waiting";
+  }
+
+  if (isOnlineGuest()) {
+    return "Invited player: Joined";
+  }
+
+  if (isOnlineSpectator()) {
+    return online.guestJoined ? "Players: Host and invited player present" : "Players: Waiting for invited player";
+  }
+
+  return "";
 }
 
 function setRoomUrl(roomId) {
@@ -2293,7 +2410,7 @@ function applyFighterInput(fighter, input, dt) {
     fighter.jumpHeld = false;
   }
   if (!stunned && jumpPressed && !fighter.jumpHeld && fighter.onGround) {
-    fighter.vz = 430 * dashMultiplier;
+    fighter.vz = SHOWDOWN_JUMP_VELOCITY * dashMultiplier;
     fighter.onGround = false;
   }
   if (jumpPressed) {
@@ -2465,12 +2582,13 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
   }
 
   let damage = amount;
-  const blocked = Boolean(opponent.block);
+  const blocked = !options.ignoreBlock && Boolean(opponent.block);
   if (blocked) {
     damage = randomInt(0, 2);
   } else if ((opponent.fortifyTimer ?? 0) > 0) {
     damage = roundDamage(Math.max(1, damage * 0.5));
   }
+  damage = applyArmorReduction(opponentPiece, damage);
   if ((opponent.dominanceTimer ?? 0) > 0) {
     damage = roundDamage(Math.max(0, damage - PASSIVE_DOMINANCE_REDUCTION));
   }
@@ -2489,6 +2607,19 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
   }
 
   return damage;
+}
+
+function applyArmorReduction(piece, damage) {
+  const armor = getPieceArmor(piece);
+  if (!armor || damage <= 0) {
+    return damage;
+  }
+
+  return roundDamage(Math.max(0, damage * (1 - armor.reduction)));
+}
+
+function getPieceArmor(piece) {
+  return ARMORS[piece?.armor ?? PIECE_STATS[piece?.type]?.armor] ?? null;
 }
 
 function tryUltimate(fighter) {
@@ -2607,6 +2738,7 @@ function performStampedeDash(fighter, opponent, attackerPiece, opponentPiece) {
     const dealt = dealCombatDamage(fighter, opponent, STAMPEDE_DAMAGE, {
       label: "Stampede",
       mana: false,
+      ignoreBlock: true,
       color: "#ffd166",
       shake: 0.22
     });
@@ -2629,6 +2761,7 @@ function dealUltimateDamage(fighter, opponent, damage, label, stun = 0) {
     label,
     stun,
     mana: false,
+    ignoreBlock: true,
     color: "#8bd7ff",
     shake: 0.24
   });
@@ -2736,7 +2869,7 @@ function syncHud() {
       els.selectionDetail.textContent = `Selected at ${toSquareName(selected.x, selected.y)}. Possible moves are hidden.`;
     } else {
       els.selectionLabel.textContent = describePiece(selected);
-      els.selectionDetail.textContent = `HP activates at full value during Showdown. Mana ${formatNumber(selected.mana ?? 0)}/${MAX_MANA}. Weapon: ${stat.weapon}. Ultimate: ${ULTIMATES[selected.type].name}. Passive: ${PASSIVE_SKILLS[selected.type].name}. Damage bonus: ${formatPercent(stat.damageBonus)}.${perks.length ? ` Perks: ${perks.join(", ")}.` : ""}`;
+      els.selectionDetail.textContent = `HP activates at full value during Showdown. Mana ${formatNumber(selected.mana ?? 0)}/${MAX_MANA}. Weapon: ${stat.weapon}. Armor: ${getPieceArmor(selected).name}. Ultimate: ${ULTIMATES[selected.type].name}. Passive: ${PASSIVE_SKILLS[selected.type].name}. Damage bonus: ${formatPercent(stat.damageBonus)}.${perks.length ? ` Perks: ${perks.join(", ")}.` : ""}`;
     }
   } else {
     els.selectionLabel.textContent = "None";
@@ -2760,8 +2893,8 @@ function syncHud() {
     }
     els.duelLeftName.textContent = describePiece(leftPiece);
     els.duelRightName.textContent = describePiece(rightPiece);
-    els.duelLeftWeapon.textContent = `${PIECE_STATS[leftPiece.type].weapon} - ${ULTIMATES[leftPiece.type].name} - Passive: ${PASSIVE_SKILLS[leftPiece.type].name}`;
-    els.duelRightWeapon.textContent = `${PIECE_STATS[rightPiece.type].weapon} - ${ULTIMATES[rightPiece.type].name} - Passive: ${PASSIVE_SKILLS[rightPiece.type].name}`;
+    els.duelLeftWeapon.textContent = getShowdownLoadoutText(leftPiece);
+    els.duelRightWeapon.textContent = getShowdownLoadoutText(rightPiece);
     els.duelLeftHp.max = leftPiece.maxHp;
     els.duelLeftHp.value = leftPiece.hp;
     els.duelRightHp.max = rightPiece.maxHp;
@@ -2788,6 +2921,12 @@ function syncHud() {
 
 function shouldHideP2ShowdownControls() {
   return state.mode === "ai" || state.mode === "online" || isSmallScreenMode();
+}
+
+function getShowdownLoadoutText(piece) {
+  const stat = PIECE_STATS[piece.type];
+  const armor = getPieceArmor(piece);
+  return `${stat.weapon} - ${armor.name} - ${ULTIMATES[piece.type].name} - Passive: ${PASSIVE_SKILLS[piece.type].name}`;
 }
 
 function getShowdownHudFighters() {

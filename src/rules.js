@@ -5,13 +5,21 @@ export const TEAM = {
   BLACK: "black"
 };
 
+export const ARMORS = {
+  ironPlate: { name: "Iron Plate", reduction: 0.015 },
+  lionheartMail: { name: "Lionheart Mail", reduction: 0.02 },
+  blackSteelCuirass: { name: "Black Steel Cuirass", reduction: 0.04 },
+  warPlate: { name: "War Plate", reduction: 0.07 },
+  royalArmor: { name: "Royal Armor", reduction: 0.15 }
+};
+
 export const PIECE_STATS = {
-  pawn: { name: "Pawn", short: "P", hp: 100, value: 1, weapon: "Fists", damageBonus: 0 },
-  rook: { name: "Rook", short: "R", hp: 115, value: 5, weapon: "Spike Club", damageBonus: 0.04 },
-  horse: { name: "Knight", short: "N", hp: 120, value: 3, weapon: "Javelin", damageBonus: 0.05 },
-  bishop: { name: "Bishop", short: "B", hp: 130, value: 3, weapon: "Cross", damageBonus: 0.07 },
-  queen: { name: "Queen", short: "Q", hp: 150, value: 9, weapon: "Scythe", damageBonus: 0.12 },
-  king: { name: "King", short: "K", hp: 200, value: 100, weapon: "Sword & Shield", damageBonus: 0.15 }
+  pawn: { name: "Pawn", short: "P", hp: 60, value: 1, weapon: "Fists", damageBonus: 0, armor: "ironPlate" },
+  rook: { name: "Rook", short: "R", hp: 85, value: 5, weapon: "Spike Club", damageBonus: 0.04, armor: "warPlate" },
+  horse: { name: "Knight", short: "K", hp: 70, value: 3, weapon: "Javelin", damageBonus: 0.05, armor: "blackSteelCuirass" },
+  bishop: { name: "Bishop", short: "B", hp: 100, value: 3, weapon: "Cross", damageBonus: 0.03, armor: "lionheartMail" },
+  queen: { name: "Queen", short: "Q", hp: 130, value: 9, weapon: "Scythe", damageBonus: 0.08, armor: "royalArmor" },
+  king: { name: "King", short: "K", hp: 150, value: 100, weapon: "Sword & Shield", damageBonus: 0.1, armor: "royalArmor" }
 };
 
 const BACK_RANK = ["rook", "horse", "bishop", "queen", "king", "bishop", "horse", "rook"];
@@ -40,6 +48,7 @@ function createPiece(id, team, type, x, y) {
     y,
     hp: stat.hp,
     maxHp: stat.hp,
+    armor: stat.armor,
     mana: 0,
     smashShowdowns: 0,
     hasMoved: false
