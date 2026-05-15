@@ -94,6 +94,116 @@ const BOARD_THEME = {
   capture: "rgba(214, 77, 67, 0.76)"
 };
 
+const PAWN_SPRITE_BASE_SIZE = { width: 1228, height: 883 };
+const PAWN_SPRITE_OUTPUT = { width: 460, height: 320 };
+const PAWN_SPRITE_SHEETS = {
+  [TEAM.BLACK]: "assets/sprites/pawns/black-pawn-sheet.png",
+  [TEAM.WHITE]: "assets/sprites/pawns/white-pawn-sheet.png"
+};
+const BLACK_PAWN_GIF_ANIMATIONS = {
+  idle_ready: { path: "assets/sprites/pawns/black/idle_ready", frames: 4, frameMs: 140, draw: { width: 174, height: 166 } },
+  walk: { path: "assets/sprites/pawns/black/walk", frames: 5, frameMs: 140, draw: { width: 174, height: 166 } },
+  charge_dash: { path: "assets/sprites/pawns/black/charge_dash", frames: 4, frameMs: 120, draw: { width: 238, height: 156 } },
+  light_attack_punch: { path: "assets/sprites/pawns/black/light_attack_punch", frames: 4, frameMs: 150, draw: { width: 210, height: 166 } },
+  heavy_attack_double_punch: { path: "assets/sprites/pawns/black/heavy_attack_double_punch", frames: 4, frameMs: 150, draw: { width: 242, height: 166 } },
+  jump: { path: "assets/sprites/pawns/black/jump", frames: 5, frameMs: 120, draw: { width: 178, height: 190 } },
+  guard_block: { path: "assets/sprites/pawns/black/guard_block", frames: 4, frameMs: 150, draw: { width: 182, height: 168 } },
+  hit_hurt: { path: "assets/sprites/pawns/black/hit_hurt", frames: 4, frameMs: 150, draw: { width: 188, height: 168 } },
+  victory: { path: "assets/sprites/pawns/black/victory", frames: 4, frameMs: 180, draw: { width: 192, height: 186 } },
+  knocked_down_defeat: { path: "assets/sprites/pawns/black/knocked_down_defeat", frames: 4, frameMs: 180, draw: { width: 210, height: 100 } },
+  board_move_animation: { path: "assets/sprites/pawns/black/board_move_animation", frames: 12, frameMs: 120, boardDraw: { width: 84, height: 84 } }
+};
+const WHITE_PAWN_GIF_ANIMATIONS = {
+  idle_ready: { path: "assets/sprites/pawns/white/idle_ready", frames: 4, frameMs: 140, draw: { width: 174, height: 176 } },
+  walk: { path: "assets/sprites/pawns/white/walk", frames: 5, frameMs: 140, draw: { width: 174, height: 176 } },
+  charge_dash: { path: "assets/sprites/pawns/white/charge_dash", frames: 4, frameMs: 120, draw: { width: 246, height: 168 } },
+  light_attack_punch: { path: "assets/sprites/pawns/white/light_attack_punch", frames: 4, frameMs: 150, draw: { width: 214, height: 176 } },
+  heavy_attack_double_punch: { path: "assets/sprites/pawns/white/heavy_attack_double_punch", frames: 4, frameMs: 150, draw: { width: 246, height: 176 } },
+  jump: { path: "assets/sprites/pawns/white/jump", frames: 5, frameMs: 120, draw: { width: 184, height: 198 } },
+  guard_block: { path: "assets/sprites/pawns/white/guard_block", frames: 4, frameMs: 140, draw: { width: 188, height: 176 } },
+  hit_hurt: { path: "assets/sprites/pawns/white/hit_hurt", frames: 4, frameMs: 150, draw: { width: 194, height: 176 } },
+  victory: { path: "assets/sprites/pawns/white/victory", frames: 4, frameMs: 180, draw: { width: 198, height: 194 } },
+  knocked_down_defeat: { path: "assets/sprites/pawns/white/knocked_down_defeat", frames: 4, frameMs: 180, draw: { width: 222, height: 108 } },
+  board_move_animation: { path: "assets/sprites/pawns/white/board_move_animation", frames: 12, frameMs: 120, boardDraw: { width: 84, height: 84 } }
+};
+const PAWN_GIF_ANIMATIONS = {
+  [TEAM.BLACK]: BLACK_PAWN_GIF_ANIMATIONS,
+  [TEAM.WHITE]: WHITE_PAWN_GIF_ANIMATIONS
+};
+const BOARD_MOVE_ANIMATION_SECONDS = 0.52;
+const PAWN_SPRITE_ATLAS = {
+  board: {
+    idle: [{ x: 18, y: 758, w: 82, h: 84 }]
+  },
+  showdown: {
+    idle: [
+      { x: 18, y: 34, w: 86, h: 92 },
+      { x: 140, y: 34, w: 86, h: 92 },
+      { x: 260, y: 34, w: 86, h: 92 },
+      { x: 382, y: 34, w: 86, h: 92 }
+    ],
+    crouch: [
+      { x: 18, y: 152, w: 88, h: 74 },
+      { x: 140, y: 152, w: 88, h: 74 },
+      { x: 260, y: 152, w: 88, h: 74 },
+      { x: 382, y: 152, w: 88, h: 74 }
+    ],
+    attack: [
+      { x: 18, y: 264, w: 92, h: 94 },
+      { x: 140, y: 264, w: 92, h: 94 },
+      { x: 260, y: 264, w: 112, h: 94 },
+      { x: 382, y: 264, w: 126, h: 94 }
+    ],
+    heavy: [
+      { x: 602, y: 270, w: 118, h: 98 },
+      { x: 732, y: 270, w: 136, h: 98 },
+      { x: 872, y: 270, w: 136, h: 98 },
+      { x: 1014, y: 270, w: 138, h: 98 }
+    ],
+    dash: [
+      { x: 18, y: 490, w: 118, h: 88 },
+      { x: 144, y: 490, w: 124, h: 88 },
+      { x: 272, y: 490, w: 134, h: 88 },
+      { x: 414, y: 490, w: 150, h: 88 }
+    ],
+    jump: [
+      { x: 598, y: 156, w: 100, h: 124 },
+      { x: 720, y: 144, w: 112, h: 124 },
+      { x: 840, y: 144, w: 112, h: 124 },
+      { x: 960, y: 152, w: 112, h: 124 },
+      { x: 1080, y: 160, w: 96, h: 112 }
+    ],
+    block: [
+      { x: 600, y: 390, w: 92, h: 96 },
+      { x: 724, y: 390, w: 92, h: 96 },
+      { x: 846, y: 390, w: 106, h: 96 },
+      { x: 972, y: 390, w: 92, h: 96 }
+    ],
+    hit: [
+      { x: 602, y: 506, w: 96, h: 98 },
+      { x: 724, y: 506, w: 96, h: 98 },
+      { x: 846, y: 506, w: 106, h: 98 },
+      { x: 972, y: 506, w: 116, h: 98 }
+    ],
+    victory: [
+      { x: 600, y: 616, w: 92, h: 106 },
+      { x: 724, y: 604, w: 92, h: 118 },
+      { x: 846, y: 594, w: 102, h: 128 },
+      { x: 972, y: 596, w: 122, h: 126 }
+    ],
+    defeat: [
+      { x: 10, y: 684, w: 104, h: 58 },
+      { x: 134, y: 684, w: 110, h: 58 },
+      { x: 260, y: 684, w: 116, h: 58 },
+      { x: 390, y: 672, w: 122, h: 70 }
+    ]
+  }
+};
+const pawnSpriteSheets = new Map();
+const pawnSpriteFrameCache = new Map();
+const pawnGifFrames = new Map();
+const pawnGifRenderCache = new Map();
+
 const ARENA = {
   width: 960,
   height: 960,
@@ -155,6 +265,11 @@ const SHOWDOWN_SPRITE_WIDTH = 460;
 const SHOWDOWN_SPRITE_HEIGHT = 320;
 const SHOWDOWN_SPRITE_BODY_Y = 246;
 const SHOWDOWN_SPRITE_FLOOR_Y = 284;
+const SHOWDOWN_FIGHTER_SCALE = 1.5;
+const SHOWDOWN_DRAW_WIDTH = Math.round(SHOWDOWN_SPRITE_WIDTH * SHOWDOWN_FIGHTER_SCALE);
+const SHOWDOWN_DRAW_HEIGHT = Math.round(SHOWDOWN_SPRITE_HEIGHT * SHOWDOWN_FIGHTER_SCALE);
+const SHOWDOWN_DRAW_FLOOR_Y = Math.round(SHOWDOWN_SPRITE_FLOOR_Y * SHOWDOWN_FIGHTER_SCALE);
+const CRITICAL_ATTACK_FLASH_SECONDS = 0.36;
 const ULTIMATE_KEYS = ["e", "E", "KeyE"];
 const ULTIMATES = {
   pawn: { name: "Heavy Fist", detail: "25 damage" },
@@ -242,12 +357,15 @@ const state = {
   lastTime: 0,
   aiTimer: null,
   shake: 0,
+  boardMoveAnimations: new Map(),
   floatingText: [],
   combatBanner: null,
   announcement: null
 };
 
 function boot() {
+  loadPawnSpriteSheets();
+  loadPawnGifFrames();
   bindEvents();
   syncResponsiveMode();
   syncOnlineHud();
@@ -336,6 +454,58 @@ function bindEvents() {
   });
 }
 
+function loadPawnSpriteSheets() {
+  for (const [team, src] of Object.entries(PAWN_SPRITE_SHEETS)) {
+    if (pawnSpriteSheets.has(team)) {
+      continue;
+    }
+
+    const image = new Image();
+    const record = { image, loaded: false, failed: false };
+    pawnSpriteSheets.set(team, record);
+    image.onload = () => {
+      record.loaded = true;
+      record.failed = false;
+      pawnSpriteFrameCache.clear();
+      spriteCache.clear();
+    };
+    image.onerror = () => {
+      record.loaded = false;
+      record.failed = true;
+    };
+    image.src = src;
+  }
+}
+
+function loadPawnGifFrames() {
+  for (const [team, actions] of Object.entries(PAWN_GIF_ANIMATIONS)) {
+    for (const [action, config] of Object.entries(actions)) {
+      const cacheKey = `${team}:${action}`;
+      if (pawnGifFrames.has(cacheKey)) {
+        continue;
+      }
+
+      const frames = [];
+      pawnGifFrames.set(cacheKey, frames);
+      for (let index = 0; index < config.frames; index += 1) {
+        const image = new Image();
+        const record = { image, loaded: false, failed: false };
+        frames.push(record);
+        image.onload = () => {
+          record.loaded = true;
+          record.failed = false;
+          pawnGifRenderCache.clear();
+        };
+        image.onerror = () => {
+          record.loaded = false;
+          record.failed = true;
+        };
+        image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
+      }
+    }
+  }
+}
+
 function setMode(mode) {
   if (mode === "local" && isSmallScreenMode()) {
     state.message = "Local 2P is disabled on smaller screens.";
@@ -399,6 +569,7 @@ function resetGame() {
   clearTouchInput();
   state.mouse.attack = false;
   state.mouse.block = false;
+  state.boardMoveAnimations.clear();
   state.floatingText = [];
   state.combatBanner = null;
   state.announcement = null;
@@ -561,8 +732,28 @@ function performBoardMove(piece, move) {
 }
 
 function movePiece(piece, x, y) {
+  startBoardMoveAnimation(piece, piece.x, piece.y, x, y);
   piece.x = x;
   piece.y = y;
+}
+
+function startBoardMoveAnimation(piece, fromX, fromY, toX, toY) {
+  if (piece.type !== "pawn" || !PAWN_GIF_ANIMATIONS[piece.team]?.board_move_animation) {
+    return;
+  }
+
+  if (fromX === toX && fromY === toY) {
+    return;
+  }
+
+  state.boardMoveAnimations.set(String(piece.id), {
+    fromX,
+    fromY,
+    toX,
+    toY,
+    elapsed: 0,
+    duration: BOARD_MOVE_ANIMATION_SECONDS
+  });
 }
 
 function finishBoardMove(piece, usedDance) {
@@ -655,6 +846,7 @@ function createFighter(piece, x, facing, role) {
     moveBlend: 0,
     hitFlash: 0,
     criticalFlash: 0,
+    criticalAttackTimer: 0,
     aiHoldBlock: 0,
     mana: piece.mana ?? 0,
     stunTimer: 0,
@@ -1565,6 +1757,7 @@ function applyRemoteSnapshot(payload) {
   }
 
   const previousFighters = state.showoff?.fighters;
+  const previousBoardPositions = new Map(state.pieces.map((piece) => [String(piece.id), { x: piece.x, y: piece.y, type: piece.type, team: piece.team }]));
   const remoteShowdownTargets =
     isRemoteOnlineClient() && snapshot.phase === "showoff" && snapshot.showoff?.fighters
       ? createRemoteShowdownTargets(snapshot.showoff)
@@ -1593,6 +1786,9 @@ function applyRemoteSnapshot(payload) {
   state.floatingText = snapshot.floatingText ?? [];
   state.combatBanner = snapshot.combatBanner ?? null;
   state.announcement = snapshot.announcement ?? null;
+  if (snapshot.phase === "board" && payload?.reason !== "reset") {
+    startRemoteBoardMoveAnimations(previousBoardPositions);
+  }
 
   if (remoteShowdownTargets) {
     online.showdownTargets = remoteShowdownTargets;
@@ -1602,6 +1798,21 @@ function applyRemoteSnapshot(payload) {
   }
 
   syncHud();
+}
+
+function startRemoteBoardMoveAnimations(previousBoardPositions) {
+  if (!previousBoardPositions.size || state.phase !== "board") {
+    return;
+  }
+
+  for (const piece of state.pieces) {
+    const previous = previousBoardPositions.get(String(piece.id));
+    if (!previous || previous.x === piece.x && previous.y === piece.y) {
+      continue;
+    }
+
+    startBoardMoveAnimation(piece, previous.x, previous.y, piece.x, piece.y);
+  }
 }
 
 function createRemoteShowdownTargets(showoff) {
@@ -1618,6 +1829,7 @@ function createRemoteShowdownTargets(showoff) {
       blockTimer: fighter.blockTimer ?? 0,
       hitFlash: fighter.hitFlash ?? 0,
       criticalFlash: fighter.criticalFlash ?? 0,
+      criticalAttackTimer: fighter.criticalAttackTimer ?? 0,
       motionTime: fighter.motionTime ?? 0,
       moveBlend: fighter.moveBlend ?? 0,
       mana: fighter.mana ?? 0,
@@ -1671,6 +1883,7 @@ function preserveRemoteShowdownVisuals(previousFighters) {
     fighter.blockTimer = Math.max(previous.blockTimer ?? 0, fighter.blockTimer ?? 0);
     fighter.hitFlash = Math.max(previous.hitFlash ?? 0, fighter.hitFlash ?? 0);
     fighter.criticalFlash = Math.max(previous.criticalFlash ?? 0, fighter.criticalFlash ?? 0);
+    fighter.criticalAttackTimer = Math.max(previous.criticalAttackTimer ?? 0, fighter.criticalAttackTimer ?? 0);
     fighter.ultimateTimer = Math.max(previous.ultimateTimer ?? 0, fighter.ultimateTimer ?? 0);
     fighter.plusDamageTimer = Math.max(previous.plusDamageTimer ?? 0, fighter.plusDamageTimer ?? 0);
     fighter.speedTimer = Math.max(previous.speedTimer ?? 0, fighter.speedTimer ?? 0);
@@ -2033,6 +2246,7 @@ function loop(time) {
   state.lastTime = time;
 
   updateOnline(dt);
+  updateBoardMoveAnimations(dt);
   const paused = updateAnnouncement(dt);
 
   if (!paused && state.phase === "showoff") {
@@ -2115,9 +2329,23 @@ function updateRemoteShowdownVisuals(dt) {
     fighter.blockTimer = Math.max(0, (fighter.blockTimer ?? target.blockTimer ?? 0) - dt);
     fighter.hitFlash = Math.max(0, (fighter.hitFlash ?? target.hitFlash ?? 0) - dt);
     fighter.criticalFlash = Math.max(0, (fighter.criticalFlash ?? target.criticalFlash ?? 0) - dt);
+    fighter.criticalAttackTimer = Math.max(0, (fighter.criticalAttackTimer ?? target.criticalAttackTimer ?? 0) - dt);
     fighter.ultimateTimer = Math.max(0, (fighter.ultimateTimer ?? target.ultimateTimer ?? 0) - dt);
   }
   updateShowdownEndAnimations(dt);
+}
+
+function updateBoardMoveAnimations(dt) {
+  if (!state.boardMoveAnimations.size) {
+    return;
+  }
+
+  for (const [id, animation] of state.boardMoveAnimations.entries()) {
+    animation.elapsed += dt;
+    if (animation.elapsed >= animation.duration) {
+      state.boardMoveAnimations.delete(id);
+    }
+  }
 }
 
 function updateShowoff(dt) {
@@ -2178,6 +2406,7 @@ function updateShowoff(dt) {
     fighter.blockTimer = Math.max(0, fighter.blockTimer - dt);
     fighter.hitFlash = Math.max(0, fighter.hitFlash - dt);
     fighter.criticalFlash = Math.max(0, (fighter.criticalFlash ?? 0) - dt);
+    fighter.criticalAttackTimer = Math.max(0, (fighter.criticalAttackTimer ?? 0) - dt);
     fighter.stunTimer = Math.max(0, (fighter.stunTimer ?? 0) - dt);
     fighter.fortifyTimer = Math.max(0, (fighter.fortifyTimer ?? 0) - dt);
     fighter.dashTimer = Math.max(0, (fighter.dashTimer ?? 0) - dt);
@@ -2282,6 +2511,7 @@ function clearFighterActiveEffects(fighter) {
   fighter.dominanceTimer = 0;
   fighter.passiveFlashTimer = 0;
   fighter.passiveFlashLabel = "";
+  fighter.criticalAttackTimer = 0;
 }
 
 function updateShowdownEndAnimations(dt) {
@@ -2479,6 +2709,7 @@ function tryAttack(fighter) {
   const critical = Math.random() < 0.04;
   if (critical) {
     damage = roundDamage(damage * 2);
+    fighter.criticalAttackTimer = CRITICAL_ATTACK_FLASH_SECONDS;
   }
   damage = applySmashDamageBonus(attackerPiece, damage);
 
@@ -2887,7 +3118,9 @@ function syncHud() {
     if (!state.showoff.started) {
       els.showoffTitle.textContent = `Showdown starts in ${Math.ceil(state.showoff.introTimer ?? SHOWDOWN_INTRO_SECONDS)}`;
     } else if (state.showoff.ended) {
-      els.showoffTitle.textContent = state.showoff.finished ? "Showdown winner decided" : `Round ${state.showoff.round} finished`;
+      const winner = getPieceById(state.pieces, state.showoff.roundWinnerId);
+      const winnerName = winner ? describePiece(winner) : "Winner";
+      els.showoffTitle.textContent = state.showoff.finished ? `${winnerName} wins Showdown` : `${winnerName} wins round ${state.showoff.round}`;
     } else {
       els.showoffTitle.textContent = `Round ${state.showoff.round ?? 1}/3 - ${Math.ceil(state.showoff.roundTimer ?? SHOWDOWN_ROUND_SECONDS)}s - First to 2`;
     }
@@ -3341,8 +3574,9 @@ function drawPowerup(board) {
 }
 
 function drawPiece(piece, board) {
-  const cx = board.x + piece.x * board.cell + board.cell / 2;
-  const cy = board.y + piece.y * board.cell + board.cell * 0.58;
+  const visualPosition = getBoardPieceVisualPosition(piece);
+  const cx = board.x + visualPosition.x * board.cell + board.cell / 2;
+  const cy = board.y + visualPosition.y * board.cell + board.cell * 0.58;
   const scale = board.cell / 96;
   const stat = PIECE_STATS[piece.type];
   const colors = getPieceColors(piece.team);
@@ -3360,6 +3594,16 @@ function drawPiece(piece, board) {
   ctx.fill();
 
   ctx.shadowColor = "transparent";
+  if (piece.type === "pawn") {
+    if (drawPawnBoardSprite(piece)) {
+      ctx.restore();
+      return;
+    }
+    drawPawnBoardTopView(colors);
+    ctx.restore();
+    return;
+  }
+
   drawCarvedPieceBody(piece.type, colors);
   drawBoardWeaponIcon(piece.type, colors);
   drawPieceCrest(stat.short, colors);
@@ -3370,6 +3614,531 @@ function getPieceColors(team) {
   return team === TEAM.WHITE
     ? { main: "#d99c52", light: "#ffe6ad", dark: "#8c552e", ink: "#2d1b12", stroke: "#fff1c3" }
     : { main: "#643719", light: "#a76735", dark: "#25130d", ink: "#fff1c3", stroke: "#d18a4d" };
+}
+
+function getBoardPieceVisualPosition(piece) {
+  const animation = state.boardMoveAnimations.get(String(piece.id));
+  if (!animation) {
+    return { x: piece.x, y: piece.y };
+  }
+
+  const progress = easeOutCubic(clamp(animation.elapsed / animation.duration, 0, 1));
+  return {
+    x: lerp(animation.fromX, animation.toX, progress),
+    y: lerp(animation.fromY, animation.toY, progress)
+  };
+}
+
+function drawPawnBoardSprite(piece) {
+  const gifSprite = getPawnBoardGifSprite(piece);
+  if (gifSprite) {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    drawImageBottomCentered(ctx, gifSprite.image, 0, 35, gifSprite.draw.width, gifSprite.draw.height, shouldFlipPawnBoardSprite(piece));
+    ctx.restore();
+    return true;
+  }
+
+  const sprite = getPawnSpriteFrame(piece.team, "board", "idle", 0);
+  if (!sprite) {
+    return false;
+  }
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  drawImageBottomCentered(ctx, sprite, 0, 35, 82, 82, shouldFlipPawnBoardSprite(piece));
+  ctx.restore();
+  return true;
+}
+
+function shouldFlipPawnBoardSprite(piece) {
+  return piece?.team === TEAM.WHITE;
+}
+
+function getPawnBoardGifSprite(piece) {
+  const config = PAWN_GIF_ANIMATIONS[piece.team]?.board_move_animation;
+  if (!config) {
+    return null;
+  }
+
+  const frameIndex = getPawnBoardGifFrameIndex(piece, config);
+  const image = getPawnGifFrame(piece.team, "board_move_animation", frameIndex);
+  if (!image) {
+    return null;
+  }
+
+  return { image, draw: config.boardDraw };
+}
+
+function getPawnBoardGifFrameIndex(piece, config) {
+  const animation = state.boardMoveAnimations.get(String(piece.id));
+  if (!animation) {
+    return 0;
+  }
+
+  const progress = clamp(animation.elapsed / animation.duration, 0, 1);
+  if (progress > 0.88) {
+    return Math.min(11, config.frames - 1);
+  }
+  if (progress > 0.7) {
+    return Math.min(10, config.frames - 1);
+  }
+  if (progress > 0.52) {
+    return Math.min(9, config.frames - 1);
+  }
+
+  return Math.min(getBoardMoveDirectionFrame(animation, shouldFlipPawnBoardSprite(piece)), config.frames - 1);
+}
+
+function getBoardMoveDirectionFrame(animation, invertVertical = false) {
+  const dx = Math.sign(animation.toX - animation.fromX);
+  let dy = Math.sign(animation.toY - animation.fromY);
+  if (invertVertical) {
+    dy *= -1;
+  }
+  if (dx === 0 && dy < 0) {
+    return 1;
+  }
+  if (dx === 0 && dy > 0) {
+    return 2;
+  }
+  if (dx < 0 && dy === 0) {
+    return 3;
+  }
+  if (dx > 0 && dy === 0) {
+    return 4;
+  }
+  if (dx < 0 && dy < 0) {
+    return 5;
+  }
+  if (dx > 0 && dy < 0) {
+    return 6;
+  }
+  if (dx < 0 && dy > 0) {
+    return 7;
+  }
+  if (dx > 0 && dy > 0) {
+    return 8;
+  }
+  return 0;
+}
+
+function getPawnShowdownSprite(piece, frame, fighter) {
+  if (piece?.type !== "pawn") {
+    return null;
+  }
+
+  const gifPawnSprite = getPawnGifShowdownSprite(piece, frame, fighter);
+  if (gifPawnSprite) {
+    return gifPawnSprite;
+  }
+
+  const frameInfo = getPawnShowdownFrameInfo(frame, fighter);
+  if (!frameInfo) {
+    return null;
+  }
+
+  const source = getPawnSpriteFrame(piece.team, "showdown", frameInfo.action, frameInfo.index);
+  if (!source) {
+    return null;
+  }
+
+  const key = `pawn-render:${piece.team}:${frameInfo.action}:${frameInfo.index}`;
+  if (pawnSpriteFrameCache.has(key)) {
+    return pawnSpriteFrameCache.get(key);
+  }
+
+  const sprite = document.createElement("canvas");
+  sprite.width = PAWN_SPRITE_OUTPUT.width;
+  sprite.height = PAWN_SPRITE_OUTPUT.height;
+  const spriteCtx = sprite.getContext("2d");
+  spriteCtx.imageSmoothingEnabled = false;
+
+  const maxSize = getPawnShowdownDrawSize(frameInfo.action);
+  const floorY = frameInfo.action === "jump" ? SHOWDOWN_SPRITE_FLOOR_Y - 18 : SHOWDOWN_SPRITE_FLOOR_Y;
+  drawImageBottomCentered(spriteCtx, source, PAWN_SPRITE_OUTPUT.width / 2, floorY, maxSize.width, maxSize.height);
+
+  pawnSpriteFrameCache.set(key, sprite);
+  return sprite;
+}
+
+function getPawnGifShowdownSprite(piece, frame, fighter) {
+  if (!PAWN_GIF_ANIMATIONS[piece.team]) {
+    return null;
+  }
+
+  const frameInfo = getPawnGifFrameInfo(piece.team, frame, fighter);
+  if (!frameInfo) {
+    return null;
+  }
+
+  const source = getPawnGifFrame(piece.team, frameInfo.action, frameInfo.index);
+  if (!source) {
+    return null;
+  }
+
+  const key = `pawn-gif-render:${piece.team}:${frameInfo.action}:${frameInfo.index}`;
+  if (pawnGifRenderCache.has(key)) {
+    return pawnGifRenderCache.get(key);
+  }
+
+  const config = PAWN_GIF_ANIMATIONS[piece.team][frameInfo.action];
+  const sprite = document.createElement("canvas");
+  sprite.width = PAWN_SPRITE_OUTPUT.width;
+  sprite.height = PAWN_SPRITE_OUTPUT.height;
+  const spriteCtx = sprite.getContext("2d");
+  spriteCtx.imageSmoothingEnabled = false;
+
+  const floorY = frameInfo.action === "jump" ? SHOWDOWN_SPRITE_FLOOR_Y - 20 : SHOWDOWN_SPRITE_FLOOR_Y;
+  drawImageBottomCentered(spriteCtx, source, PAWN_SPRITE_OUTPUT.width / 2, floorY, config.draw.width, config.draw.height);
+
+  pawnGifRenderCache.set(key, sprite);
+  return sprite;
+}
+
+function getPawnGifFrameInfo(team, frame, fighter) {
+  if (frame.startsWith("defeated-fall")) {
+    return {
+      action: "knocked_down_defeat",
+      index: getPawnProgressFrame(team, "knocked_down_defeat", fighter?.fallTimer ?? 0)
+    };
+  }
+
+  if (frame.startsWith("victory-wave")) {
+    return {
+      action: "victory",
+      index: getPawnLoopFrame(team, "victory", fighter?.victoryTimer ?? performance.now() / 1000)
+    };
+  }
+
+  if (frame === "hit-stagger") {
+    return {
+      action: "hit_hurt",
+      index: getPawnLoopFrame(team, "hit_hurt", performance.now() / 1000)
+    };
+  }
+
+  if (frame === "critical-strike" || frame === "ultimate-cast") {
+    const timer = (fighter?.criticalAttackTimer ?? 0) > 0 ? fighter.criticalAttackTimer : fighter?.ultimateTimer ?? 0;
+    const progress = timer > 0 ? 1 - timer / Math.max(CRITICAL_ATTACK_FLASH_SECONDS, 0.01) : 1;
+    return {
+      action: "heavy_attack_double_punch",
+      index: getPawnProgressFrame(team, "heavy_attack_double_punch", progress, true)
+    };
+  }
+
+  if (frame.startsWith("attack-")) {
+    const attackFrames = ["attack-windup", "attack-swing", "attack-strike", "attack-recover"];
+    return {
+      action: "light_attack_punch",
+      index: Math.max(0, attackFrames.indexOf(frame))
+    };
+  }
+
+  if (frame.startsWith("block")) {
+    return {
+      action: "guard_block",
+      index: frame === "block-brace" ? 2 : getPawnLoopFrame(team, "guard_block", performance.now() / 1000)
+    };
+  }
+
+  if (frame === "jump-rise") {
+    return { action: "jump", index: 1 };
+  }
+
+  if (frame === "jump-fall") {
+    return { action: "jump", index: 3 };
+  }
+
+  if (frame.startsWith("run-")) {
+    const action = (fighter?.dashTimer ?? 0) > 0 ? "charge_dash" : "walk";
+    return {
+      action,
+      index: getPawnLoopFrame(team, action, fighter?.motionTime ?? performance.now() / 1000)
+    };
+  }
+
+  if (frame === "idle") {
+    return {
+      action: "idle_ready",
+      index: getPawnLoopFrame(team, "idle_ready", performance.now() / 1000)
+    };
+  }
+
+  return null;
+}
+
+function getPawnLoopFrame(team, action, seconds) {
+  const config = PAWN_GIF_ANIMATIONS[team][action];
+  return Math.floor((seconds * 1000) / config.frameMs) % config.frames;
+}
+
+function getPawnProgressFrame(team, action, value, normalized = false) {
+  const config = PAWN_GIF_ANIMATIONS[team][action];
+  const progress = normalized ? value : value * 1000 / Math.max(config.frameMs * config.frames, 1);
+  return clamp(Math.floor(progress * config.frames), 0, config.frames - 1);
+}
+
+function getPawnGifFrame(team, action, index) {
+  const records = pawnGifFrames.get(`${team}:${action}`);
+  if (!records?.length) {
+    return null;
+  }
+
+  const record = records[clamp(Math.floor(index), 0, records.length - 1)];
+  return record?.loaded ? record.image : null;
+}
+
+function getPawnShowdownDrawSize(action) {
+  if (action === "defeat") {
+    return { width: 178, height: 96 };
+  }
+  if (action === "dash" || action === "heavy") {
+    return { width: 214, height: 168 };
+  }
+  if (action === "jump") {
+    return { width: 178, height: 184 };
+  }
+  if (action === "victory") {
+    return { width: 176, height: 178 };
+  }
+  return { width: 170, height: 162 };
+}
+
+function getPawnShowdownFrameInfo(frame, fighter) {
+  if (frame.startsWith("defeated-fall")) {
+    return { action: "defeat", index: getFrameNumber(frame, 4) };
+  }
+  if (frame.startsWith("victory-wave")) {
+    return { action: "victory", index: getFrameNumber(frame, 4) };
+  }
+  if (frame === "hit-stagger") {
+    const index = Math.floor(performance.now() / 95) % PAWN_SPRITE_ATLAS.showdown.hit.length;
+    return { action: "hit", index };
+  }
+  if (frame === "critical-strike" || frame === "ultimate-cast") {
+    const timer = (fighter?.criticalAttackTimer ?? 0) > 0 ? fighter.criticalAttackTimer : fighter?.ultimateTimer ?? 0;
+    const progress = timer > 0 ? 1 - timer / Math.max(CRITICAL_ATTACK_FLASH_SECONDS, 0.01) : 1;
+    const index = clamp(Math.floor(progress * PAWN_SPRITE_ATLAS.showdown.heavy.length), 0, PAWN_SPRITE_ATLAS.showdown.heavy.length - 1);
+    return { action: "heavy", index };
+  }
+  if (frame.startsWith("attack-")) {
+    const attackFrames = ["attack-windup", "attack-swing", "attack-strike", "attack-recover"];
+    return { action: "attack", index: Math.max(0, attackFrames.indexOf(frame)) };
+  }
+  if (frame.startsWith("block")) {
+    return { action: "block", index: frame === "block-brace" ? 2 : 1 };
+  }
+  if (frame === "jump-rise") {
+    return { action: "jump", index: 1 };
+  }
+  if (frame === "jump-fall") {
+    return { action: "jump", index: 3 };
+  }
+  if (frame.startsWith("run-")) {
+    return { action: "dash", index: getFrameNumber(frame, 4) };
+  }
+  if (frame === "idle") {
+    const index = Math.floor(performance.now() / 230) % PAWN_SPRITE_ATLAS.showdown.idle.length;
+    return { action: "idle", index };
+  }
+  return null;
+}
+
+function getFrameNumber(frame, modulo) {
+  const match = frame.match(/(\d+)$/);
+  return match ? Number(match[1]) % modulo : 0;
+}
+
+function getPawnSpriteFrame(team, section, action, index) {
+  const record = pawnSpriteSheets.get(team);
+  if (!record?.loaded) {
+    return null;
+  }
+
+  const frames = PAWN_SPRITE_ATLAS[section]?.[action];
+  if (!frames?.length) {
+    return null;
+  }
+
+  const frameIndex = clamp(Math.floor(index), 0, frames.length - 1);
+  const cacheKey = `${team}:${section}:${action}:${frameIndex}`;
+  if (pawnSpriteFrameCache.has(cacheKey)) {
+    return pawnSpriteFrameCache.get(cacheKey);
+  }
+
+  const source = extractPawnSpriteFrame(record.image, frames[frameIndex]);
+  pawnSpriteFrameCache.set(cacheKey, source);
+  return source;
+}
+
+function extractPawnSpriteFrame(image, rect) {
+  const sourceRect = scalePawnSpriteRect(rect, image);
+  const frame = document.createElement("canvas");
+  frame.width = Math.max(1, Math.ceil(sourceRect.w));
+  frame.height = Math.max(1, Math.ceil(sourceRect.h));
+  const frameCtx = frame.getContext("2d");
+  frameCtx.imageSmoothingEnabled = false;
+  frameCtx.drawImage(image, sourceRect.x, sourceRect.y, sourceRect.w, sourceRect.h, 0, 0, frame.width, frame.height);
+  keyOutPawnSheetBackground(frameCtx, frame.width, frame.height);
+  return trimPawnSpriteFrame(frame);
+}
+
+function scalePawnSpriteRect(rect, image) {
+  const scaleX = image.naturalWidth / PAWN_SPRITE_BASE_SIZE.width;
+  const scaleY = image.naturalHeight / PAWN_SPRITE_BASE_SIZE.height;
+  return {
+    x: rect.x * scaleX,
+    y: rect.y * scaleY,
+    w: rect.w * scaleX,
+    h: rect.h * scaleY
+  };
+}
+
+function keyOutPawnSheetBackground(frameCtx, width, height) {
+  const imageData = frameCtx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const background = getAverageCornerColor(data, width, height);
+
+  for (let i = 0; i < data.length; i += 4) {
+    const distance = getColorDistance(data[i], data[i + 1], data[i + 2], background);
+    if (distance < 38) {
+      data[i + 3] = 0;
+    } else if (distance < 54) {
+      data[i + 3] = Math.min(data[i + 3], Math.round((distance - 38) * 16));
+    }
+  }
+
+  frameCtx.putImageData(imageData, 0, 0);
+}
+
+function getAverageCornerColor(data, width, height) {
+  const points = [
+    [1, 1],
+    [width - 2, 1],
+    [1, height - 2],
+    [width - 2, height - 2],
+    [Math.floor(width / 2), 1]
+  ];
+  const total = { r: 0, g: 0, b: 0 };
+  for (const [x, y] of points) {
+    const index = (clamp(y, 0, height - 1) * width + clamp(x, 0, width - 1)) * 4;
+    total.r += data[index];
+    total.g += data[index + 1];
+    total.b += data[index + 2];
+  }
+  return {
+    r: total.r / points.length,
+    g: total.g / points.length,
+    b: total.b / points.length
+  };
+}
+
+function getColorDistance(r, g, b, target) {
+  return Math.hypot(r - target.r, g - target.g, b - target.b);
+}
+
+function trimPawnSpriteFrame(source) {
+  const sourceCtx = source.getContext("2d");
+  const imageData = sourceCtx.getImageData(0, 0, source.width, source.height);
+  const data = imageData.data;
+  let minX = source.width;
+  let minY = source.height;
+  let maxX = 0;
+  let maxY = 0;
+
+  for (let y = 0; y < source.height; y += 1) {
+    for (let x = 0; x < source.width; x += 1) {
+      const alpha = data[(y * source.width + x) * 4 + 3];
+      if (alpha <= 24) {
+        continue;
+      }
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  if (minX > maxX || minY > maxY) {
+    return source;
+  }
+
+  const padding = 6;
+  minX = Math.max(0, minX - padding);
+  minY = Math.max(0, minY - padding);
+  maxX = Math.min(source.width - 1, maxX + padding);
+  maxY = Math.min(source.height - 1, maxY + padding);
+
+  const trimmed = document.createElement("canvas");
+  trimmed.width = maxX - minX + 1;
+  trimmed.height = maxY - minY + 1;
+  trimmed.getContext("2d").drawImage(source, minX, minY, trimmed.width, trimmed.height, 0, 0, trimmed.width, trimmed.height);
+  return trimmed;
+}
+
+function drawImageBottomCentered(target, image, centerX, floorY, maxWidth, maxHeight, flipY = false) {
+  const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+
+  if (flipY) {
+    target.save();
+    target.translate(centerX, floorY - height / 2);
+    target.scale(1, -1);
+    target.drawImage(image, -width / 2, -height / 2, width, height);
+    target.restore();
+    return;
+  }
+
+  target.drawImage(image, centerX - width / 2, floorY - height, width, height);
+}
+
+function drawPawnBoardTopView(colors) {
+  const base = ctx.createRadialGradient(-10, -18, 8, 0, -8, 52);
+  base.addColorStop(0, colors.light);
+  base.addColorStop(0.58, colors.main);
+  base.addColorStop(1, colors.dark);
+
+  ctx.save();
+  ctx.rotate(-0.08);
+  ctx.fillStyle = base;
+  ctx.strokeStyle = colors.stroke;
+  ctx.lineWidth = 3;
+
+  ctx.beginPath();
+  ctx.ellipse(0, 9, 35, 27, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.32;
+  ctx.strokeStyle = colors.ink;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i += 1) {
+    ctx.beginPath();
+    ctx.ellipse(0, 9, 26 - i * 7, 19 - i * 5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 23, 19, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = colors.ink;
+  ctx.font = "900 22px Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("P", 0, -7);
+
+  ctx.fillStyle = colors.stroke;
+  ctx.globalAlpha = 0.82;
+  ctx.beginPath();
+  ctx.arc(-15, 15, 5, 0, Math.PI * 2);
+  ctx.arc(15, 15, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawCarvedPieceBody(type, colors) {
@@ -3685,13 +4454,6 @@ function drawShowoff() {
   ctx.save();
   ctx.translate(shakeX, shakeY);
 
-  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  gradient.addColorStop(0, "#2e1d15");
-  gradient.addColorStop(0.52, "#4d3c2b");
-  gradient.addColorStop(1, "#171512");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(-40, -40, canvas.width + 80, canvas.height + 80);
-
   drawArenaBackdrop();
   drawArenaFloor();
 
@@ -3708,53 +4470,305 @@ function drawShowoff() {
 
 function drawArenaBackdrop() {
   ctx.save();
-  ctx.globalAlpha = 0.26;
-  ctx.strokeStyle = "#f2dfbb";
-  ctx.lineWidth = 3;
 
-  for (let i = 0; i < 8; i += 1) {
-    const x = 130 + i * 100;
-    ctx.beginPath();
-    ctx.moveTo(x, 270);
-    ctx.lineTo(x + 42, 210);
-    ctx.lineTo(x + 84, 270);
-    ctx.stroke();
-  }
+  const sky = ctx.createLinearGradient(0, -40, 0, 440);
+  sky.addColorStop(0, "#fff4bd");
+  sky.addColorStop(0.25, "#f1cf86");
+  sky.addColorStop(0.58, "#d99b54");
+  sky.addColorStop(1, "#8f6d35");
+  ctx.fillStyle = sky;
+  ctx.fillRect(-60, -60, canvas.width + 120, 520);
 
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "rgba(255, 209, 102, 0.16)";
-  roundRect(220, 110, 520, 108, 20);
+  const sunGlow = ctx.createRadialGradient(510, 166, 18, 510, 166, 330);
+  sunGlow.addColorStop(0, "rgba(255, 244, 189, 0.7)");
+  sunGlow.addColorStop(0.45, "rgba(255, 199, 105, 0.28)");
+  sunGlow.addColorStop(1, "rgba(255, 199, 105, 0)");
+  ctx.fillStyle = sunGlow;
+  ctx.fillRect(0, 0, canvas.width, 430);
+
+  drawDistantPalace();
+
+  ctx.fillStyle = "rgba(91, 80, 44, 0.55)";
+  ctx.beginPath();
+  ctx.moveTo(-60, 376);
+  ctx.bezierCurveTo(120, 304, 260, 334, 414, 292);
+  ctx.bezierCurveTo(544, 258, 658, 302, 838, 246);
+  ctx.lineTo(1030, 386);
+  ctx.lineTo(1030, 470);
+  ctx.lineTo(-60, 470);
+  ctx.closePath();
   ctx.fill();
+
+  ctx.fillStyle = "rgba(76, 106, 50, 0.64)";
+  ctx.beginPath();
+  ctx.moveTo(-80, 407);
+  ctx.bezierCurveTo(170, 356, 284, 386, 456, 350);
+  ctx.bezierCurveTo(650, 312, 784, 354, 1030, 300);
+  ctx.lineTo(1030, 480);
+  ctx.lineTo(-80, 480);
+  ctx.closePath();
+  ctx.fill();
+
+  drawSideRuin(-6, false);
+  drawSideRuin(967, true);
+
+  const plaqueGradient = ctx.createLinearGradient(238, 118, 722, 214);
+  plaqueGradient.addColorStop(0, "rgba(91, 56, 23, 0.58)");
+  plaqueGradient.addColorStop(1, "rgba(31, 24, 18, 0.56)");
+  ctx.fillStyle = plaqueGradient;
+  roundRect(242, 116, 476, 100, 18);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 218, 128, 0.28)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
   ctx.fillStyle = "#ffd166";
-  ctx.font = "800 52px Georgia, serif";
+  ctx.font = "900 54px Georgia, serif";
   ctx.textAlign = "center";
-  ctx.fillText("SHOWDOWN", 480, 180);
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(46, 29, 21, 0.52)";
+  ctx.shadowBlur = 8;
+  ctx.fillText("SHOWDOWN", 480, 168);
   ctx.restore();
 }
 
 function drawArenaFloor() {
-  ctx.fillStyle = "#2a2420";
-  ctx.fillRect(80, ARENA.floorY + 48, 800, 86);
+  ctx.save();
 
-  ctx.strokeStyle = "rgba(255, 248, 232, 0.24)";
-  ctx.lineWidth = 4;
-  for (let i = 0; i < 8; i += 1) {
+  const dirt = ctx.createLinearGradient(0, 392, 0, canvas.height + 40);
+  dirt.addColorStop(0, "#8a7c32");
+  dirt.addColorStop(0.22, "#9d8134");
+  dirt.addColorStop(0.46, "#b57937");
+  dirt.addColorStop(0.72, "#8c542d");
+  dirt.addColorStop(1, "#4e321f");
+  ctx.fillStyle = dirt;
+  ctx.beginPath();
+  ctx.moveTo(-80, 406);
+  ctx.lineTo(1040, 386);
+  ctx.lineTo(1040, canvas.height + 90);
+  ctx.lineTo(-80, canvas.height + 90);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(87, 133, 52, 0.62)";
+  ctx.beginPath();
+  ctx.moveTo(-40, 440);
+  ctx.bezierCurveTo(130, 400, 240, 438, 372, 414);
+  ctx.bezierCurveTo(510, 390, 700, 408, 1030, 356);
+  ctx.lineTo(1030, 545);
+  ctx.bezierCurveTo(816, 512, 688, 536, 514, 510);
+  ctx.bezierCurveTo(292, 474, 126, 520, -40, 492);
+  ctx.closePath();
+  ctx.fill();
+
+  drawArenaGroundPatch(70, 456, 248, 50, -0.16, "#b77835", "#6d9343");
+  drawArenaGroundPatch(182, 548, 338, 74, 0.08, "#c07c3e", "#779a43");
+  drawArenaGroundPatch(500, 474, 250, 58, -0.08, "#a76e35", "#6f9844");
+  drawArenaGroundPatch(612, 610, 386, 96, 0.08, "#af6e37", "#637f3b");
+  drawArenaGroundPatch(98, 704, 370, 102, -0.06, "#90592f", "#4f6e38");
+
+  drawArenaGroundCracks();
+
+  drawArenaRock(52, 672, 42, 16, 0.2);
+  drawArenaRock(196, 789, 62, 25, -0.12);
+  drawArenaRock(770, 722, 74, 26, 0.12);
+  drawArenaRock(890, 548, 34, 13, -0.24);
+
+  const stageShadow = ctx.createRadialGradient(480, ARENA.floorY + 108, 80, 480, ARENA.floorY + 108, 470);
+  stageShadow.addColorStop(0, "rgba(27, 21, 15, 0.24)");
+  stageShadow.addColorStop(1, "rgba(27, 21, 15, 0)");
+  ctx.fillStyle = stageShadow;
+  ctx.fillRect(0, 460, canvas.width, canvas.height - 460);
+
+  ctx.restore();
+}
+
+function drawDistantPalace() {
+  ctx.save();
+  ctx.globalAlpha = 0.48;
+  ctx.fillStyle = "#9c7244";
+  ctx.strokeStyle = "rgba(255, 231, 169, 0.24)";
+  ctx.lineWidth = 2;
+
+  ctx.fillRect(290, 146, 386, 110);
+  ctx.fillRect(350, 104, 106, 152);
+  ctx.fillRect(502, 112, 122, 144);
+  ctx.fillRect(246, 174, 80, 82);
+  ctx.fillRect(654, 170, 78, 86);
+
+  for (let i = 0; i < 9; i += 1) {
+    const x = 314 + i * 38;
     ctx.beginPath();
-    ctx.moveTo(110 + i * 105, ARENA.floorY + 50);
-    ctx.lineTo(60 + i * 125, ARENA.floorY + 134);
+    ctx.moveTo(x, 255);
+    ctx.lineTo(x, 178);
     ctx.stroke();
   }
+
+  ctx.fillStyle = "rgba(255, 221, 142, 0.2)";
+  for (let i = 0; i < 6; i += 1) {
+    const x = 318 + i * 54;
+    roundRect(x, 190, 18, 54, 8);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "rgba(255, 236, 181, 0.34)";
+  ctx.beginPath();
+  ctx.moveTo(392, 104);
+  ctx.lineTo(434, 68);
+  ctx.lineTo(476, 104);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(548, 112);
+  ctx.lineTo(590, 78);
+  ctx.lineTo(632, 112);
+  ctx.closePath();
+  ctx.fill();
+
+  const haze = ctx.createLinearGradient(0, 134, 0, 330);
+  haze.addColorStop(0, "rgba(255, 244, 195, 0.24)");
+  haze.addColorStop(1, "rgba(255, 244, 195, 0.04)");
+  ctx.fillStyle = haze;
+  ctx.fillRect(190, 86, 610, 260);
+  ctx.restore();
+}
+
+function drawSideRuin(x, flip) {
+  ctx.save();
+  ctx.translate(x, 292);
+  if (flip) {
+    ctx.scale(-1, 1);
+  }
+
+  ctx.fillStyle = "rgba(48, 42, 30, 0.82)";
+  ctx.beginPath();
+  ctx.moveTo(0, 110);
+  ctx.lineTo(72, 16);
+  ctx.lineTo(136, 36);
+  ctx.lineTo(168, 122);
+  ctx.lineTo(128, 156);
+  ctx.lineTo(34, 150);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(88, 105, 41, 0.72)";
+  for (const hole of [
+    { x: 56, y: 58, w: 46, h: 17, r: -0.22 },
+    { x: 93, y: 94, w: 54, h: 18, r: 0.18 },
+    { x: 36, y: 119, w: 42, h: 14, r: 0.1 }
+  ]) {
+    ctx.save();
+    ctx.translate(hole.x, hole.y);
+    ctx.rotate(hole.r);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, hole.w / 2, hole.h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.strokeStyle = "rgba(28, 24, 20, 0.52)";
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(18, 128);
+  ctx.lineTo(114, 36);
+  ctx.moveTo(52, 150);
+  ctx.lineTo(154, 62);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawArenaGroundPatch(cx, cy, width, height, rotation, dirtColor, grassColor) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+  ctx.fillStyle = dirtColor;
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.46, -height * 0.18);
+  ctx.lineTo(-width * 0.16, -height * 0.44);
+  ctx.lineTo(width * 0.46, -height * 0.3);
+  ctx.lineTo(width * 0.5, height * 0.18);
+  ctx.lineTo(width * 0.1, height * 0.44);
+  ctx.lineTo(-width * 0.52, height * 0.28);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(71, 48, 28, 0.38)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.strokeStyle = grassColor;
+  ctx.lineWidth = 5;
+  ctx.globalAlpha = 0.7;
+  for (let i = 0; i < 6; i += 1) {
+    const y = -height * 0.28 + i * (height / 8);
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.38 + i * 7, y);
+    ctx.bezierCurveTo(-width * 0.12, y - 8, width * 0.18, y + 5, width * 0.38, y - 3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawArenaGroundCracks() {
+  ctx.save();
+  ctx.strokeStyle = "rgba(61, 38, 24, 0.56)";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  for (const crack of [
+    [[338, 522], [392, 548], [458, 532], [506, 562]],
+    [[508, 642], [548, 618], [620, 630], [684, 604], [728, 622]],
+    [[162, 624], [232, 606], [298, 630], [368, 610]],
+    [[696, 480], [760, 456], [822, 470], [870, 446]],
+    [[426, 746], [476, 708], [542, 730], [594, 696]]
+  ]) {
+    ctx.lineWidth = crack[0][1] > 650 ? 5 : 3;
+    ctx.beginPath();
+    ctx.moveTo(crack[0][0], crack[0][1]);
+    for (let i = 1; i < crack.length; i += 1) {
+      ctx.lineTo(crack[i][0], crack[i][1]);
+    }
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "rgba(255, 210, 127, 0.12)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 9; i += 1) {
+    const x = 34 + i * 110;
+    ctx.beginPath();
+    ctx.moveTo(480 + (x - 480) * 0.24, 420);
+    ctx.lineTo(x, 890);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawArenaRock(cx, cy, width, height, rotation) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+  const rock = ctx.createLinearGradient(-width / 2, -height / 2, width / 2, height / 2);
+  rock.addColorStop(0, "#7c6446");
+  rock.addColorStop(1, "#35271f");
+  ctx.fillStyle = rock;
+  ctx.strokeStyle = "rgba(28, 20, 17, 0.48)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, width / 2, height / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawFighter(fighter) {
   const piece = getPieceById(state.pieces, fighter.id);
   const frame = getFighterFrame(fighter);
-  const sprite = getShowdownSprite(piece, frame);
+  const sprite = getShowdownSprite(piece, frame, fighter);
   const jumpHeight = fighter.z ?? 0;
   const viewX = getShowdownViewX(fighter.x);
   const viewFacing = shouldFlipShowdownPerspective() ? -fighter.facing : fighter.facing;
-  const spriteX = -SHOWDOWN_SPRITE_WIDTH / 2;
-  const spriteY = -SHOWDOWN_SPRITE_FLOOR_Y;
+  const spriteX = -SHOWDOWN_DRAW_WIDTH / 2;
+  const spriteY = -SHOWDOWN_DRAW_FLOOR_Y;
 
   ctx.save();
   ctx.translate(viewX, fighter.y);
@@ -3768,7 +4782,7 @@ function drawFighter(fighter) {
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
   ctx.beginPath();
-  ctx.ellipse(0, 70, Math.max(42, 82 - jumpHeight * 0.18), Math.max(10, 20 - jumpHeight * 0.04), 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 70, Math.max(60, 123 - jumpHeight * 0.24), Math.max(12, 27 - jumpHeight * 0.05), 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.translate(0, -jumpHeight);
@@ -3778,13 +4792,13 @@ function drawFighter(fighter) {
   }
 
   drawFighterAfterimages(fighter, sprite, spriteX, spriteY);
-  ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_SPRITE_WIDTH, SHOWDOWN_SPRITE_HEIGHT);
+  ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
 
   if ((fighter.criticalFlash ?? 0) > 0) {
     const alpha = Math.min(0.72, (fighter.criticalFlash ?? 0) / 0.5);
     ctx.globalCompositeOperation = "source-atop";
     ctx.fillStyle = `rgba(214, 37, 43, ${alpha})`;
-    ctx.fillRect(spriteX - 6, spriteY - 4, SHOWDOWN_SPRITE_WIDTH + 12, SHOWDOWN_SPRITE_HEIGHT + 8);
+    ctx.fillRect(spriteX - 6, spriteY - 4, SHOWDOWN_DRAW_WIDTH + 12, SHOWDOWN_DRAW_HEIGHT + 8);
     ctx.globalCompositeOperation = "source-over";
   }
 
@@ -3793,7 +4807,7 @@ function drawFighter(fighter) {
     ctx.strokeStyle = (fighter.criticalFlash ?? 0) > 0 ? "#ff2f3d" : "#ffd166";
     ctx.lineWidth = 8;
     ctx.beginPath();
-    ctx.ellipse(0, -54, 54, 78, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -81, 81, 117, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -3804,9 +4818,9 @@ function drawFighter(fighter) {
   ctx.fillStyle = "#fff8e8";
   ctx.font = "700 18px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(describePiece(piece), 0, -94);
-  drawHealthBar(-68, -78, 136, 12, piece.hp, piece.maxHp);
-  drawManaBar(-68, -61, 136, 8, piece.mana ?? 0, MAX_MANA);
+  ctx.fillText(describePiece(piece), 0, -142);
+  drawHealthBar(-76, -126, 152, 12, piece.hp, piece.maxHp);
+  drawManaBar(-76, -109, 152, 8, piece.mana ?? 0, MAX_MANA);
   ctx.restore();
 }
 
@@ -3823,7 +4837,7 @@ function drawStunEffect(fighter) {
   ctx.strokeStyle = "#ffd166";
   ctx.fillStyle = "rgba(255, 209, 102, 0.88)";
   ctx.lineWidth = 3;
-  ctx.translate(0, -178);
+  ctx.translate(0, -267);
   ctx.beginPath();
   ctx.ellipse(0, 0, 34, 12, 0, 0, Math.PI * 2);
   ctx.stroke();
@@ -3850,7 +4864,7 @@ function drawPassiveIndicator(fighter) {
   ctx.textBaseline = "middle";
   const width = Math.min(172, Math.max(86, ctx.measureText(label).width + 22));
   const x = -width / 2;
-  const y = -137;
+  const y = -206;
   ctx.fillStyle = "rgba(29, 22, 18, 0.86)";
   ctx.strokeStyle = "rgba(255, 209, 102, 0.62)";
   ctx.lineWidth = 2;
@@ -3895,7 +4909,7 @@ function drawFighterAfterimages(fighter, sprite, spriteX, spriteY) {
     ctx.save();
     ctx.globalAlpha = attacking ? 0.1 * i : 0.075 * i;
     ctx.translate(direction * i * (attacking ? 14 : 22), i * 2);
-    ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_SPRITE_WIDTH, SHOWDOWN_SPRITE_HEIGHT);
+    ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
     ctx.restore();
   }
 }
@@ -3972,6 +4986,10 @@ function getFighterFrame(fighter) {
     return "ultimate-cast";
   }
 
+  if ((fighter.criticalAttackTimer ?? 0) > 0) {
+    return "critical-strike";
+  }
+
   if (fighter.attackTimer > 0) {
     const progress = 1 - fighter.attackTimer / ARENA.attackDuration;
     if (progress < 0.24) {
@@ -4001,7 +5019,12 @@ function getFighterFrame(fighter) {
   return "idle";
 }
 
-function getShowdownSprite(piece, frame) {
+function getShowdownSprite(piece, frame, fighter = null) {
+  const pawnSprite = getPawnShowdownSprite(piece, frame, fighter);
+  if (pawnSprite) {
+    return pawnSprite;
+  }
+
   const key = `${piece.team}-${piece.type}-${frame}`;
   if (spriteCache.has(key)) {
     return spriteCache.get(key);
@@ -4019,11 +5042,13 @@ function getShowdownSprite(piece, frame) {
 function drawShowdownSprite(spriteCtx, piece, frame) {
   const colors = getPieceColors(piece.team);
   const stat = PIECE_STATS[piece.type];
-  const pose = getStickPose(frame);
-  const attacking = frame.startsWith("attack");
+  const pawnPalette = piece.type === "pawn" ? getPawnShowdownPalette(piece.team) : null;
+  const pose = piece.type === "pawn" ? getPawnStickPose(frame) : getStickPose(frame);
+  const attacking = isAttackFrame(frame);
   const blocking = frame.startsWith("block");
-  const stickColor = "#050505";
-  const jointColor = "#000000";
+  const stickColor = pawnPalette?.body ?? "#050505";
+  const jointColor = pawnPalette?.joint ?? "#000000";
+  const outlineColor = pawnPalette?.outline ?? null;
 
   spriteCtx.save();
   spriteCtx.translate(SHOWDOWN_SPRITE_WIDTH / 2, SHOWDOWN_SPRITE_BODY_Y + pose.bodyLift);
@@ -4031,7 +5056,7 @@ function drawShowdownSprite(spriteCtx, piece, frame) {
   spriteCtx.lineJoin = "round";
 
   const aura = spriteCtx.createRadialGradient(0, -64, 10, 0, -64, 128);
-  aura.addColorStop(0, blocking ? "rgba(119, 212, 142, 0.24)" : "rgba(255, 209, 102, 0.12)");
+  aura.addColorStop(0, blocking ? "rgba(119, 212, 142, 0.24)" : pawnPalette?.glow ?? "rgba(255, 209, 102, 0.12)");
   aura.addColorStop(1, "rgba(255, 209, 102, 0)");
   spriteCtx.fillStyle = aura;
   spriteCtx.beginPath();
@@ -4043,7 +5068,15 @@ function drawShowdownSprite(spriteCtx, piece, frame) {
   spriteCtx.ellipse(0, 49, 58, 13, 0, 0, Math.PI * 2);
   spriteCtx.fill();
 
-  const limbStroke = blocking ? "#111111" : stickColor;
+  const limbStroke = blocking ? pawnPalette?.guard ?? "#111111" : stickColor;
+
+  if (outlineColor) {
+    drawStickLimb(spriteCtx, pose.hip, pose.leftKnee, pose.leftFoot, 23, outlineColor);
+    drawStickLimb(spriteCtx, pose.hip, pose.rightKnee, pose.rightFoot, 23, outlineColor);
+    drawStickLine(spriteCtx, pose.hip.x, pose.hip.y, pose.shoulder.x, pose.shoulder.y, 28, outlineColor);
+    drawStickLimb(spriteCtx, pose.shoulder, pose.leftElbow, pose.leftHand, blocking ? 23 : 21, outlineColor);
+    drawStickLimb(spriteCtx, pose.shoulder, pose.rightElbow, pose.rightHand, blocking ? 23 : 21, outlineColor);
+  }
 
   // Bold stickman legs with GIF-like long strides.
   drawStickLimb(spriteCtx, pose.hip, pose.leftKnee, pose.leftFoot, 17, limbStroke);
@@ -4056,11 +5089,18 @@ function drawShowdownSprite(spriteCtx, piece, frame) {
   drawStickLimb(spriteCtx, pose.shoulder, pose.leftElbow, pose.leftHand, blocking ? 17 : 15, limbStroke);
   drawStickLimb(spriteCtx, pose.shoulder, pose.rightElbow, pose.rightHand, blocking ? 17 : 15, limbStroke);
 
-  drawShowdownWeapon(spriteCtx, piece.type, pose, frame, colors);
+  drawShowdownWeapon(spriteCtx, piece.type, pose, frame, colors, pawnPalette);
 
-  spriteCtx.fillStyle = jointColor;
-  spriteCtx.strokeStyle = jointColor;
-  spriteCtx.lineWidth = 3;
+  if (outlineColor) {
+    spriteCtx.fillStyle = outlineColor;
+    spriteCtx.beginPath();
+    spriteCtx.arc(pose.head.x, pose.head.y, 31, 0, Math.PI * 2);
+    spriteCtx.fill();
+  }
+
+  spriteCtx.fillStyle = pawnPalette?.head ?? jointColor;
+  spriteCtx.strokeStyle = outlineColor ?? jointColor;
+  spriteCtx.lineWidth = outlineColor ? 4 : 3;
   spriteCtx.beginPath();
   spriteCtx.arc(pose.head.x, pose.head.y, 25, 0, Math.PI * 2);
   spriteCtx.fill();
@@ -4068,7 +5108,7 @@ function drawShowdownSprite(spriteCtx, piece, frame) {
 
   drawStickmanHeadgear(spriteCtx, piece.type, colors, pose.head);
 
-  spriteCtx.fillStyle = "#fff8e8";
+  spriteCtx.fillStyle = pawnPalette?.label ?? "#fff8e8";
   spriteCtx.font = "900 20px Georgia, serif";
   spriteCtx.textAlign = "center";
   spriteCtx.textBaseline = "middle";
@@ -4083,6 +5123,135 @@ function drawShowdownSprite(spriteCtx, piece, frame) {
   }
 
   spriteCtx.restore();
+}
+
+function getPawnShowdownPalette(team) {
+  if (team === TEAM.WHITE) {
+    return {
+      body: "#f4d8a2",
+      joint: "#e9bd74",
+      head: "#f8e2b5",
+      outline: "#6b3a1f",
+      guard: "#d8a15b",
+      label: "#2d1b12",
+      fist: "#2d1b12",
+      fistStroke: "rgba(255, 241, 195, 0.72)",
+      glow: "rgba(255, 230, 173, 0.24)"
+    };
+  }
+
+  return {
+    body: "#050505",
+    joint: "#000000",
+    head: "#070707",
+    outline: "#d18a4d",
+    guard: "#111111",
+    label: "#fff1c3",
+    fist: "#050505",
+    fistStroke: "rgba(255, 230, 173, 0.48)",
+    glow: "rgba(112, 64, 32, 0.26)"
+  };
+}
+
+function isAttackFrame(frame) {
+  return frame.startsWith("attack") || frame === "critical-strike";
+}
+
+function getPawnStickPose(frame) {
+  const pose = getStickPose(frame);
+
+  if (frame === "idle") {
+    pose.bodyLift = -2;
+    pose.hip = { x: -2, y: -34 };
+    pose.shoulder = { x: -8, y: -105 };
+    pose.head = { x: -10, y: -134 };
+    pose.leftKnee = { x: -30, y: -1 };
+    pose.leftFoot = { x: -54, y: 38 };
+    pose.rightKnee = { x: 24, y: -2 };
+    pose.rightFoot = { x: 48, y: 38 };
+    pose.leftElbow = { x: -42, y: -91 };
+    pose.leftHand = { x: -56, y: -112 };
+    pose.rightElbow = { x: 22, y: -90 };
+    pose.rightHand = { x: 50, y: -104 };
+    return pose;
+  }
+
+  if (frame === "attack-windup") {
+    pose.leftElbow = { x: -70, y: -100 };
+    pose.leftHand = { x: -92, y: -136 };
+    pose.rightElbow = { x: -4, y: -118 };
+    pose.rightHand = { x: 8, y: -154 };
+    return pose;
+  }
+
+  if (frame === "attack-swing") {
+    pose.leftElbow = { x: 4, y: -82 };
+    pose.leftHand = { x: 38, y: -83 };
+    pose.rightElbow = { x: 66, y: -92 };
+    pose.rightHand = { x: 112, y: -76 };
+    return pose;
+  }
+
+  if (frame === "attack-strike") {
+    pose.leftElbow = { x: 38, y: -72 };
+    pose.leftHand = { x: 82, y: -62 };
+    pose.rightElbow = { x: 86, y: -74 };
+    pose.rightHand = { x: 146, y: -58 };
+    return pose;
+  }
+
+  if (frame === "attack-recover") {
+    pose.leftElbow = { x: -10, y: -76 };
+    pose.leftHand = { x: 12, y: -47 };
+    pose.rightElbow = { x: 54, y: -74 };
+    pose.rightHand = { x: 82, y: -45 };
+    return pose;
+  }
+
+  if (frame === "critical-strike") {
+    pose.bodyLift = -12;
+    pose.hip = { x: 12, y: -38 };
+    pose.shoulder = { x: 45, y: -102 };
+    pose.head = { x: 50, y: -132 };
+    pose.leftKnee = { x: -12, y: -4 };
+    pose.leftFoot = { x: -56, y: 33 };
+    pose.rightKnee = { x: 56, y: -6 };
+    pose.rightFoot = { x: 96, y: 16 };
+    pose.leftElbow = { x: 36, y: -72 };
+    pose.leftHand = { x: 82, y: -58 };
+    pose.rightElbow = { x: 104, y: -79 };
+    pose.rightHand = { x: 168, y: -62 };
+    pose.weaponStart = { x: 100, y: -70 };
+    pose.weaponEnd = { x: 174, y: -56 };
+    return pose;
+  }
+
+  if (frame === "block-brace" || frame === "block-guard") {
+    const brace = frame === "block-brace" ? 1 : 0;
+    pose.leftElbow = { x: 18, y: -96 };
+    pose.leftHand = { x: 62 + brace * 6, y: -92 };
+    pose.rightElbow = { x: 24, y: -72 };
+    pose.rightHand = { x: 64 + brace * 6, y: -64 };
+    return pose;
+  }
+
+  if (frame === "jump-rise" || frame === "jump-fall") {
+    pose.leftElbow = { x: -50, y: -104 };
+    pose.leftHand = { x: -38, y: -142 };
+    pose.rightElbow = { x: 22, y: -106 };
+    pose.rightHand = { x: 72, y: -134 };
+    return pose;
+  }
+
+  if (frame === "hit-stagger") {
+    pose.leftElbow = { x: -74, y: -96 };
+    pose.leftHand = { x: -96, y: -128 };
+    pose.rightElbow = { x: -2, y: -106 };
+    pose.rightHand = { x: 18, y: -140 };
+    return pose;
+  }
+
+  return pose;
 }
 
 function getStickPose(frame) {
@@ -4209,6 +5378,24 @@ function getStickPose(frame) {
     pose.rightHand = { x: 90, y: -42 };
     pose.weaponStart = { x: 46, y: -58 };
     pose.weaponEnd = { x: 126, y: -30 };
+    return pose;
+  }
+
+  if (frame === "critical-strike") {
+    pose.bodyLift = -10;
+    pose.hip = { x: 12, y: -36 };
+    pose.shoulder = { x: 42, y: -100 };
+    pose.head = { x: 46, y: -128 };
+    pose.leftKnee = { x: -12, y: -2 };
+    pose.leftFoot = { x: -58, y: 36 };
+    pose.rightKnee = { x: 58, y: -6 };
+    pose.rightFoot = { x: 94, y: 18 };
+    pose.leftElbow = { x: 36, y: -72 };
+    pose.leftHand = { x: 82, y: -58 };
+    pose.rightElbow = { x: 96, y: -76 };
+    pose.rightHand = { x: 158, y: -58 };
+    pose.weaponStart = { x: 92, y: -72 };
+    pose.weaponEnd = { x: 170, y: -40 };
     return pose;
   }
 
@@ -4371,14 +5558,14 @@ function drawStickLimb(target, root, joint, end, width, color) {
   target.restore();
 }
 
-function drawShowdownWeapon(target, type, pose, frame, colors) {
-  const attacking = frame.startsWith("attack");
+function drawShowdownWeapon(target, type, pose, frame, colors, pawnPalette = null) {
+  const attacking = isAttackFrame(frame);
   if (attacking && type !== "pawn") {
     drawSpriteWeaponSweep(target, type, pose, frame);
   }
 
   if (type === "pawn") {
-    drawPawnFists(target, pose, frame);
+    drawPawnFists(target, pose, frame, pawnPalette);
     return;
   }
 
@@ -4405,18 +5592,19 @@ function drawShowdownWeapon(target, type, pose, frame, colors) {
   drawSwordAndShieldWeapon(target, pose, frame, colors);
 }
 
-function drawPawnFists(target, pose, frame) {
-  const attacking = frame.startsWith("attack");
+function drawPawnFists(target, pose, frame, pawnPalette = null) {
+  const attacking = isAttackFrame(frame);
+  const critical = frame === "critical-strike";
   const fists = [
-    { point: pose.leftHand, radius: attacking ? 9 : 8 },
-    { point: pose.rightHand, radius: attacking ? 12 : 9 }
+    { point: pose.leftHand, radius: attacking ? 10 : 8 },
+    { point: pose.rightHand, radius: critical ? 17 : attacking ? 13 : 9 }
   ];
 
   target.save();
   for (const fist of fists) {
-    target.fillStyle = "#050505";
-    target.strokeStyle = attacking ? "rgba(255, 248, 232, 0.62)" : "rgba(255, 248, 232, 0.28)";
-    target.lineWidth = 2.5;
+    target.fillStyle = pawnPalette?.fist ?? "#050505";
+    target.strokeStyle = pawnPalette?.fistStroke ?? (attacking ? "rgba(255, 248, 232, 0.62)" : "rgba(255, 248, 232, 0.28)");
+    target.lineWidth = critical ? 4 : 2.5;
     target.beginPath();
     target.arc(fist.point.x, fist.point.y, fist.radius, 0, Math.PI * 2);
     target.fill();
@@ -4424,22 +5612,22 @@ function drawPawnFists(target, pose, frame) {
   }
 
   if (attacking) {
-    target.strokeStyle = "rgba(255, 248, 232, 0.38)";
-    target.lineWidth = 5;
+    target.strokeStyle = critical ? "rgba(255, 209, 102, 0.72)" : "rgba(255, 248, 232, 0.38)";
+    target.lineWidth = critical ? 9 : 5;
     target.lineCap = "round";
     target.beginPath();
-    target.moveTo(pose.rightHand.x - 34, pose.rightHand.y - 6);
-    target.lineTo(pose.rightHand.x + 22, pose.rightHand.y + 6);
+    target.moveTo(pose.rightHand.x - (critical ? 48 : 34), pose.rightHand.y - 6);
+    target.lineTo(pose.rightHand.x + (critical ? 30 : 22), pose.rightHand.y + 6);
     target.stroke();
     target.beginPath();
-    target.arc(pose.rightHand.x + 17, pose.rightHand.y + 3, 20, -0.4, 0.82);
+    target.arc(pose.rightHand.x + 17, pose.rightHand.y + 3, critical ? 32 : 20, -0.4, 0.82);
     target.stroke();
   }
   target.restore();
 }
 
 function drawSpikeClubWeapon(target, start, end, frame) {
-  const attacking = frame.startsWith("attack");
+  const attacking = isAttackFrame(frame);
   drawOrientedWeapon(target, start, end, (weapon, length) => {
     const headStart = Math.max(22, length * 0.48);
     const headEnd = length + 12;
@@ -4480,7 +5668,7 @@ function drawSpikeClubWeapon(target, start, end, frame) {
 }
 
 function drawSpearWeapon(target, start, end, frame) {
-  const attacking = frame.startsWith("attack");
+  const attacking = isAttackFrame(frame);
   drawOrientedWeapon(target, start, end, (weapon, length) => {
     drawWeaponShaft(weapon, -8, length - 17, attacking ? 5 : 4);
 
@@ -4506,7 +5694,7 @@ function drawSpearWeapon(target, start, end, frame) {
 }
 
 function drawCrossWeapon(target, start, end, frame) {
-  const attacking = frame.startsWith("attack");
+  const attacking = isAttackFrame(frame);
   drawOrientedWeapon(target, start, end, (weapon, length) => {
     drawWeaponShaft(weapon, -8, length + 8, attacking ? 8 : 7);
 
@@ -4529,7 +5717,7 @@ function drawCrossWeapon(target, start, end, frame) {
 }
 
 function drawScytheWeapon(target, start, end, frame) {
-  const attacking = frame.startsWith("attack");
+  const attacking = isAttackFrame(frame);
   drawOrientedWeapon(target, start, end, (weapon, length) => {
     weapon.strokeStyle = "#050505";
     weapon.lineWidth = attacking ? 8 : 7;
@@ -4917,9 +6105,11 @@ function drawShowdownStateBanner() {
   if (showoff.ended) {
     const winner = getPieceById(state.pieces, showoff.roundWinnerId);
     const score = `${showoff.roundWins?.[showoff.attackerId] ?? 0}-${showoff.roundWins?.[showoff.defenderId] ?? 0}`;
-    const title = showoff.finished ? "SHOWDOWN WON" : "ROUND FINISHED";
-    const detail = winner ? `${describePiece(winner)} wins round ${showoff.round}` : `Round ${showoff.round} finished`;
-    drawShowdownBanner(title, detail, `Score ${score}`);
+    const winnerName = winner ? describePiece(winner) : "Winner";
+    const title = showoff.finished ? `${winnerName} wins Showdown` : `${winnerName} wins round ${showoff.round}`;
+    const detail = showoff.finished ? `Final score ${score}` : `Round ${showoff.round} score ${score}`;
+    const subdetail = showoff.finished ? `Duel decided after round ${showoff.round}` : "Next round begins shortly";
+    drawShowdownBanner(title, detail, subdetail);
   }
 }
 
@@ -4966,7 +6156,7 @@ function drawShowdownBanner(title, detail, subdetail) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#ffd166";
-  ctx.font = "900 42px Georgia, serif";
+  setFittedCanvasFont(title, "900", "Georgia, serif", 42, 26, width - 58);
   ctx.fillText(title, canvas.width / 2, y + 58);
 
   ctx.fillStyle = "#fff8e8";
@@ -4977,6 +6167,20 @@ function drawShowdownBanner(title, detail, subdetail) {
   ctx.font = "800 20px Inter, Arial, sans-serif";
   ctx.fillText(subdetail, canvas.width / 2, y + 152);
   ctx.restore();
+}
+
+function setFittedCanvasFont(text, weight, family, maxSize, minSize, maxWidth) {
+  let size = maxSize;
+  do {
+    ctx.font = `${weight} ${size}px ${family}`;
+    if (ctx.measureText(text).width <= maxWidth || size <= minSize) {
+      return size;
+    }
+    size -= 2;
+  } while (size >= minSize);
+
+  ctx.font = `${weight} ${minSize}px ${family}`;
+  return minSize;
 }
 
 function drawFloatingText() {
@@ -5099,6 +6303,10 @@ function clamp(value, min, max) {
 
 function lerp(start, end, amount) {
   return start + (end - start) * amount;
+}
+
+function easeOutCubic(value) {
+  return 1 - (1 - value) ** 3;
 }
 
 function capitalize(value) {

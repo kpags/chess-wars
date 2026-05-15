@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import {
   ARMORS,
   BOARD_SIZE,
@@ -70,6 +70,35 @@ assert.ok(getAllLegalMoves(pieces, TEAM.BLACK).length > 0, "black should have le
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+const pawnGeneratedFrames = {
+  charge_dash: 4,
+  crouch: 4,
+  guard_block: 4,
+  heavy_attack_double_punch: 4,
+  hit_hurt: 4,
+  idle_ready: 4,
+  jump: 5,
+  knocked_down_defeat: 4,
+  light_attack_punch: 4,
+  rock_throw: 3,
+  taunt_command: 4,
+  victory: 4,
+  walk: 5,
+  board_move_animation: 12
+};
+
+for (const team of [TEAM.BLACK, TEAM.WHITE]) {
+  for (const [action, expectedFrames] of Object.entries(pawnGeneratedFrames)) {
+    const actionDir = new URL(`../assets/sprites/pawns/${team}/${action}/`, import.meta.url);
+    assert.ok(existsSync(actionDir), `generated ${team} pawn action folder should exist for ${action}`);
+    const frames = readdirSync(actionDir).filter((name) => /^frame-\d+\.png$/.test(name));
+    assert.equal(frames.length, expectedFrames, `generated ${team} pawn action ${action} should have ${expectedFrames} frames`);
+  }
+  assert.ok(existsSync(new URL(`../assets/sprites/pawns/${team}/preview-sheet.png`, import.meta.url)), `generated ${team} pawn preview sheet should exist`);
+  assert.ok(existsSync(new URL(`../assets/sprites/pawns/${team}/manifest.json`, import.meta.url)), `generated ${team} pawn manifest should exist`);
+}
+assert.ok(existsSync(new URL("../assets/sprites/pawns/white/top_view_board_move/frame-00.png", import.meta.url)), "white top-view board frames should be generated for future board variants");
+
 assert.match(html, /Chess Wars/, "index should render Chess Wars");
 assert.match(html, /Showdown/, "index should render Showdown wording");
 assert.match(html, /id="online-presence"/, "online room should include invited-player presence indicator");
@@ -192,9 +221,18 @@ assert.match(main, /SHOWDOWN_SPRITE_WIDTH = 460/, "Showdown sprites should be wi
 assert.match(main, /SHOWDOWN_SPRITE_HEIGHT = 320/, "Showdown sprites should have extra height to avoid weapon cropping");
 assert.match(main, /SHOWDOWN_SPRITE_BODY_Y = 246/, "Showdown sprite art should be shifted down to keep weapons visible");
 assert.match(main, /SHOWDOWN_SPRITE_FLOOR_Y = 284/, "Showdown sprite drawing should keep the fighter feet anchored");
+assert.match(main, /SHOWDOWN_FIGHTER_SCALE = 1\.5/, "Showdown fighters should render 50 percent larger");
+assert.match(main, /ctx\.drawImage\(sprite, spriteX, spriteY, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT\)/, "Showdown fighters should use the scaled draw size");
 assert.match(main, /Bold stickman legs/, "Showdown fighters should use bold stickman rendering");
 assert.match(main, /moveBlend/, "Showdown fighters should blend into movement frames smoothly");
 assert.match(main, /drawFighterAfterimages/, "Showdown fighters should have afterimages for fast motion");
+assert.match(main, /drawDistantPalace/, "Showdown should use a distant palace battlefield backdrop");
+assert.match(main, /drawSideRuin/, "Showdown battlefield should include side ruins like the reference arena");
+assert.match(main, /drawArenaGroundPatch/, "Showdown battlefield should paint cracked grass and dirt ground patches");
+assert.match(main, /drawArenaGroundCracks/, "Showdown battlefield should include cracked arena ground details");
+assert.match(main, /wins Showdown/, "finished Showdown banner should name the winning piece");
+assert.doesNotMatch(main, /SHOWDOWN WON/, "finished Showdown banner should not use the generic Showdown won label");
+assert.doesNotMatch(main, /Showdown winner decided/, "Showdown HUD title should name the winner instead of using a generic decision label");
 assert.match(main, /attack-windup/, "Showdown attacks should include a windup pose");
 assert.match(main, /attack-swing/, "Showdown attacks should include a swing pose");
 assert.match(main, /attack-strike/, "Showdown attacks should include a strike pose");
@@ -204,6 +242,30 @@ assert.match(main, /drawSpriteWeaponSweep/, "Showdown attacks should draw weapon
 assert.match(main, /drawStickmanHeadgear/, "Showdown stickmen should keep piece identity headgear");
 assert.match(main, /drawShowdownWeapon/, "Showdown should render piece-specific weapons from pose data");
 assert.match(main, /drawPawnFists/, "pawns should fight with fists and no weapon");
+assert.match(main, /drawPawnBoardTopView/, "pawns should use top-view board tokens");
+assert.match(main, /getPawnShowdownPalette/, "pawns should use separate black and white Showdown palettes");
+assert.match(main, /getPawnStickPose/, "pawns should have dedicated Showdown poses");
+assert.match(main, /PAWN_SPRITE_SHEETS/, "pawns should support external sprite-sheet assets");
+assert.match(main, /black-pawn-sheet\.png/, "black pawn sprite sheet should have a known asset path");
+assert.match(main, /white-pawn-sheet\.png/, "white pawn sprite sheet should have a known asset path");
+assert.match(main, /PAWN_SPRITE_ATLAS/, "pawn sprite sheets should use a configured frame atlas");
+assert.match(main, /getPawnShowdownSprite/, "pawn Showdown rendering should prefer loaded sprite-sheet frames");
+assert.match(main, /drawPawnBoardSprite/, "pawn board rendering should prefer loaded top-view sprite frames");
+assert.match(main, /keyOutPawnSheetBackground/, "sprite-sheet crops should remove the gray sheet background");
+assert.match(main, /BLACK_PAWN_GIF_ANIMATIONS/, "black pawns should support normalized GIF-derived frame animations");
+assert.match(main, /WHITE_PAWN_GIF_ANIMATIONS/, "white pawns should support normalized GIF-derived frame animations");
+assert.match(main, /loadPawnGifFrames/, "pawn GIF-derived frames should be preloaded");
+assert.match(main, /getPawnGifShowdownSprite/, "pawns should prefer GIF-derived Showdown frames");
+assert.match(main, /board_move_animation/, "pawns should include top-view board-move animation frames");
+assert.match(main, /assets\/sprites\/pawns\/white\/board_move_animation/, "white pawn board movement should use generated white_pawn_board_move_animation GIF frames");
+assert.doesNotMatch(main, /assets\/sprites\/pawns\/white\/white_pawn_board_move_animation/, "white pawn board movement should not point at a non-generated folder name");
+assert.match(main, /function shouldFlipPawnBoardSprite\(piece\)/, "white pawn board sprites should have an orientation helper");
+assert.match(main, /return piece\?\.team === TEAM\.WHITE;/, "white pawn board sprites should face toward black's side");
+assert.match(main, /dy \*= -1;/, "white pawn board movement frames should keep their visual direction after flipping");
+assert.match(main, /boardMoveAnimations/, "board move animation state should be tracked");
+assert.match(main, /startBoardMoveAnimation/, "pawn board moves should trigger top-view animations");
+assert.match(main, /criticalAttackTimer/, "critical attacks should have an attacker animation state");
+assert.match(main, /critical-strike/, "critical attacks should render a dedicated strike frame");
 assert.match(main, /drawSpikeClubWeapon/, "rooks should render a spike club during Showdown");
 assert.match(main, /drawSpearWeapon/, "horses should render a spear or javelin during Showdown");
 assert.match(main, /drawCrossWeapon/, "bishops should render a cross weapon during Showdown");

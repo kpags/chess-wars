@@ -1,0 +1,155 @@
+{
+  "team": "black",
+  "source": "assets/gif/black_pawns",
+  "actions": {
+    "charge_dash": {
+      "frames": 4,
+      "durationsMs": [
+        120,
+        120,
+        120,
+        120
+      ],
+      "path": "assets/sprites/pawns/black/charge_dash"
+    },
+    "crouch": {
+      "frames": 4,
+      "durationsMs": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "path": "assets/sprites/pawns/black/crouch"
+    },
+    "guard_block": {
+      "frames": 4,
+      "durationsMs": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "path": "assets/sprites/pawns/black/guard_block"
+    },
+    "heavy_attack_double_punch": {
+      "frames": 4,
+      "durationsMs": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "path": "assets/sprites/pawns/black/heavy_attack_double_punch"
+    },
+    "hit_hurt": {
+      "frames": 4,
+      "durationsMs": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "path": "assets/sprites/pawns/black/hit_hurt"
+    },
+    "idle_ready": {
+      "frames": 4,
+      "durationsMs": [
+        140,
+        140,
+        140,
+        140
+      ],
+      "path": "assets/sprites/pawns/black/idle_ready"
+    },
+    "jump": {
+      "frames": 5,
+      "durationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "path": "assets/sprites/pawns/black/jump"
+    },
+    "knocked_down_defeat": {
+      "frames": 4,
+      "durationsMs": [
+        200,
+        180,
+        180,
+        300
+      ],
+      "path": "assets/sprites/pawns/black/knocked_down_defeat"
+    },
+    "light_attack_punch": {
+      "frames": 4,
+      "durationsMs": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "path": "assets/sprites/pawns/black/light_attack_punch"
+    },
+    "rock_throw": {
+      "frames": 3,
+      "durationsMs": [
+        180,
+        180,
+        240
+      ],
+      "path": "assets/sprites/pawns/black/rock_throw"
+    },
+    "taunt_command": {
+      "frames": 4,
+      "durationsMs": [
+        180,
+        180,
+        180,
+        180
+      ],
+      "path": "assets/sprites/pawns/black/taunt_command"
+    },
+    "victory": {
+      "frames": 4,
+      "durationsMs": [
+        180,
+        180,
+        180,
+        180
+      ],
+      "path": "assets/sprites/pawns/black/victory"
+    },
+    "walk": {
+      "frames": 5,
+      "durationsMs": [
+        140,
+        140,
+        140,
+        140,
+        140
+      ],
+      "path": "assets/sprites/pawns/black/walk"
+    },
+    "board_move_animation": {
+      "frames": 12,
+      "durationsMs": [
+        450,
+        280,
+        280,
+        280,
+        280,
+        280,
+        280,
+        280,
+        280,
+        280,
+        280,
+        650
+      ],
+      "path": "assets/sprites/pawns/black/board_move_animation"
+    }
+  }
+}

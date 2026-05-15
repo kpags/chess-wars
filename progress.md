@@ -114,3 +114,24 @@ Original prompt: Based on the attached GIF, improve the showdown animations like
 - Extracted Patch Notes v1.2.2 from `Chess_wars.docx` using a temporary workspace copy.
 - Added armor as a per-piece state field so each piece carries its own class armor when damage reduction is applied.
 - Increased Showdown jump height to 40% above the original jump height.
+
+## 2026-05-15 Major Update v1.0.0 Part 1
+
+- Extracted Major Update v1.0.0 Part 1 from `Chess_wars.docx` using a temporary workspace copy.
+- Added team-specific top-view pawn tokens on the board for black and white pawns.
+- Added pawn-specific Showdown palettes and poses for idle, fist attacks, critical Heavy Fist strikes, jumps, blocks, hit/stun reactions, victory, and defeat states.
+- Added support for full black/white pawn sprite sheets in `assets/sprites/pawns`, including runtime frame cropping, gray-background keying, board top-view sprites, and Showdown action sprites with generated fallback art.
+- Converted `assets/gif/black_pawns` into transparent normalized PNG frames and wired black pawns to use those frames for Showdown idle, walk, punch, Heavy Fist, jump, block, hit/stun, victory, and defeat animations.
+- Converted white pawn GIFs through the same pipeline and wired white pawns to use generated Showdown frames.
+- Added generated top-view board-move frames, including `black_pawns/board_move_animation.gif`, and animated pawn movement on the chessboard.
+
+## 2026-05-15 Pawn Sprite Follow-up
+
+- Wired white pawn board movement to the generated `white_pawns/white_pawn_board_move_animation.gif` frame folder.
+- Increased Showdown fighter draw size by 50% while keeping combat positions and hit logic unchanged.
+- Flipped white pawn top-view board sprites so they face toward black's side of the board, with movement frames remapped to match.
+
+## 2026-05-15 Showdown Presentation Follow-up
+
+- Replaced the generic finished-duel title with a winner-specific Showdown banner label.
+- Reworked the Showdown background into a warm ruined battlefield with distant palace silhouettes, side ruins, cracked dirt, grass patches, rocks, and perspective ground lines.

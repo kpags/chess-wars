@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "build:pawn-sprites": "python scripts/convert_black_pawn_gifs.py",
+    "build:black-pawn-sprites": "python scripts/convert_black_pawn_gifs.py"
   }
 }

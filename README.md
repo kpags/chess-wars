@@ -33,6 +33,10 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Piece weapons are visible in Showdown: fists, spike club, javelin, cross, scythe, and sword & shield.
 - Damage bonuses are applied by piece: pawn fixed, rook +4%, knight +5%, bishop +3%, queen +8%, king +10%.
 - Each class has armor equipment that reduces incoming Showdown damage.
+- Pawn sprite sheets can be dropped into `assets/sprites/pawns/black-pawn-sheet.png` and `assets/sprites/pawns/white-pawn-sheet.png`; the game crops them into board and Showdown frames with the drawn pawn as fallback.
+- Black and white pawn Showdown animations use normalized frames generated from `assets/gif/<team>_pawns/*.gif`.
+- Pawn board movement uses generated top-view `board_move_animation` frames.
+- Showdown fighters render 50 percent larger for a stronger duel presentation.
 - Critical hits have a 4 percent chance and deal double damage.
 - Blocking reduces incoming damage.
 - The game ends when a king is defeated.
@@ -49,6 +53,13 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Added weapons and piece-specific damage bonuses.
 - Hardened Showdown input clearing to prevent stuck movement after key, pointer, or window-focus changes.
 - Added sprite-style attack and block animation frames during Showdown.
+
+## Major Update v1.0.0 Part 1
+
+- Pawns now use team-specific top-view board tokens for black and white pieces.
+- Pawn Showdown sprites now have dedicated black/white silhouettes for idle, fist attack, critical Heavy Fist, jump, block, hit/stun, victory, and defeat states.
+- Added runtime support for the provided full pawn sprite sheets, including frame cropping, gray-background keying, board top-view frames, and Showdown action frames.
+- Added black/white GIF conversion and runtime playback for pawn Showdown actions and top-view board-move frames.
 
 ## Patch Notes v1.0.1
 
@@ -127,6 +138,8 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Improved the board with extra 3D depth, bevels, and a raised plinth.
 - Improved Showdown fighter visuals with taller sprites and bold stickman-style combat animations.
 - Adjusted Showdown sprite height to prevent Bishop headgear from being cropped.
+- Showdown now uses a sunlit ruined-field battlefield backdrop with cracked ground, grass patches, side ruins, and a distant palace.
+- Finished Showdown banners now name the exact winning piece instead of using a generic win label.
 
 ## Showdown Animation Update
 
