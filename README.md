@@ -140,6 +140,9 @@ For two-device play, use the LAN link printed by the dev server, create a room, 
 - Adjusted Showdown sprite height to prevent Bishop headgear from being cropped.
 - Showdown now uses a sunlit ruined-field battlefield backdrop with cracked ground, grass patches, side ruins, and a distant palace.
 - Finished Showdown banners now name the exact winning piece instead of using a generic win label.
+- Showdown HP, mana, timer, and round wins now live in a top fighting-game style HUD instead of overlapping the fighters.
+- Showdown intro uses a large ready-count overlay, full mana glows light blue, HP damage uses a delayed drain trail, and fighter shadows sit closer to the models.
+- Critical damage now briefly tints only the damaged fighter model red. If the target is blocking, a critical hit deals 50% damage instead of using the normal tiny block roll.
 
 ## Showdown Animation Update
 

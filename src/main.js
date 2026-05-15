@@ -13,6 +13,8 @@ import {
 
 const canvas = document.querySelector("#game-canvas");
 const ctx = canvas.getContext("2d");
+const showdownTintCanvas = document.createElement("canvas");
+const showdownTintCtx = showdownTintCanvas.getContext("2d");
 
 const els = {
   modeAi: document.querySelector("#mode-ai"),
@@ -269,6 +271,9 @@ const SHOWDOWN_FIGHTER_SCALE = 1.5;
 const SHOWDOWN_DRAW_WIDTH = Math.round(SHOWDOWN_SPRITE_WIDTH * SHOWDOWN_FIGHTER_SCALE);
 const SHOWDOWN_DRAW_HEIGHT = Math.round(SHOWDOWN_SPRITE_HEIGHT * SHOWDOWN_FIGHTER_SCALE);
 const SHOWDOWN_DRAW_FLOOR_Y = Math.round(SHOWDOWN_SPRITE_FLOOR_Y * SHOWDOWN_FIGHTER_SCALE);
+const SHOWDOWN_HEALTH_TRAIL_HOLD_SECONDS = 1.25;
+const SHOWDOWN_HEALTH_TRAIL_DRAIN_SPEED = 3.8;
+const SHOWDOWN_MANA_FULL_GLOW = "#8eeeff";
 const CRITICAL_ATTACK_FLASH_SECONDS = 0.36;
 const ULTIMATE_KEYS = ["e", "E", "KeyE"];
 const ULTIMATES = {
@@ -362,6 +367,7 @@ const state = {
   combatBanner: null,
   announcement: null
 };
+const showdownHudHealthTrails = new Map();
 
 function boot() {
   loadPawnSpriteSheets();
@@ -573,6 +579,7 @@ function resetGame() {
   state.floatingText = [];
   state.combatBanner = null;
   state.announcement = null;
+  showdownHudHealthTrails.clear();
   online.showdownTargets.clear();
   syncHud();
   if (isOnlineHost()) {
@@ -783,6 +790,7 @@ function startShowoff(attacker, defender, move) {
   defender.hp = defender.maxHp;
   attacker.mana = 0;
   defender.mana = 0;
+  showdownHudHealthTrails.clear();
   state.phase = "showoff";
   state.selectedId = null;
   state.legalMoves = [];
@@ -2547,6 +2555,8 @@ function startNextShowdownRound() {
   defender.hp = roundDamage(Math.min(defender.maxHp, showoff.roundBaseHp[defender.id] ?? defender.maxHp));
   attacker.mana = clamp(previousMana[attacker.id] ?? attacker.mana ?? 0, 0, MAX_MANA);
   defender.mana = clamp(previousMana[defender.id] ?? defender.mana ?? 0, 0, MAX_MANA);
+  resetShowdownHudHealthTrail(attacker);
+  resetShowdownHudHealthTrail(defender);
 
   showoff.round += 1;
   showoff.roundTimer = SHOWDOWN_ROUND_SECONDS;
@@ -2814,7 +2824,10 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
 
   let damage = amount;
   const blocked = !options.ignoreBlock && Boolean(opponent.block);
-  if (blocked) {
+  const criticalBlocked = blocked && Boolean(options.critical);
+  if (criticalBlocked) {
+    damage = roundDamage(Math.max(1, damage * 0.5));
+  } else if (blocked) {
     damage = randomInt(0, 2);
   } else if ((opponent.fortifyTimer ?? 0) > 0) {
     damage = roundDamage(Math.max(1, damage * 0.5));
@@ -4512,23 +4525,6 @@ function drawArenaBackdrop() {
   drawSideRuin(-6, false);
   drawSideRuin(967, true);
 
-  const plaqueGradient = ctx.createLinearGradient(238, 118, 722, 214);
-  plaqueGradient.addColorStop(0, "rgba(91, 56, 23, 0.58)");
-  plaqueGradient.addColorStop(1, "rgba(31, 24, 18, 0.56)");
-  ctx.fillStyle = plaqueGradient;
-  roundRect(242, 116, 476, 100, 18);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255, 218, 128, 0.28)";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = "#ffd166";
-  ctx.font = "900 54px Georgia, serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.shadowColor = "rgba(46, 29, 21, 0.52)";
-  ctx.shadowBlur = 8;
-  ctx.fillText("SHOWDOWN", 480, 168);
   ctx.restore();
 }
 
@@ -4782,7 +4778,7 @@ function drawFighter(fighter) {
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
   ctx.beginPath();
-  ctx.ellipse(0, 70, Math.max(60, 123 - jumpHeight * 0.24), Math.max(12, 27 - jumpHeight * 0.05), 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 34, Math.max(48, 96 - jumpHeight * 0.2), Math.max(8, 18 - jumpHeight * 0.04), 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.translate(0, -jumpHeight);
@@ -4795,11 +4791,8 @@ function drawFighter(fighter) {
   ctx.drawImage(sprite, spriteX, spriteY, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
 
   if ((fighter.criticalFlash ?? 0) > 0) {
-    const alpha = Math.min(0.72, (fighter.criticalFlash ?? 0) / 0.5);
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.fillStyle = `rgba(214, 37, 43, ${alpha})`;
-    ctx.fillRect(spriteX - 6, spriteY - 4, SHOWDOWN_DRAW_WIDTH + 12, SHOWDOWN_DRAW_HEIGHT + 8);
-    ctx.globalCompositeOperation = "source-over";
+    const alpha = Math.min(0.42, ((fighter.criticalFlash ?? 0) / 0.5) * 0.42);
+    drawCriticalModelTint(sprite, spriteX, spriteY, alpha);
   }
 
   if (fighter.hitFlash > 0) {
@@ -4815,13 +4808,29 @@ function drawFighter(fighter) {
   ctx.scale(viewFacing, 1);
   drawStunEffect(fighter);
   drawPassiveIndicator(fighter);
-  ctx.fillStyle = "#fff8e8";
-  ctx.font = "700 18px Inter, Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(describePiece(piece), 0, -142);
-  drawHealthBar(-76, -126, 152, 12, piece.hp, piece.maxHp);
-  drawManaBar(-76, -109, 152, 8, piece.mana ?? 0, MAX_MANA);
   ctx.restore();
+}
+
+function drawCriticalModelTint(sprite, spriteX, spriteY, alpha) {
+  if (alpha <= 0) {
+    return;
+  }
+
+  if (showdownTintCanvas.width !== SHOWDOWN_DRAW_WIDTH || showdownTintCanvas.height !== SHOWDOWN_DRAW_HEIGHT) {
+    showdownTintCanvas.width = SHOWDOWN_DRAW_WIDTH;
+    showdownTintCanvas.height = SHOWDOWN_DRAW_HEIGHT;
+  }
+
+  showdownTintCtx.clearRect(0, 0, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
+  showdownTintCtx.globalCompositeOperation = "source-over";
+  showdownTintCtx.globalAlpha = 1;
+  showdownTintCtx.drawImage(sprite, 0, 0, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
+  showdownTintCtx.globalCompositeOperation = "source-atop";
+  showdownTintCtx.fillStyle = `rgba(214, 37, 43, ${alpha})`;
+  showdownTintCtx.fillRect(0, 0, SHOWDOWN_DRAW_WIDTH, SHOWDOWN_DRAW_HEIGHT);
+  showdownTintCtx.globalCompositeOperation = "source-over";
+
+  ctx.drawImage(showdownTintCanvas, spriteX, spriteY);
 }
 
 function drawStunEffect(fighter) {
@@ -6068,21 +6077,249 @@ function drawAttackTrail(fighter) {
 
 function drawDuelHeader() {
   const showoff = state.showoff;
-  const timer = Math.ceil(showoff?.roundTimer ?? SHOWDOWN_ROUND_SECONDS);
-  const attackerScore = showoff?.roundWins?.[showoff.attackerId] ?? 0;
-  const defenderScore = showoff?.roundWins?.[showoff.defenderId] ?? 0;
+  if (!showoff?.fighters) {
+    return;
+  }
+
+  const fighters = getShowdownHudFighters();
+  const leftPiece = getPieceById(state.pieces, fighters[0]?.id);
+  const rightPiece = getPieceById(state.pieces, fighters[1]?.id);
+  if (!leftPiece || !rightPiece) {
+    return;
+  }
+
+  const timer = showoff.started ? Math.ceil(showoff.roundTimer ?? SHOWDOWN_ROUND_SECONDS) : null;
+  const roundText = showoff.started ? `Round ${showoff.round ?? 1}/3` : "Ready";
+
   ctx.save();
-  ctx.fillStyle = "rgba(31, 26, 23, 0.74)";
-  roundRect(98, 32, 764, 62, 18);
-  ctx.fill();
-  ctx.fillStyle = "#fff8e8";
-  ctx.font = "700 21px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const label = showoff?.started === false
-    ? `Showdown starts in ${Math.ceil(showoff.introTimer ?? SHOWDOWN_INTRO_SECONDS)}`
-    : `Round ${showoff?.round ?? 1}/3   ${timer}s   Score ${attackerScore}-${defenderScore}   First to 2 wins`;
-  ctx.fillText(label, 480, 63);
+
+  drawShowdownHudSide(leftPiece, 34, 28, 370, "left");
+  drawShowdownHudSide(rightPiece, 556, 28, 370, "right");
+  drawShowdownTimerBadge(timer, roundText);
+
+  ctx.restore();
+}
+
+function drawShowdownHudSide(piece, x, y, width, side) {
+  const colors = getPieceColors(piece.team);
+  const health = getShowdownHudHealthTrail(piece);
+  const manaRatio = clamp((piece.mana ?? 0) / MAX_MANA, 0, 1);
+  const roundWins = state.showoff?.roundWins?.[piece.id] ?? 0;
+  const manaFull = manaRatio >= 1;
+  const innerEdge = side === "left" ? x + width - 4 : x + 4;
+  const portraitX = side === "left" ? x - 4 : x + width + 4;
+  const labelX = side === "left" ? x + 10 : x + width - 10;
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.46)";
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = "rgba(31, 24, 18, 0.66)";
+  roundRect(x - 10, y - 8, width + 20, 90, 8);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+
+  drawShowdownHudPortrait(piece, portraitX, y + 26, colors);
+  drawShowdownHudName(piece, labelX, y - 11, side);
+  drawShowdownHudBar(x, y + 8, width, 20, health.ratio, side, "#ffcf5a", "#ff5a3f", "rgba(59, 25, 18, 0.92)", {
+    trailRatio: health.trailRatio,
+    damageFlash: health.damageFlash
+  });
+  drawShowdownHudBar(x + 24, y + 38, width - 48, 9, manaRatio, side, "#60d6ff", "#1e88d9", "rgba(17, 35, 48, 0.88)", {
+    glow: manaFull,
+    glowColor: SHOWDOWN_MANA_FULL_GLOW
+  });
+  drawShowdownRoundBoxes(innerEdge, y + 61, side, roundWins);
+  ctx.restore();
+}
+
+function drawShowdownHudPortrait(piece, x, y, colors) {
+  ctx.save();
+  const radius = 24;
+  const gradient = ctx.createRadialGradient(x - 8, y - 8, 4, x, y, radius);
+  gradient.addColorStop(0, colors.light);
+  gradient.addColorStop(1, colors.dark);
+  ctx.fillStyle = gradient;
+  ctx.strokeStyle = colors.stroke;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = colors.ink;
+  ctx.font = "900 18px Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(PIECE_STATS[piece.type].short, x, y + 1);
+  ctx.restore();
+}
+
+function drawShowdownHudName(piece, x, y, side) {
+  ctx.save();
+  ctx.fillStyle = "#fff8e8";
+  ctx.font = "900 14px Inter, Arial, sans-serif";
+  ctx.textAlign = side === "left" ? "left" : "right";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.68)";
+  ctx.shadowBlur = 8;
+  ctx.fillText(describePiece(piece), x, y);
+  ctx.restore();
+}
+
+function getShowdownHudHealthTrail(piece) {
+  const now = performance.now() / 1000;
+  const key = String(piece.id);
+  const maxHp = Math.max(piece.maxHp ?? 1, 1);
+  const currentHp = clamp(piece.hp ?? maxHp, 0, maxHp);
+  let trail = showdownHudHealthTrails.get(key);
+
+  if (!trail || trail.maxHp !== maxHp) {
+    trail = createShowdownHudHealthTrail(currentHp, maxHp, now);
+    showdownHudHealthTrails.set(key, trail);
+  }
+
+  const elapsed = Math.max(0, now - (trail.lastUpdateAt ?? now));
+  trail.lastUpdateAt = now;
+
+  if (currentHp < trail.currentHp) {
+    trail.trailHp = Math.max(trail.trailHp, trail.currentHp);
+    trail.currentHp = currentHp;
+    trail.lastDamageAt = now;
+    trail.flashUntil = now + 0.34;
+  } else if (currentHp > trail.currentHp) {
+    trail.currentHp = currentHp;
+    trail.trailHp = currentHp;
+    trail.lastDamageAt = 0;
+    trail.flashUntil = 0;
+  }
+
+  if (trail.trailHp > trail.currentHp && now - trail.lastDamageAt > SHOWDOWN_HEALTH_TRAIL_HOLD_SECONDS) {
+    const drain = 1 - Math.exp(-SHOWDOWN_HEALTH_TRAIL_DRAIN_SPEED * elapsed);
+    trail.trailHp = lerp(trail.trailHp, trail.currentHp, drain);
+    if (Math.abs(trail.trailHp - trail.currentHp) < 0.3) {
+      trail.trailHp = trail.currentHp;
+    }
+  }
+
+  return {
+    ratio: clamp(trail.currentHp / maxHp, 0, 1),
+    trailRatio: clamp(trail.trailHp / maxHp, 0, 1),
+    damageFlash: clamp((trail.flashUntil - now) / 0.34, 0, 1)
+  };
+}
+
+function createShowdownHudHealthTrail(currentHp, maxHp, now) {
+  return {
+    currentHp,
+    trailHp: currentHp,
+    maxHp,
+    lastDamageAt: 0,
+    lastUpdateAt: now,
+    flashUntil: 0
+  };
+}
+
+function resetShowdownHudHealthTrail(piece) {
+  const now = performance.now() / 1000;
+  const maxHp = Math.max(piece.maxHp ?? 1, 1);
+  showdownHudHealthTrails.set(String(piece.id), createShowdownHudHealthTrail(clamp(piece.hp ?? maxHp, 0, maxHp), maxHp, now));
+}
+
+function drawShowdownHudBar(x, y, width, height, ratio, side, fillStart, fillEnd, trackColor, options = {}) {
+  ctx.save();
+  if (options.glow) {
+    ctx.shadowColor = options.glowColor ?? SHOWDOWN_MANA_FULL_GLOW;
+    ctx.shadowBlur = 18;
+  }
+
+  ctx.fillStyle = "rgba(255, 239, 181, 0.72)";
+  roundRect(x - 3, y - 3, width + 6, height + 6, height / 2 + 3);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+
+  ctx.fillStyle = trackColor;
+  roundRect(x, y, width, height, height / 2);
+  ctx.fill();
+
+  if (options.trailRatio > ratio) {
+    drawShowdownHudBarFill(x, y, width, height, options.trailRatio, side, "#ff914d", "#9d352c", height / 2);
+  }
+
+  drawShowdownHudBarFill(x, y, width, height, ratio, side, options.glow ? "#cfffff" : fillStart, options.glow ? "#52e8ff" : fillEnd, height / 2);
+
+  ctx.globalAlpha = 0.48;
+  ctx.fillStyle = "#fff8e8";
+  roundRect(x + 8, y + 3, width - 16, Math.max(2, height * 0.22), height / 2);
+  ctx.fill();
+
+  if (options.damageFlash > 0) {
+    ctx.globalAlpha = options.damageFlash * 0.55;
+    ctx.fillStyle = "#fff8e8";
+    roundRect(x, y, width, height, height / 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawShowdownHudBarFill(x, y, width, height, ratio, side, fillStart, fillEnd, radius) {
+  const fillWidth = Math.max(0, width * clamp(ratio, 0, 1));
+  if (fillWidth <= 0) {
+    return;
+  }
+
+  const fillX = side === "left" ? x : x + width - fillWidth;
+  const gradient = ctx.createLinearGradient(fillX, y, fillX + fillWidth, y);
+  gradient.addColorStop(0, side === "left" ? fillStart : fillEnd);
+  gradient.addColorStop(1, side === "left" ? fillEnd : fillStart);
+  ctx.fillStyle = gradient;
+  roundRect(fillX, y, fillWidth, height, radius);
+  ctx.fill();
+}
+
+function drawShowdownRoundBoxes(anchorX, y, side, wins) {
+  ctx.save();
+  const size = 13;
+  const gap = 7;
+  const startX = side === "left" ? anchorX - size * 2 - gap : anchorX;
+  for (let index = 0; index < SHOWDOWN_ROUNDS_TO_WIN; index += 1) {
+    const x = startX + index * (size + gap);
+    const lit = index < wins;
+    ctx.fillStyle = lit ? "#ffd166" : "rgba(20, 16, 14, 0.76)";
+    ctx.strokeStyle = lit ? "#fff2b4" : "rgba(255, 248, 232, 0.36)";
+    ctx.lineWidth = 2;
+    roundRect(x, y, size, size, 3);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawShowdownTimerBadge(timer, roundText) {
+  ctx.save();
+  const centerX = 480;
+  const centerY = 56;
+  ctx.shadowColor = "rgba(0, 0, 0, 0.58)";
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = "rgba(22, 17, 20, 0.88)";
+  roundRect(centerX - 52, centerY - 36, 104, 84, 12);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+
+  ctx.strokeStyle = "rgba(255, 209, 102, 0.74)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffd166";
+  ctx.font = "900 44px Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(timer === null ? "VS" : String(timer).padStart(2, "0"), centerX, centerY - 5);
+
+  ctx.fillStyle = "#fff8e8";
+  ctx.font = "800 13px Inter, Arial, sans-serif";
+  ctx.fillText(roundText, centerX, centerY + 31);
   ctx.restore();
 }
 
@@ -6093,12 +6330,7 @@ function drawShowdownStateBanner() {
   }
 
   if (!showoff.started) {
-    const attacker = getPieceById(state.pieces, showoff.attackerId);
-    const defender = getPieceById(state.pieces, showoff.defenderId);
-    const attackerName = attacker ? describePiece(attacker) : "Attacker";
-    const defenderName = defender ? describePiece(defender) : "Defender";
-    const countdown = Math.ceil(showoff.introTimer ?? SHOWDOWN_INTRO_SECONDS);
-    drawShowdownBanner("SHOWDOWN INITIATED", `${attackerName} vs ${defenderName}`, `Combat starts in ${countdown}`);
+    drawShowdownReadyOverlay(showoff);
     return;
   }
 
@@ -6111,6 +6343,35 @@ function drawShowdownStateBanner() {
     const subdetail = showoff.finished ? `Duel decided after round ${showoff.round}` : "Next round begins shortly";
     drawShowdownBanner(title, detail, subdetail);
   }
+}
+
+function drawShowdownReadyOverlay(showoff) {
+  const count = Math.max(1, Math.ceil(showoff.introTimer ?? SHOWDOWN_INTRO_SECONDS));
+  const pulse = 1 + (1 - ((showoff.introTimer ?? 0) % 1)) * 0.08;
+
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.translate(canvas.width / 2, 300);
+  ctx.scale(pulse, pulse);
+  ctx.shadowColor = "rgba(0, 0, 0, 0.72)";
+  ctx.shadowBlur = 24;
+
+  ctx.fillStyle = "rgba(31, 24, 18, 0.6)";
+  roundRect(-176, -78, 352, 154, 16);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 209, 102, 0.82)";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  ctx.fillStyle = "#fff8e8";
+  ctx.font = "900 34px Inter, Arial, sans-serif";
+  ctx.fillText("READY", 0, -30);
+
+  ctx.fillStyle = "#ffd166";
+  ctx.font = "900 92px Georgia, serif";
+  ctx.fillText(count, 0, 42);
+  ctx.restore();
 }
 
 function drawCombatBanner() {
