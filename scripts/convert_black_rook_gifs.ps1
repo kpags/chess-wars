@@ -1,14 +1,19 @@
+param(
+  [ValidateSet("black", "white")]
+  [string]$Team = "black"
+)
+
 $ErrorActionPreference = "Stop"
 
 Add-Type -AssemblyName System.Drawing
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$SourceDir = Join-Path $Root "assets/gif/black_rooks"
-$OutputDir = Join-Path $Root "assets/sprites/rooks/black"
+$SourceDir = Join-Path $Root "assets/gif/$($Team)_rooks"
+$OutputDir = Join-Path $Root "assets/sprites/rooks/$Team"
 $PreviewPath = Join-Path $OutputDir "preview-sheet.png"
 $ManifestPath = Join-Path $OutputDir "manifest.json"
 
-$ActionFiles = [ordered]@{
+$BlackActionFiles = [ordered]@{
   "board_down" = "board_down.gif"
   "board_down_left" = "board_down_left.gif"
   "board_down_right" = "board_down_right.gif"
@@ -37,6 +42,37 @@ $ActionFiles = [ordered]@{
   "walk" = "walk.gif"
 }
 
+$WhiteActionFiles = [ordered]@{
+  "board_down" = "board_down.gif"
+  "board_down_left" = "board_down_left.gif"
+  "board_down_right" = "board_down_right.gif"
+  "board_idle" = "board_idle.gif"
+  "board_left" = "board_left.gif"
+  "board_right" = "board_right.gif"
+  "board_step_1" = "board_step_1.gif"
+  "board_step_2" = "board_step_2.gif"
+  "board_turn" = "board_turn.gif"
+  "board_up" = "board_up.gif"
+  "board_up_left" = "board_up_left.gif"
+  "board_up_right" = "board_up_right.gif"
+  "charge_dash" = "advance_lunge.gif"
+  "crouch" = "crouch_lower_stance.gif"
+  "ground_smash" = "heavy_attack_ground_smash.gif"
+  "guard_block" = "crouch_lower_stance.gif"
+  "heavy_attack_double_crush" = "heavy_attack_ground_smash.gif"
+  "hit_hurt" = "get_hit.gif"
+  "idle_ready" = "idle_ready.gif"
+  "jump" = "jump.gif"
+  "knocked_down_defeat" = "die_fall.gif"
+  "light_attack_punch" = "light_attack_crushing_punch.gif"
+  "taunt_command" = "taunt_roar.gif"
+  "top_view_board_move" = "top_view_board_move.gif"
+  "victory" = "taunt_roar.gif"
+  "walk" = "walk.gif"
+}
+
+$ActionFiles = if ($Team -eq "white") { $WhiteActionFiles } else { $BlackActionFiles }
+
 $ShowdownActions = @(
   "charge_dash",
   "crouch",
@@ -52,6 +88,11 @@ $ShowdownActions = @(
   "victory",
   "walk"
 )
+
+$WhiteShowdownContentSize = [pscustomobject]@{
+  Width = 198
+  Height = 168
+}
 
 function Get-RelativeAssetPath($Path) {
   $fullPath = (Resolve-Path $Path).Path
@@ -80,6 +121,46 @@ function Get-GifDurations($Image, $FrameCount) {
   return $durations
 }
 
+function Get-OpaqueBounds($Bitmap) {
+  $minX = $Bitmap.Width
+  $minY = $Bitmap.Height
+  $maxX = -1
+  $maxY = -1
+
+  for ($y = 0; $y -lt $Bitmap.Height; $y += 1) {
+    for ($x = 0; $x -lt $Bitmap.Width; $x += 1) {
+      $color = $Bitmap.GetPixel($x, $y)
+      if ($color.A -le 8) {
+        continue
+      }
+
+      if ($x -lt $minX) {
+        $minX = $x
+      }
+      if ($x -gt $maxX) {
+        $maxX = $x
+      }
+      if ($y -lt $minY) {
+        $minY = $y
+      }
+      if ($y -gt $maxY) {
+        $maxY = $y
+      }
+    }
+  }
+
+  if ($maxX -lt 0) {
+    return $null
+  }
+
+  return [pscustomobject]@{
+    X = $minX
+    Y = $minY
+    Width = $maxX - $minX + 1
+    Height = $maxY - $minY + 1
+  }
+}
+
 function Get-CommonGifSize($Actions) {
   $width = 0
   $height = 0
@@ -101,7 +182,7 @@ function Get-CommonGifSize($Actions) {
   }
 }
 
-function Save-NormalizedFrame($Bitmap, $FramePath, $TargetSize) {
+function Save-NormalizedFrame($Bitmap, $FramePath, $TargetSize, $TargetContentSize = $null) {
   if ($null -eq $TargetSize) {
     $Bitmap.Save($FramePath, [System.Drawing.Imaging.ImageFormat]::Png)
     return
@@ -114,9 +195,24 @@ function Save-NormalizedFrame($Bitmap, $FramePath, $TargetSize) {
     $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
     $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
 
-    $x = [Math]::Floor(($TargetSize.Width - $Bitmap.Width) / 2)
-    $y = $TargetSize.Height - $Bitmap.Height
-    $graphics.DrawImage($Bitmap, $x, $y, $Bitmap.Width, $Bitmap.Height)
+    if ($null -ne $TargetContentSize) {
+      $bounds = Get-OpaqueBounds $Bitmap
+      if ($null -ne $bounds) {
+        $scale = [Math]::Min($TargetContentSize.Width / $bounds.Width, $TargetContentSize.Height / $bounds.Height)
+        $width = [int][Math]::Max(1, [Math]::Min($TargetSize.Width, [Math]::Round($bounds.Width * $scale)))
+        $height = [int][Math]::Max(1, [Math]::Min($TargetSize.Height, [Math]::Round($bounds.Height * $scale)))
+        $x = [int][Math]::Floor(($TargetSize.Width - $width) / 2)
+        $y = [int]($TargetSize.Height - $height)
+        $destRect = New-Object System.Drawing.Rectangle $x, $y, $width, $height
+        $sourceRect = New-Object System.Drawing.Rectangle $bounds.X, $bounds.Y, $bounds.Width, $bounds.Height
+        $graphics.DrawImage($Bitmap, $destRect, $sourceRect, [System.Drawing.GraphicsUnit]::Pixel)
+      }
+    } else {
+      $x = [Math]::Floor(($TargetSize.Width - $Bitmap.Width) / 2)
+      $y = $TargetSize.Height - $Bitmap.Height
+      $graphics.DrawImage($Bitmap, $x, $y, $Bitmap.Width, $Bitmap.Height)
+    }
+
     $normalized.Save($FramePath, [System.Drawing.Imaging.ImageFormat]::Png)
   } finally {
     $graphics.Dispose()
@@ -124,7 +220,7 @@ function Save-NormalizedFrame($Bitmap, $FramePath, $TargetSize) {
   }
 }
 
-function Save-GifFrames($Source, $ActionDir, $TargetSize = $null) {
+function Save-GifFrames($Source, $ActionDir, $TargetSize = $null, $TargetContentSize = $null) {
   $image = [System.Drawing.Image]::FromFile($Source)
   try {
     $dimension = New-Object System.Drawing.Imaging.FrameDimension($image.FrameDimensionsList[0])
@@ -143,7 +239,7 @@ function Save-GifFrames($Source, $ActionDir, $TargetSize = $null) {
         Remove-LightMatte $bitmap
         Remove-DetachedEdgeFragments $bitmap
         $framePath = Join-Path $ActionDir ("frame-{0:D2}.png" -f $index)
-        Save-NormalizedFrame $bitmap $framePath $TargetSize
+        Save-NormalizedFrame $bitmap $framePath $TargetSize $TargetContentSize
         $framePaths += $framePath
       } finally {
         $graphics.Dispose()
@@ -383,16 +479,23 @@ if (-not (Test-Path $SourceDir)) {
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $ShowdownFrameSize = Get-CommonGifSize $ShowdownActions
+$ShowdownContentSize = if ($Team -eq "white") { $WhiteShowdownContentSize } else { $null }
 
 $manifest = [ordered]@{
   piece = "rook"
-  team = "black"
+  team = $Team
   source = Get-RelativeAssetPath $SourceDir
   showdownFrameSize = [ordered]@{
     width = $ShowdownFrameSize.Width
     height = $ShowdownFrameSize.Height
   }
   actions = [ordered]@{}
+}
+if ($null -ne $ShowdownContentSize) {
+  $manifest.showdownContentSize = [ordered]@{
+    width = $ShowdownContentSize.Width
+    height = $ShowdownContentSize.Height
+  }
 }
 $previewRows = @()
 
@@ -405,7 +508,8 @@ foreach ($action in $ActionFiles.Keys) {
   $actionDir = Join-Path $OutputDir $action
   New-Item -ItemType Directory -Force -Path $actionDir | Out-Null
   $targetSize = if ($ShowdownActions -contains $action) { $ShowdownFrameSize } else { $null }
-  $result = Save-GifFrames $source $actionDir $targetSize
+  $targetContentSize = if ($ShowdownActions -contains $action) { $ShowdownContentSize } else { $null }
+  $result = Save-GifFrames $source $actionDir $targetSize $targetContentSize
   $manifest.actions[$action] = [ordered]@{
     frames = $result.Frames
     durationsMs = $result.DurationsMs
@@ -422,4 +526,4 @@ foreach ($action in $ActionFiles.Keys) {
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $ManifestPath -Encoding UTF8
 Render-PreviewSheet $previewRows $PreviewPath
 
-Write-Output "Generated black rook frames in $(Get-RelativeAssetPath $OutputDir)"
+Write-Output "Generated $Team rook frames in $(Get-RelativeAssetPath $OutputDir)"

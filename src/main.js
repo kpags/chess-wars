@@ -141,7 +141,9 @@ const PAWN_GIF_ANIMATIONS = {
   [TEAM.WHITE]: WHITE_PAWN_GIF_ANIMATIONS
 };
 const BLACK_ROOK_SPRITE_BASE = "assets/sprites/rooks/black";
+const WHITE_ROOK_SPRITE_BASE = "assets/sprites/rooks/white";
 const BLACK_ROOK_SHOWDOWN_DRAW = { width: 380, height: 286 };
+const WHITE_ROOK_SHOWDOWN_DRAW = BLACK_ROOK_SHOWDOWN_DRAW;
 const BLACK_ROOK_SHOWDOWN_ANIMATIONS = {
   idle_ready: { path: `${BLACK_ROOK_SPRITE_BASE}/idle_ready`, frames: 4, frameMs: 140, draw: BLACK_ROOK_SHOWDOWN_DRAW },
   walk: { path: `${BLACK_ROOK_SPRITE_BASE}/walk`, frames: 5, frameMs: 140, draw: BLACK_ROOK_SHOWDOWN_DRAW },
@@ -155,6 +157,23 @@ const BLACK_ROOK_SHOWDOWN_ANIMATIONS = {
   victory: { path: `${BLACK_ROOK_SPRITE_BASE}/victory`, frames: 5, frameMs: 180, draw: BLACK_ROOK_SHOWDOWN_DRAW },
   knocked_down_defeat: { path: `${BLACK_ROOK_SPRITE_BASE}/knocked_down_defeat`, frames: 4, frameMs: 220, draw: BLACK_ROOK_SHOWDOWN_DRAW }
 };
+const WHITE_ROOK_SHOWDOWN_ANIMATIONS = {
+  idle_ready: { path: `${WHITE_ROOK_SPRITE_BASE}/idle_ready`, frames: 5, frameMs: 140, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  walk: { path: `${WHITE_ROOK_SPRITE_BASE}/walk`, frames: 5, frameMs: 140, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  charge_dash: { path: `${WHITE_ROOK_SPRITE_BASE}/charge_dash`, frames: 4, frameMs: 120, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  light_attack_punch: { path: `${WHITE_ROOK_SPRITE_BASE}/light_attack_punch`, frames: 5, frameMs: 150, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  heavy_attack_double_crush: { path: `${WHITE_ROOK_SPRITE_BASE}/heavy_attack_double_crush`, frames: 5, frameMs: 170, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  ground_smash: { path: `${WHITE_ROOK_SPRITE_BASE}/ground_smash`, frames: 5, frameMs: 170, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  jump: { path: `${WHITE_ROOK_SPRITE_BASE}/jump`, frames: 6, frameMs: 120, draw: WHITE_ROOK_SHOWDOWN_DRAW, floorOffset: 18 },
+  guard_block: { path: `${WHITE_ROOK_SPRITE_BASE}/guard_block`, frames: 5, frameMs: 160, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  hit_hurt: { path: `${WHITE_ROOK_SPRITE_BASE}/hit_hurt`, frames: 4, frameMs: 150, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  victory: { path: `${WHITE_ROOK_SPRITE_BASE}/victory`, frames: 5, frameMs: 180, draw: WHITE_ROOK_SHOWDOWN_DRAW },
+  knocked_down_defeat: { path: `${WHITE_ROOK_SPRITE_BASE}/knocked_down_defeat`, frames: 5, frameMs: 220, draw: WHITE_ROOK_SHOWDOWN_DRAW }
+};
+const ROOK_SHOWDOWN_ANIMATIONS = {
+  [TEAM.BLACK]: BLACK_ROOK_SHOWDOWN_ANIMATIONS,
+  [TEAM.WHITE]: WHITE_ROOK_SHOWDOWN_ANIMATIONS
+};
 const BLACK_ROOK_BOARD_ANIMATIONS = {
   idle: { path: `${BLACK_ROOK_SPRITE_BASE}/board_idle`, frames: 1, frameMs: 700, draw: { width: 88, height: 92 } },
   up: { path: `${BLACK_ROOK_SPRITE_BASE}/board_up`, frames: 1, frameMs: 700, draw: { width: 92, height: 92 } },
@@ -165,6 +184,21 @@ const BLACK_ROOK_BOARD_ANIMATIONS = {
   up_right: { path: `${BLACK_ROOK_SPRITE_BASE}/board_up_right`, frames: 1, frameMs: 700, draw: { width: 78, height: 92 } },
   down_left: { path: `${BLACK_ROOK_SPRITE_BASE}/board_down_left`, frames: 1, frameMs: 700, draw: { width: 94, height: 90 } },
   down_right: { path: `${BLACK_ROOK_SPRITE_BASE}/board_down_right`, frames: 1, frameMs: 700, draw: { width: 98, height: 90 } }
+};
+const WHITE_ROOK_BOARD_ANIMATIONS = {
+  idle: { path: `${WHITE_ROOK_SPRITE_BASE}/board_idle`, frames: 1, frameMs: 700, draw: { width: 88, height: 92 } },
+  up: { path: `${WHITE_ROOK_SPRITE_BASE}/board_up`, frames: 1, frameMs: 700, draw: { width: 92, height: 92 } },
+  down: { path: `${WHITE_ROOK_SPRITE_BASE}/board_down`, frames: 1, frameMs: 700, draw: { width: 88, height: 90 } },
+  left: { path: `${WHITE_ROOK_SPRITE_BASE}/board_left`, frames: 1, frameMs: 700, draw: { width: 82, height: 92 } },
+  right: { path: `${WHITE_ROOK_SPRITE_BASE}/board_right`, frames: 1, frameMs: 700, draw: { width: 82, height: 92 } },
+  up_left: { path: `${WHITE_ROOK_SPRITE_BASE}/board_up_left`, frames: 1, frameMs: 700, draw: { width: 86, height: 92 } },
+  up_right: { path: `${WHITE_ROOK_SPRITE_BASE}/board_up_right`, frames: 1, frameMs: 700, draw: { width: 78, height: 92 } },
+  down_left: { path: `${WHITE_ROOK_SPRITE_BASE}/board_down_left`, frames: 1, frameMs: 700, draw: { width: 94, height: 90 } },
+  down_right: { path: `${WHITE_ROOK_SPRITE_BASE}/board_down_right`, frames: 1, frameMs: 700, draw: { width: 98, height: 90 } }
+};
+const ROOK_BOARD_ANIMATIONS = {
+  [TEAM.BLACK]: BLACK_ROOK_BOARD_ANIMATIONS,
+  [TEAM.WHITE]: WHITE_ROOK_BOARD_ANIMATIONS
 };
 const BLACK_ROOK_BOARD_IDLE_ACTION = "down";
 const BLACK_ROOK_BOARD_MOVE_ACTIONS = [BLACK_ROOK_BOARD_IDLE_ACTION, "up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"];
@@ -578,34 +612,42 @@ function loadPawnGifFrames() {
 }
 
 function loadBlackRookAnimations() {
-  const sets = {
-    showdown: BLACK_ROOK_SHOWDOWN_ANIMATIONS,
-    board: BLACK_ROOK_BOARD_ANIMATIONS
+  const teamSets = {
+    [TEAM.BLACK]: {
+      showdown: BLACK_ROOK_SHOWDOWN_ANIMATIONS,
+      board: BLACK_ROOK_BOARD_ANIMATIONS
+    },
+    [TEAM.WHITE]: {
+      showdown: WHITE_ROOK_SHOWDOWN_ANIMATIONS,
+      board: WHITE_ROOK_BOARD_ANIMATIONS
+    }
   };
 
-  for (const [section, animations] of Object.entries(sets)) {
-    for (const [action, config] of Object.entries(animations)) {
-      const cacheKey = `${section}:${action}`;
-      if (blackRookAnimationFrames.has(cacheKey)) {
-        continue;
-      }
+  for (const [team, sets] of Object.entries(teamSets)) {
+    for (const [section, animations] of Object.entries(sets)) {
+      for (const [action, config] of Object.entries(animations)) {
+        const cacheKey = `${team}:${section}:${action}`;
+        if (blackRookAnimationFrames.has(cacheKey)) {
+          continue;
+        }
 
-      const frames = [];
-      blackRookAnimationFrames.set(cacheKey, frames);
-      for (let index = 0; index < config.frames; index += 1) {
-        const image = new Image();
-        const record = { image, loaded: false, failed: false };
-        frames.push(record);
-        image.onload = () => {
-          record.loaded = true;
-          record.failed = false;
-          blackRookRenderCache.clear();
-        };
-        image.onerror = () => {
-          record.loaded = false;
-          record.failed = true;
-        };
-        image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
+        const frames = [];
+        blackRookAnimationFrames.set(cacheKey, frames);
+        for (let index = 0; index < config.frames; index += 1) {
+          const image = new Image();
+          const record = { image, loaded: false, failed: false };
+          frames.push(record);
+          image.onload = () => {
+            record.loaded = true;
+            record.failed = false;
+            blackRookRenderCache.clear();
+          };
+          image.onerror = () => {
+            record.loaded = false;
+            record.failed = true;
+          };
+          image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
+        }
       }
     }
   }
@@ -4147,7 +4189,7 @@ function drawBlackRookBoardSprite(piece) {
   }
 
   const frameIndex = getBlackRookBoardFrameIndex(piece, config);
-  const image = getBlackRookAnimationFrame("board", config.action, frameIndex);
+  const image = getBlackRookAnimationFrame(piece.team, "board", config.action, frameIndex);
   if (!image) {
     return false;
   }
@@ -4160,13 +4202,14 @@ function drawBlackRookBoardSprite(piece) {
 }
 
 function getBlackRookBoardAnimationConfig(piece) {
-  if (!isBlackRookSpritePiece(piece)) {
+  if (!isRookSpritePiece(piece)) {
     return null;
   }
 
   const animation = getBoardPieceMoveAnimation(piece);
   const action = animation ? getBlackRookBoardMoveAction(piece, animation) : BLACK_ROOK_BOARD_IDLE_ACTION;
-  const config = BLACK_ROOK_BOARD_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS[BLACK_ROOK_BOARD_IDLE_ACTION];
+  const animations = ROOK_BOARD_ANIMATIONS[piece.team];
+  const config = animations?.[action] ?? animations?.[BLACK_ROOK_BOARD_IDLE_ACTION];
   return { ...config, action };
 }
 
@@ -4189,22 +4232,22 @@ function getBlackRookBoardFrameIndex(piece, config) {
 }
 
 function getBlackRookShowdownSprite(piece, frame, fighter) {
-  if (!isBlackRookSpritePiece(piece)) {
+  if (!isRookSpritePiece(piece)) {
     return null;
   }
 
-  const frameInfo = getBlackRookShowdownFrameInfo(frame, fighter);
+  const frameInfo = getBlackRookShowdownFrameInfo(frame, fighter, piece.team);
   if (!frameInfo) {
     return null;
   }
 
-  const config = BLACK_ROOK_SHOWDOWN_ANIMATIONS[frameInfo.action];
-  const image = getBlackRookAnimationFrame("showdown", frameInfo.action, frameInfo.index);
+  const config = ROOK_SHOWDOWN_ANIMATIONS[piece.team]?.[frameInfo.action];
+  const image = getBlackRookAnimationFrame(piece.team, "showdown", frameInfo.action, frameInfo.index);
   if (!config || !image) {
     return null;
   }
 
-  const key = `black-rook-render:${frameInfo.action}:${frameInfo.index}`;
+  const key = `rook-render:${piece.team}:${frameInfo.action}:${frameInfo.index}`;
   if (blackRookRenderCache.has(key)) {
     return blackRookRenderCache.get(key);
   }
@@ -4225,23 +4268,23 @@ function getBlackRookShowdownAction(frame, fighter) {
   return getBlackRookShowdownFrameInfo(frame, fighter)?.action ?? "idle_ready";
 }
 
-function getBlackRookShowdownFrameInfo(frame, fighter) {
+function getBlackRookShowdownFrameInfo(frame, fighter, team = TEAM.BLACK) {
   if (frame.startsWith("defeated-fall")) {
     return {
       action: "knocked_down_defeat",
-      index: getBlackRookProgressFrame("knocked_down_defeat", fighter?.fallTimer ?? 0)
+      index: getBlackRookProgressFrame(team, "knocked_down_defeat", fighter?.fallTimer ?? 0)
     };
   }
   if (frame.startsWith("victory-wave")) {
     return {
       action: "victory",
-      index: getBlackRookLoopFrame("victory", fighter?.victoryTimer ?? performance.now() / 1000)
+      index: getBlackRookLoopFrame(team, "victory", fighter?.victoryTimer ?? performance.now() / 1000)
     };
   }
   if (frame === "hit-stagger") {
     return {
       action: "hit_hurt",
-      index: getBlackRookLoopFrame("hit_hurt", performance.now() / 1000)
+      index: getBlackRookLoopFrame(team, "hit_hurt", performance.now() / 1000)
     };
   }
   if (frame === "ultimate-cast") {
@@ -4249,7 +4292,7 @@ function getBlackRookShowdownFrameInfo(frame, fighter) {
     const progress = timer > 0 ? 1 - timer / 0.45 : 1;
     return {
       action: "ground_smash",
-      index: getBlackRookProgressFrame("ground_smash", progress, true)
+      index: getBlackRookProgressFrame(team, "ground_smash", progress, true)
     };
   }
   if (frame === "critical-strike") {
@@ -4257,7 +4300,7 @@ function getBlackRookShowdownFrameInfo(frame, fighter) {
     const progress = timer > 0 ? 1 - timer / Math.max(CRITICAL_ATTACK_FLASH_SECONDS, 0.01) : 1;
     return {
       action: "heavy_attack_double_crush",
-      index: getBlackRookProgressFrame("heavy_attack_double_crush", progress, true)
+      index: getBlackRookProgressFrame(team, "heavy_attack_double_crush", progress, true)
     };
   }
   if (frame.startsWith("attack-")) {
@@ -4270,7 +4313,7 @@ function getBlackRookShowdownFrameInfo(frame, fighter) {
   if (frame.startsWith("block")) {
     return {
       action: "guard_block",
-      index: frame === "block-brace" ? 2 : getBlackRookLoopFrame("guard_block", performance.now() / 1000)
+      index: frame === "block-brace" ? 2 : getBlackRookLoopFrame(team, "guard_block", performance.now() / 1000)
     };
   }
   if (frame === "jump-rise") {
@@ -4283,17 +4326,17 @@ function getBlackRookShowdownFrameInfo(frame, fighter) {
     const action = (fighter?.dashTimer ?? 0) > 0 ? "charge_dash" : "walk";
     return {
       action,
-      index: getBlackRookLoopFrame(action, fighter?.motionTime ?? performance.now() / 1000)
+      index: getBlackRookLoopFrame(team, action, fighter?.motionTime ?? performance.now() / 1000)
     };
   }
   return {
     action: "idle_ready",
-    index: getBlackRookLoopFrame("idle_ready", performance.now() / 1000)
+    index: getBlackRookLoopFrame(team, "idle_ready", performance.now() / 1000)
   };
 }
 
-function getBlackRookLoopFrame(action, seconds) {
-  const config = BLACK_ROOK_SHOWDOWN_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS[action];
+function getBlackRookLoopFrame(team, action, seconds) {
+  const config = ROOK_SHOWDOWN_ANIMATIONS[team]?.[action] ?? ROOK_BOARD_ANIMATIONS[team]?.[action];
   return getBlackRookLoopFrameForConfig(config, seconds);
 }
 
@@ -4305,8 +4348,8 @@ function getBlackRookLoopFrameForConfig(config, seconds) {
   return Math.floor((seconds * 1000) / config.frameMs) % config.frames;
 }
 
-function getBlackRookProgressFrame(action, value, normalized = false) {
-  const config = BLACK_ROOK_SHOWDOWN_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS[action];
+function getBlackRookProgressFrame(team, action, value, normalized = false) {
+  const config = ROOK_SHOWDOWN_ANIMATIONS[team]?.[action] ?? ROOK_BOARD_ANIMATIONS[team]?.[action];
   return getBlackRookProgressFrameForConfig(config, value, normalized);
 }
 
@@ -4319,8 +4362,8 @@ function getBlackRookProgressFrameForConfig(config, value, normalized = false) {
   return clamp(Math.floor(progress * config.frames), 0, config.frames - 1);
 }
 
-function getBlackRookAnimationFrame(section, action, index) {
-  const records = blackRookAnimationFrames.get(`${section}:${action}`);
+function getBlackRookAnimationFrame(team, section, action, index) {
+  const records = blackRookAnimationFrames.get(`${team}:${section}:${action}`);
   if (!records?.length) {
     return null;
   }
@@ -4329,8 +4372,12 @@ function getBlackRookAnimationFrame(section, action, index) {
   return record?.loaded ? record.image : null;
 }
 
+function isRookSpritePiece(piece) {
+  return piece?.type === "rook" && Boolean(ROOK_SHOWDOWN_ANIMATIONS[piece.team] && ROOK_BOARD_ANIMATIONS[piece.team]);
+}
+
 function isBlackRookSpritePiece(piece) {
-  return piece?.team === TEAM.BLACK && piece?.type === "rook";
+  return isRookSpritePiece(piece);
 }
 
 function getPawnShowdownSprite(piece, frame, fighter) {

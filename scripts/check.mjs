@@ -198,6 +198,83 @@ for (const [action, expectedFrames] of Object.entries(blackRookGeneratedFrames))
 assert.ok(existsSync(new URL("../assets/sprites/rooks/black/preview-sheet.png", import.meta.url)), "generated black rook preview sheet should exist");
 assert.ok(existsSync(new URL("../assets/sprites/rooks/black/manifest.json", import.meta.url)), "generated black rook manifest should exist");
 
+const whiteRookSourceGifs = [
+  "idle_ready.gif",
+  "walk.gif",
+  "advance_lunge.gif",
+  "light_attack_crushing_punch.gif",
+  "heavy_attack_ground_smash.gif",
+  "jump.gif",
+  "crouch_lower_stance.gif",
+  "get_hit.gif",
+  "taunt_roar.gif",
+  "die_fall.gif",
+  "top_view_board_move.gif",
+  "board_idle.gif",
+  "board_up.gif",
+  "board_down.gif",
+  "board_left.gif",
+  "board_right.gif",
+  "board_up_left.gif",
+  "board_up_right.gif",
+  "board_down_left.gif",
+  "board_down_right.gif"
+];
+
+for (const asset of whiteRookSourceGifs) {
+  assert.ok(existsSync(new URL(`../assets/gif/white_rooks/${asset}`, import.meta.url)), `white rook source GIF should exist: ${asset}`);
+}
+
+const whiteRookGeneratedFrames = {
+  board_down: 1,
+  board_down_left: 1,
+  board_down_right: 1,
+  board_idle: 1,
+  board_left: 1,
+  board_right: 1,
+  board_step_1: 1,
+  board_step_2: 1,
+  board_turn: 1,
+  board_up: 1,
+  board_up_left: 1,
+  board_up_right: 1,
+  charge_dash: 4,
+  crouch: 5,
+  ground_smash: 5,
+  guard_block: 5,
+  heavy_attack_double_crush: 5,
+  hit_hurt: 4,
+  idle_ready: 5,
+  jump: 6,
+  knocked_down_defeat: 5,
+  light_attack_punch: 5,
+  taunt_command: 5,
+  top_view_board_move: 12,
+  victory: 5,
+  walk: 5
+};
+let whiteRookShowdownFrameSize = null;
+
+for (const [action, expectedFrames] of Object.entries(whiteRookGeneratedFrames)) {
+  const actionDir = new URL(`../assets/sprites/rooks/white/${action}/`, import.meta.url);
+  assert.ok(existsSync(actionDir), `generated white rook action folder should exist for ${action}`);
+  const frames = readdirSync(actionDir).filter((name) => /^frame-\d+\.png$/.test(name));
+  assert.equal(frames.length, expectedFrames, `generated white rook action ${action} should have ${expectedFrames} frames`);
+
+  if (blackRookShowdownGeneratedFrames.has(action)) {
+    for (const frame of frames) {
+      const size = readPngSize(new URL(frame, actionDir));
+      whiteRookShowdownFrameSize ??= size;
+      assert.deepEqual(size, whiteRookShowdownFrameSize, `white rook Showdown frame ${action}/${frame} should use the shared canvas size`);
+    }
+  }
+}
+assert.ok(existsSync(new URL("../assets/sprites/rooks/white/preview-sheet.png", import.meta.url)), "generated white rook preview sheet should exist");
+assert.ok(existsSync(new URL("../assets/sprites/rooks/white/manifest.json", import.meta.url)), "generated white rook manifest should exist");
+const whiteRookManifest = JSON.parse(readFileSync(new URL("../assets/sprites/rooks/white/manifest.json", import.meta.url), "utf8").replace(/^\uFEFF/, ""));
+assert.equal(whiteRookManifest.showdownContentSize?.width, 198, "white rook Showdown frames should normalize visible content width");
+assert.equal(whiteRookManifest.showdownContentSize?.height, 168, "white rook Showdown frames should normalize visible content height");
+
 assert.match(server, /"\.webp": "image\/webp"/, "dev server should serve WebP animation assets with the right MIME type");
 
 assert.match(html, /Chess Wars/, "index should render Chess Wars");
@@ -407,18 +484,25 @@ assert.match(main, /function shouldFlipPawnBoardSprite\(piece\)/, "white pawn bo
 assert.match(main, /return piece\?\.team === getLocalBoardTeam\(\);/, "bottom-side pawn board sprites should face toward the opponent");
 assert.match(main, /dy \*= -1;/, "white pawn board movement frames should keep their visual direction after flipping");
 assert.match(main, /BLACK_ROOK_SHOWDOWN_ANIMATIONS/, "black rooks should support generated Showdown frame animations");
+assert.match(main, /WHITE_ROOK_SHOWDOWN_ANIMATIONS/, "white rooks should support generated Showdown frame animations");
+assert.match(main, /ROOK_SHOWDOWN_ANIMATIONS/, "rook Showdown animations should be selectable by team");
 assert.match(main, /BLACK_ROOK_SHOWDOWN_DRAW/, "black rook Showdown actions should share one rendered size");
+assert.match(main, /WHITE_ROOK_SHOWDOWN_DRAW/, "white rook Showdown actions should share one rendered size");
 assert.match(main, /draw: BLACK_ROOK_SHOWDOWN_DRAW/, "black rook Showdown configs should use the shared rendered size");
+assert.match(main, /draw: WHITE_ROOK_SHOWDOWN_DRAW/, "white rook Showdown configs should use the shared rendered size");
 assert.match(main, /BLACK_ROOK_BOARD_ANIMATIONS/, "black rooks should support generated board frame models");
+assert.match(main, /WHITE_ROOK_BOARD_ANIMATIONS/, "white rooks should support generated board frame models");
+assert.match(main, /ROOK_BOARD_ANIMATIONS/, "rook board animations should be selectable by team");
 assert.match(main, /BLACK_ROOK_BOARD_IDLE_ACTION = "down"/, "black rook board idle state should use the down-facing sprite");
 assert.match(main, /loadBlackRookAnimations/, "black rook animations should be preloaded at boot");
 assert.match(main, /getBlackRookShowdownSprite/, "black rook Showdown rendering should prefer loaded generated frames");
 assert.match(main, /drawBlackRookBoardSprite/, "black rook board rendering should prefer loaded top-view frames");
 assert.match(main, /blackRookAnimationFrames/, "black rook frame folders should be cached like pawn GIF-derived frames");
 assert.match(main, /getBlackRookAnimationFrame/, "black rook rendering should pick individual generated frames");
+assert.match(main, /\$\{team\}:\$\{section\}:\$\{action\}/, "rook frame caches should include the piece team");
 assert.match(main, /heavy_attack_double_crush/, "black rook critical strikes should use the double-crush animation frames");
 assert.match(main, /ground_smash/, "black rook ultimate casting should use the ground-smash animation frames");
-assert.match(main, /isBlackRookSpritePiece/, "black rook sprite support should stay scoped to black rooks");
+assert.match(main, /isRookSpritePiece/, "rook sprite support should include generated black and white rooks");
 assert.match(main, /playerTeam: TEAM\.WHITE/, "AI games should track the human player's selected side");
 assert.match(main, /function setAiPlayerTeam/, "AI side picker should update the selected human side");
 assert.match(main, /function getAiTeam/, "AI ownership should be derived from the player's selected side");

@@ -1,0 +1,287 @@
+﻿{
+    "piece":  "rook",
+    "team":  "white",
+    "source":  "assets/gif/white_rooks",
+    "showdownFrameSize":  {
+                              "width":  209,
+                              "height":  185
+                          },
+    "actions":  {
+                    "board_down":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  98,
+                                       "frameHeight":  90,
+                                       "path":  "assets/sprites/rooks/white/board_down"
+                                   },
+                    "board_down_left":  {
+                                            "frames":  1,
+                                            "durationsMs":  700,
+                                            "frameWidth":  91,
+                                            "frameHeight":  97,
+                                            "path":  "assets/sprites/rooks/white/board_down_left"
+                                        },
+                    "board_down_right":  {
+                                             "frames":  1,
+                                             "durationsMs":  700,
+                                             "frameWidth":  90,
+                                             "frameHeight":  95,
+                                             "path":  "assets/sprites/rooks/white/board_down_right"
+                                         },
+                    "board_idle":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  91,
+                                       "frameHeight":  95,
+                                       "path":  "assets/sprites/rooks/white/board_idle"
+                                   },
+                    "board_left":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  99,
+                                       "frameHeight":  101,
+                                       "path":  "assets/sprites/rooks/white/board_left"
+                                   },
+                    "board_right":  {
+                                        "frames":  1,
+                                        "durationsMs":  700,
+                                        "frameWidth":  101,
+                                        "frameHeight":  95,
+                                        "path":  "assets/sprites/rooks/white/board_right"
+                                    },
+                    "board_step_1":  {
+                                         "frames":  1,
+                                         "durationsMs":  700,
+                                         "frameWidth":  87,
+                                         "frameHeight":  97,
+                                         "path":  "assets/sprites/rooks/white/board_step_1"
+                                     },
+                    "board_step_2":  {
+                                         "frames":  1,
+                                         "durationsMs":  700,
+                                         "frameWidth":  108,
+                                         "frameHeight":  93,
+                                         "path":  "assets/sprites/rooks/white/board_step_2"
+                                     },
+                    "board_turn":  {
+                                       "frames":  1,
+                                       "durationsMs":  700,
+                                       "frameWidth":  81,
+                                       "frameHeight":  97,
+                                       "path":  "assets/sprites/rooks/white/board_turn"
+                                   },
+                    "board_up":  {
+                                     "frames":  1,
+                                     "durationsMs":  700,
+                                     "frameWidth":  95,
+                                     "frameHeight":  94,
+                                     "path":  "assets/sprites/rooks/white/board_up"
+                                 },
+                    "board_up_left":  {
+                                          "frames":  1,
+                                          "durationsMs":  700,
+                                          "frameWidth":  92,
+                                          "frameHeight":  97,
+                                          "path":  "assets/sprites/rooks/white/board_up_left"
+                                      },
+                    "board_up_right":  {
+                                           "frames":  1,
+                                           "durationsMs":  700,
+                                           "frameWidth":  94,
+                                           "frameHeight":  96,
+                                           "path":  "assets/sprites/rooks/white/board_up_right"
+                                       },
+                    "charge_dash":  {
+                                        "frames":  4,
+                                        "durationsMs":  [
+                                                            120,
+                                                            120,
+                                                            120,
+                                                            120
+                                                        ],
+                                        "frameWidth":  209,
+                                        "frameHeight":  185,
+                                        "path":  "assets/sprites/rooks/white/charge_dash"
+                                    },
+                    "crouch":  {
+                                   "frames":  5,
+                                   "durationsMs":  [
+                                                       160,
+                                                       160,
+                                                       160,
+                                                       160,
+                                                       160
+                                                   ],
+                                   "frameWidth":  209,
+                                   "frameHeight":  185,
+                                   "path":  "assets/sprites/rooks/white/crouch"
+                               },
+                    "ground_smash":  {
+                                         "frames":  5,
+                                         "durationsMs":  [
+                                                             170,
+                                                             170,
+                                                             170,
+                                                             170,
+                                                             170
+                                                         ],
+                                         "frameWidth":  209,
+                                         "frameHeight":  185,
+                                         "path":  "assets/sprites/rooks/white/ground_smash"
+                                     },
+                    "guard_block":  {
+                                        "frames":  5,
+                                        "durationsMs":  [
+                                                            160,
+                                                            160,
+                                                            160,
+                                                            160,
+                                                            160
+                                                        ],
+                                        "frameWidth":  209,
+                                        "frameHeight":  185,
+                                        "path":  "assets/sprites/rooks/white/guard_block"
+                                    },
+                    "heavy_attack_double_crush":  {
+                                                      "frames":  5,
+                                                      "durationsMs":  [
+                                                                          170,
+                                                                          170,
+                                                                          170,
+                                                                          170,
+                                                                          170
+                                                                      ],
+                                                      "frameWidth":  209,
+                                                      "frameHeight":  185,
+                                                      "path":  "assets/sprites/rooks/white/heavy_attack_double_crush"
+                                                  },
+                    "hit_hurt":  {
+                                     "frames":  4,
+                                     "durationsMs":  [
+                                                         150,
+                                                         150,
+                                                         150,
+                                                         150
+                                                     ],
+                                     "frameWidth":  209,
+                                     "frameHeight":  185,
+                                     "path":  "assets/sprites/rooks/white/hit_hurt"
+                                 },
+                    "idle_ready":  {
+                                       "frames":  5,
+                                       "durationsMs":  [
+                                                           140,
+                                                           140,
+                                                           140,
+                                                           140,
+                                                           140
+                                                       ],
+                                       "frameWidth":  209,
+                                       "frameHeight":  185,
+                                       "path":  "assets/sprites/rooks/white/idle_ready"
+                                   },
+                    "jump":  {
+                                 "frames":  6,
+                                 "durationsMs":  [
+                                                     120,
+                                                     120,
+                                                     120,
+                                                     120,
+                                                     120,
+                                                     120
+                                                 ],
+                                 "frameWidth":  209,
+                                 "frameHeight":  185,
+                                 "path":  "assets/sprites/rooks/white/jump"
+                             },
+                    "knocked_down_defeat":  {
+                                                "frames":  5,
+                                                "durationsMs":  [
+                                                                    220,
+                                                                    220,
+                                                                    220,
+                                                                    220,
+                                                                    220
+                                                                ],
+                                                "frameWidth":  209,
+                                                "frameHeight":  185,
+                                                "path":  "assets/sprites/rooks/white/knocked_down_defeat"
+                                            },
+                    "light_attack_punch":  {
+                                               "frames":  5,
+                                               "durationsMs":  [
+                                                                   150,
+                                                                   150,
+                                                                   150,
+                                                                   150,
+                                                                   150
+                                                               ],
+                                               "frameWidth":  209,
+                                               "frameHeight":  185,
+                                               "path":  "assets/sprites/rooks/white/light_attack_punch"
+                                           },
+                    "taunt_command":  {
+                                          "frames":  5,
+                                          "durationsMs":  [
+                                                              180,
+                                                              180,
+                                                              180,
+                                                              180,
+                                                              180
+                                                          ],
+                                          "frameWidth":  209,
+                                          "frameHeight":  185,
+                                          "path":  "assets/sprites/rooks/white/taunt_command"
+                                      },
+                    "top_view_board_move":  {
+                                                "frames":  12,
+                                                "durationsMs":  [
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160,
+                                                                    160
+                                                                ],
+                                                "frameWidth":  108,
+                                                "frameHeight":  101,
+                                                "path":  "assets/sprites/rooks/white/top_view_board_move"
+                                            },
+                    "victory":  {
+                                    "frames":  5,
+                                    "durationsMs":  [
+                                                        180,
+                                                        180,
+                                                        180,
+                                                        180,
+                                                        180
+                                                    ],
+                                    "frameWidth":  209,
+                                    "frameHeight":  185,
+                                    "path":  "assets/sprites/rooks/white/victory"
+                                },
+                    "walk":  {
+                                 "frames":  5,
+                                 "durationsMs":  [
+                                                     140,
+                                                     140,
+                                                     140,
+                                                     140,
+                                                     140
+                                                 ],
+                                 "frameWidth":  209,
+                                 "frameHeight":  185,
+                                 "path":  "assets/sprites/rooks/white/walk"
+                             }
+                },
+    "showdownContentSize":  {
+                                "width":  198,
+                                "height":  168
+                            }
+}
