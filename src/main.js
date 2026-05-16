@@ -441,26 +441,50 @@ const PAWN_SHOWDOWN_SOUND_VOLUME = 0.65;
 const PAWN_VOICE_SOUND_VOLUME = 0.7;
 const PAWN_SHOWDOWN_ATTACK_SOUNDS = {
   [TEAM.WHITE]: {
-    light_attack: "assets/sounds/showdown/attacks/white_pawn_light_attack_hit.mp3",
-    critical: "assets/sounds/showdown/attacks/white_pawn_critical_damage_hit.mp3",
-    ultimate: "assets/sounds/showdown/attacks/white_pawn_ultimate_skill.mp3"
+    light_attack: "assets/sounds/showdown/attacks/white_pawn/white_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/showdown/attacks/white_pawn/white_pawn_critical_damage_hit.mp3",
+    ultimate: "assets/sounds/showdown/attacks/white_pawn/white_pawn_ultimate_skill.mp3"
   },
   [TEAM.BLACK]: {
-    light_attack: "assets/sounds/showdown/attacks/black_pawn_light_attack_hit.mp3",
-    critical: "assets/sounds/showdown/attacks/black_pawn_critical_damage_hit.mp3",
-    ultimate: "assets/sounds/showdown/attacks/black_pawn_ultimate_skill.mp3"
+    light_attack: "assets/sounds/showdown/attacks/black_pawn/black_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/showdown/attacks/black_pawn/black_pawn_critical_damage_hit.mp3",
+    ultimate: "assets/sounds/showdown/attacks/black_pawn/black_pawn_ultimate_skill.mp3"
   }
 };
 const PAWN_VOICE_ATTACK_SOUNDS = {
   [TEAM.WHITE]: {
-    light_attack: "assets/sounds/voices/attacks/white_pawn_light_attack_hit.mp3",
-    critical: "assets/sounds/voices/attacks/white_pawn_critical_damage_hit.mp3",
-    defeated: "assets/sounds/voices/attacks/white_pawn_defeated_sound.mp3"
+    light_attack: "assets/sounds/voices/attacks/white_pawn/white_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/voices/attacks/white_pawn/white_pawn_critical_damage_hit.mp3",
+    defeated: "assets/sounds/voices/attacks/white_pawn/white_pawn_defeated_sound.mp3"
   },
   [TEAM.BLACK]: {
-    light_attack: "assets/sounds/voices/attacks/black_pawn_light_attack_hit.mp3",
-    critical: "assets/sounds/voices/attacks/black_pawn_critical_damage_hit.mp3",
-    defeated: "assets/sounds/voices/attacks/black_pawn_defeated_sound.mp3"
+    light_attack: "assets/sounds/voices/attacks/black_pawn/black_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/voices/attacks/black_pawn/black_pawn_critical_damage_hit.mp3",
+    defeated: "assets/sounds/voices/attacks/black_pawn/black_pawn_defeated_sound.mp3"
+  }
+};
+const ROOK_SHOWDOWN_ATTACK_SOUNDS = {
+  [TEAM.WHITE]: {
+    light_attack: "assets/sounds/showdown/attacks/white_rook/white_rook_light_attack_hit.mp3",
+    critical: "assets/sounds/showdown/attacks/white_rook/white_rook_critical_damage_hit.mp3",
+    ultimate: "assets/sounds/showdown/attacks/white_rook/white_rook_ultimate_skill.mp3"
+  },
+  [TEAM.BLACK]: {
+    light_attack: "assets/sounds/showdown/attacks/black_rook/black_rook_light_attack_hit.mp3",
+    critical: "assets/sounds/showdown/attacks/black_rook/black_rook_critical_damage_hit.mp3",
+    ultimate: "assets/sounds/showdown/attacks/black_rook/black_rook_ultimate_skill.mp3"
+  }
+};
+const ROOK_VOICE_ATTACK_SOUNDS = {
+  [TEAM.WHITE]: {
+    light_attack: "assets/sounds/voices/attacks/white_rook/white_rook_light_attack_hit.mp3",
+    critical: "assets/sounds/voices/attacks/white_rook/white_rook_critical_damage_hit.mp3",
+    defeated: "assets/sounds/voices/attacks/white_rook/white_rook_defeated_sound.mp3"
+  },
+  [TEAM.BLACK]: {
+    light_attack: "assets/sounds/voices/attacks/black_rook/black_rook_light_attack_hit.mp3",
+    critical: "assets/sounds/voices/attacks/black_rook/black_rook_critical_damage_hit.mp3",
+    defeated: "assets/sounds/voices/attacks/black_rook/black_rook_defeated_sound.mp3"
   }
 };
 const spriteCache = new Map();
@@ -790,6 +814,34 @@ function playPawnShowdownSound(team, soundType) {
 
 function playPawnVoiceSound(team, soundType) {
   const src = PAWN_VOICE_ATTACK_SOUNDS[team]?.[soundType];
+  if (!src) {
+    return;
+  }
+  const audio = new Audio(src);
+  audio.volume = PAWN_VOICE_SOUND_VOLUME;
+  audio.muted = backgroundMusic.muted;
+  const playPromise = audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function playRookShowdownSound(team, soundType) {
+  const src = ROOK_SHOWDOWN_ATTACK_SOUNDS[team]?.[soundType];
+  if (!src) {
+    return;
+  }
+  const audio = new Audio(src);
+  audio.volume = PAWN_SHOWDOWN_SOUND_VOLUME;
+  audio.muted = backgroundMusic.muted;
+  const playPromise = audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function playRookVoiceSound(team, soundType) {
+  const src = ROOK_VOICE_ATTACK_SOUNDS[team]?.[soundType];
   if (!src) {
     return;
   }
@@ -3161,6 +3213,8 @@ function finishShowdownRound(winnerId, loserId, reason) {
 
   if (loser.type === "pawn") {
     playPawnVoiceSound(loser.team, "defeated");
+  } else if (loser.type === "rook") {
+    playRookVoiceSound(loser.team, "defeated");
   }
 
   if (!showoff.finished) {
@@ -3439,6 +3493,13 @@ function tryAttack(fighter) {
   if (opponentPiece.type === "pawn" && critical && dealt > 0) {
     playPawnVoiceSound(opponent.team, "critical");
   }
+  if (attackerPiece.type === "rook" && dealt > 0) {
+    playRookShowdownSound(fighter.team, critical ? "critical" : "light_attack");
+    playRookVoiceSound(fighter.team, "light_attack");
+  }
+  if (opponentPiece.type === "rook" && critical && dealt > 0) {
+    playRookVoiceSound(opponent.team, "critical");
+  }
   if (passive === "lifeSteal" && dealt > 0) {
     applyLifeStealPassive(fighter, opponent);
   }
@@ -3625,6 +3686,8 @@ function tryUltimate(fighter) {
   } else if (piece.type === "rook") {
     fighter.fortifyTimer = 5;
     addFloatingText("Fortify", fighter.x, fighter.y - 118, "#68c284");
+    playRookShowdownSound(fighter.team, "ultimate");
+    playRookVoiceSound(fighter.team, "light_attack");
   } else if (piece.type === "horse") {
     startStampede(fighter, opponent);
   } else if (piece.type === "bishop") {
