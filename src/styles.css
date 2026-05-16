@@ -211,6 +211,99 @@ button {
   background: linear-gradient(135deg, var(--crimson), #a93c35);
 }
 
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at center, rgba(255, 209, 102, 0.12), rgba(23, 21, 18, 0.12) 42%, rgba(23, 21, 18, 0.78)),
+    rgba(108, 107, 100, 0.76);
+}
+
+.confirm-overlay.is-hidden {
+  display: none;
+}
+
+.confirm-dialog {
+  width: min(782px, 100%);
+  min-height: 492px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 42px;
+  padding: clamp(42px, 7vw, 78px) clamp(28px, 8vw, 86px);
+  border: 2px solid rgba(255, 232, 184, 0.52);
+  border-radius: 14px;
+  color: #fff8e8;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 232, 0.09), rgba(58, 31, 22, 0.2)),
+    rgba(31, 24, 18, 0.96);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(255, 209, 102, 0.16);
+}
+
+.confirm-dialog h2,
+.confirm-dialog p {
+  margin: 0;
+  text-align: center;
+}
+
+.confirm-dialog h2 {
+  color: #ffe6ad;
+  font-size: clamp(2rem, 5.2vw, 3rem);
+  font-weight: 800;
+  line-height: 1.12;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+.confirm-dialog p {
+  max-width: 620px;
+  color: #fff8e8;
+  font-size: clamp(1.35rem, 3.8vw, 2.28rem);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 34px;
+  width: 100%;
+}
+
+.confirm-actions button {
+  min-width: 192px;
+  min-height: 84px;
+  border: 1px solid rgba(255, 232, 184, 0.18);
+  border-radius: 8px;
+  color: #fff8e8;
+  font-size: clamp(1.35rem, 3vw, 2.08rem);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.26);
+}
+
+#confirm-no {
+  background: linear-gradient(180deg, #9a8f7e, #6d6256);
+}
+
+#confirm-yes {
+  color: #1f1a17;
+  border-color: rgba(255, 241, 195, 0.62);
+  background: linear-gradient(180deg, #ffd166, #c6882d);
+}
+
+.confirm-actions button:hover,
+.confirm-actions button:focus-visible {
+  transform: translateY(-1px);
+  outline: 3px solid rgba(255, 209, 102, 0.28);
+  outline-offset: 3px;
+}
+
 .status-card strong,
 .online-card strong,
 .piece-card strong,

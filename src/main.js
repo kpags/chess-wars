@@ -59,7 +59,12 @@ const els = {
   duelRightMana: document.querySelector("#duel-right-mana"),
   battleLog: document.querySelector("#battle-log"),
   battleLogCard: document.querySelector("#battle-log-card"),
-  touchControls: document.querySelector("#showoff-touch")
+  touchControls: document.querySelector("#showoff-touch"),
+  confirmOverlay: document.querySelector("#confirm-overlay"),
+  confirmTitle: document.querySelector("#confirm-title"),
+  confirmDetail: document.querySelector("#confirm-detail"),
+  confirmNo: document.querySelector("#confirm-no"),
+  confirmYes: document.querySelector("#confirm-yes")
 };
 
 const PLAYER_CONTROLS = {
@@ -161,7 +166,8 @@ const BLACK_ROOK_BOARD_ANIMATIONS = {
   down_left: { path: `${BLACK_ROOK_SPRITE_BASE}/board_down_left`, frames: 1, frameMs: 700, draw: { width: 94, height: 90 } },
   down_right: { path: `${BLACK_ROOK_SPRITE_BASE}/board_down_right`, frames: 1, frameMs: 700, draw: { width: 98, height: 90 } }
 };
-const BLACK_ROOK_BOARD_MOVE_ACTIONS = ["idle", "up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"];
+const BLACK_ROOK_BOARD_IDLE_ACTION = "down";
+const BLACK_ROOK_BOARD_MOVE_ACTIONS = [BLACK_ROOK_BOARD_IDLE_ACTION, "up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"];
 const BOARD_MOVE_ANIMATION_SECONDS = 0.52;
 const SHOWDOWN_PREVIEW_SECONDS = 0.68;
 const PAWN_SPRITE_ATLAS = {
@@ -406,6 +412,7 @@ const state = {
   announcement: null
 };
 const showdownHudHealthTrails = new Map();
+let pendingConfirmation = null;
 
 function boot() {
   loadPawnSpriteSheets();
@@ -439,19 +446,29 @@ function bindEvents() {
       clearCombatInput();
     }
   });
-  els.modeAi.addEventListener("click", () => setMode("ai"));
-  els.aiSideWhite.addEventListener("click", () => setAiPlayerTeam(TEAM.WHITE));
-  els.aiSideBlack.addEventListener("click", () => setAiPlayerTeam(TEAM.BLACK));
-  els.modeLocal.addEventListener("click", () => {
+  els.modeAi.addEventListener("click", async () => {
+    if (await confirmGameChange("Switch to Vs AI?", "The current game will reset.")) {
+      setMode("ai");
+    }
+  });
+  els.aiSideWhite.addEventListener("click", () => confirmAiSideChange(TEAM.WHITE));
+  els.aiSideBlack.addEventListener("click", () => confirmAiSideChange(TEAM.BLACK));
+  els.modeLocal.addEventListener("click", async () => {
     if (isSmallScreenMode()) {
       state.message = "Local 2P is disabled on smaller screens.";
       syncResponsiveMode();
       syncHud();
       return;
     }
+    if (!(await confirmGameChange("Switch to Local 2P?", "The current game will reset."))) {
+      return;
+    }
     setMode("local");
   });
-  els.newGame.addEventListener("click", () => {
+  els.newGame.addEventListener("click", async () => {
+    if (!(await confirmGameChange("Start a new game?", "The current game will reset."))) {
+      return;
+    }
     if (isOnlineGuest()) {
       sendOnlineEvent("reset-request", {});
       state.message = "Reset request sent to the room host.";
@@ -464,6 +481,13 @@ function bindEvents() {
   els.joinRoom.addEventListener("click", joinTypedRoom);
   els.onlineChatForm.addEventListener("submit", sendOnlineChatMessage);
   els.powerupOptions.addEventListener("click", onPowerupChoiceClick);
+  els.confirmNo.addEventListener("click", () => resolveConfirmation(false));
+  els.confirmYes.addEventListener("click", () => resolveConfirmation(true));
+  els.confirmOverlay.addEventListener("pointerdown", (event) => {
+    if (event.target === els.confirmOverlay) {
+      resolveConfirmation(false);
+    }
+  });
   ensureCombatStateForPieces();
   if (smallScreenModeQuery.addEventListener) {
     smallScreenModeQuery.addEventListener("change", syncResponsiveMode);
@@ -619,6 +643,21 @@ function setAiPlayerTeam(team) {
     resetGame();
   } else {
     syncHud();
+  }
+}
+
+async function confirmAiSideChange(team) {
+  if (team !== TEAM.WHITE && team !== TEAM.BLACK) {
+    return;
+  }
+
+  if (state.playerTeam === team) {
+    return;
+  }
+
+  const sideName = capitalize(team);
+  if (await confirmGameChange(`Choose ${sideName} side?`, "The current Vs AI game will reset.")) {
+    setAiPlayerTeam(team);
   }
 }
 
@@ -796,8 +835,10 @@ function getClickedSquare(event) {
   }
 
   return {
-    x: Math.floor((x - board.x) / board.cell),
-    y: Math.floor((y - board.y) / board.cell)
+    ...viewBoardSquareToGameSquare({
+      x: Math.floor((x - board.x) / board.cell),
+      y: Math.floor((y - board.y) / board.cell)
+    })
   };
 }
 
@@ -900,6 +941,43 @@ function startBoardMoveAnimation(piece, fromX, fromY, toX, toY) {
     elapsed: 0,
     duration: BOARD_MOVE_ANIMATION_SECONDS
   });
+}
+
+function confirmGameChange(title, detail) {
+  return showConfirmDialog(title, detail);
+}
+
+function showConfirmDialog(title, detail) {
+  if (pendingConfirmation) {
+    resolveConfirmation(false);
+  }
+
+  const previousFocus = document.activeElement;
+  els.confirmTitle.textContent = title;
+  els.confirmDetail.textContent = detail;
+  els.confirmOverlay.classList.remove("is-hidden");
+  els.confirmOverlay.setAttribute("aria-hidden", "false");
+
+  return new Promise((resolve) => {
+    pendingConfirmation = {
+      resolve,
+      previousFocus
+    };
+    els.confirmNo.focus();
+  });
+}
+
+function resolveConfirmation(confirmed) {
+  if (!pendingConfirmation) {
+    return;
+  }
+
+  const confirmation = pendingConfirmation;
+  pendingConfirmation = null;
+  els.confirmOverlay.classList.add("is-hidden");
+  els.confirmOverlay.setAttribute("aria-hidden", "true");
+  confirmation.resolve(Boolean(confirmed));
+  confirmation.previousFocus?.focus?.();
 }
 
 function hasBoardMoveAnimation(piece) {
@@ -2362,6 +2440,17 @@ function isAiFighter(team) {
 }
 
 function onKeyDown(event) {
+  if (pendingConfirmation) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      resolveConfirmation(false);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      resolveConfirmation(true);
+    }
+    return;
+  }
+
   if (state.phase === "showoff") {
     state.keys.add(event.key);
     state.keys.add(event.code);
@@ -2752,13 +2841,16 @@ function startNextShowdownRound() {
   showoff.finished = false;
   showoff.ended = false;
   showoff.endTimer = 0;
+  showoff.started = false;
+  showoff.introTimer = SHOWDOWN_INTRO_SECONDS;
   showoff.fighters = {
     [attacker.id]: createFighter(attacker, attacker.team === TEAM.WHITE ? 255 : 705, attacker.team === TEAM.WHITE ? 1 : -1, "attacker"),
     [defender.id]: createFighter(defender, defender.team === TEAM.WHITE ? 255 : 705, defender.team === TEAM.WHITE ? 1 : -1, "defender")
   };
 
-  state.message = `Round ${showoff.round} begins. First piece to 2 rounds wins.`;
-  addLog(`Showdown round ${showoff.round} begins.`);
+  clearCombatInput();
+  state.message = `Round ${showoff.round} starts in 3 seconds. First piece to 2 rounds wins.`;
+  addLog(`Showdown round ${showoff.round} starts in 3 seconds.`);
   syncHud();
   if (isOnlineHost()) {
     publishSnapshot("round");
@@ -2782,19 +2874,24 @@ function getFighterInput(fighter, dt) {
   }
 
   const slot = getLocalControlSlot(fighter);
+  const inputX = readAxis(slot, "left", "right");
   const mouseControlsThisFighter =
     (state.mode === "ai" && fighter.team === getHumanTeam()) ||
     (isOnlineHost() && fighter.team === TEAM.WHITE) ||
     (isOnlineGuest() && fighter.team === TEAM.BLACK) ||
     (!online.connected && fighter.team === TEAM.WHITE);
   return {
-    x: readAxis(slot, "left", "right"),
+    x: shouldInvertLocalShowdownInput(fighter) ? -inputX : inputX,
     y: 0,
     attack: readAction(slot, "attack") || (mouseControlsThisFighter && state.mouse.attack),
     block: readAction(slot, "block") || (mouseControlsThisFighter && state.mouse.block),
     jump: readAction(slot, "jump"),
     ultimate: readUltimateAction(fighter, slot)
   };
+}
+
+function shouldInvertLocalShowdownInput(fighter) {
+  return shouldFlipShowdownPerspective() && fighter.team === getLocalShowdownTeam();
 }
 
 function getLocalControlSlot(fighter) {
@@ -3325,7 +3422,7 @@ function syncHud() {
     const leftPiece = getPieceById(state.pieces, fighters[0].id);
     const rightPiece = getPieceById(state.pieces, fighters[1].id);
     if (!state.showoff.started) {
-      els.showoffTitle.textContent = `Showdown starts in ${Math.ceil(state.showoff.introTimer ?? SHOWDOWN_INTRO_SECONDS)}`;
+      els.showoffTitle.textContent = `Round ${state.showoff.round ?? 1} starts in ${Math.ceil(state.showoff.introTimer ?? SHOWDOWN_INTRO_SECONDS)}`;
     } else if (state.showoff.ended) {
       const winner = getPieceById(state.pieces, state.showoff.roundWinnerId);
       const winnerName = winner ? describePiece(winner) : "Winner";
@@ -3550,7 +3647,7 @@ function drawBoard() {
   drawShowdownMovePreview(board);
   drawPowerup(board);
 
-  for (const piece of [...state.pieces].sort((a, b) => a.y - b.y || a.x - b.x)) {
+  for (const piece of [...state.pieces].sort(compareBoardPieceDrawOrder)) {
     drawPiece(piece, board);
   }
 
@@ -3620,6 +3717,45 @@ function getBoardRect() {
     y: margin,
     size,
     cell: size / BOARD_SIZE
+  };
+}
+
+function getLocalBoardTeam() {
+  if (isOnlineGuest()) {
+    return TEAM.BLACK;
+  }
+
+  if (state.mode === "ai") {
+    return getHumanTeam();
+  }
+
+  return TEAM.WHITE;
+}
+
+function shouldFlipBoardPerspective() {
+  return getLocalBoardTeam() === TEAM.BLACK;
+}
+
+function gameBoardPositionToViewPosition(position) {
+  if (!shouldFlipBoardPerspective()) {
+    return { x: position.x, y: position.y };
+  }
+
+  return {
+    x: BOARD_SIZE - 1 - position.x,
+    y: BOARD_SIZE - 1 - position.y
+  };
+}
+
+function viewBoardSquareToGameSquare(square) {
+  return gameBoardPositionToViewPosition(square);
+}
+
+function getBoardCellCenter(board, position, yRatio = 0.5) {
+  const viewPosition = gameBoardPositionToViewPosition(position);
+  return {
+    x: board.x + viewPosition.x * board.cell + board.cell / 2,
+    y: board.y + viewPosition.y * board.cell + board.cell * yRatio
   };
 }
 
@@ -3707,10 +3843,14 @@ function drawCoordinates(board) {
   ctx.textBaseline = "middle";
 
   for (let i = 0; i < BOARD_SIZE; i += 1) {
-    ctx.fillText(String.fromCharCode(65 + i), board.x + i * board.cell + board.cell / 2, board.y + board.size + 28);
-    ctx.fillText(String.fromCharCode(65 + i), board.x + i * board.cell + board.cell / 2, board.y - 28);
-    ctx.fillText(String(8 - i), board.x - 28, board.y + i * board.cell + board.cell / 2);
-    ctx.fillText(String(8 - i), board.x + board.size + 28, board.y + i * board.cell + board.cell / 2);
+    const fileSquare = viewBoardSquareToGameSquare({ x: i, y: 0 });
+    const rankSquare = viewBoardSquareToGameSquare({ x: 0, y: i });
+    const fileLabel = String.fromCharCode(65 + fileSquare.x);
+    const rankLabel = String(8 - rankSquare.y);
+    ctx.fillText(fileLabel, board.x + i * board.cell + board.cell / 2, board.y + board.size + 28);
+    ctx.fillText(fileLabel, board.x + i * board.cell + board.cell / 2, board.y - 28);
+    ctx.fillText(rankLabel, board.x - 28, board.y + i * board.cell + board.cell / 2);
+    ctx.fillText(rankLabel, board.x + board.size + 28, board.y + i * board.cell + board.cell / 2);
   }
 
   ctx.restore();
@@ -3724,15 +3864,15 @@ function drawMoveHighlights(board) {
 
   ctx.strokeStyle = "#ffd166";
   ctx.lineWidth = 6;
-  ctx.strokeRect(board.x + selected.x * board.cell + 5, board.y + selected.y * board.cell + 5, board.cell - 10, board.cell - 10);
+  const selectedView = gameBoardPositionToViewPosition(selected);
+  ctx.strokeRect(board.x + selectedView.x * board.cell + 5, board.y + selectedView.y * board.cell + 5, board.cell - 10, board.cell - 10);
 
   if (!canViewPieceMoves(selected)) {
     return;
   }
 
   for (const move of state.legalMoves) {
-    const cx = board.x + move.x * board.cell + board.cell / 2;
-    const cy = board.y + move.y * board.cell + board.cell / 2;
+    const { x: cx, y: cy } = getBoardCellCenter(board, move);
     ctx.fillStyle = move.capture ? BOARD_THEME.capture : BOARD_THEME.move;
     ctx.beginPath();
     ctx.arc(cx, cy, move.capture ? board.cell * 0.34 : board.cell * 0.18, 0, Math.PI * 2);
@@ -3753,10 +3893,8 @@ function drawShowdownMovePreview(board) {
   }
 
   const progress = easeOutCubic(clamp(preview.elapsed / preview.duration, 0, 1));
-  const fromX = board.x + preview.fromX * board.cell + board.cell / 2;
-  const fromY = board.y + preview.fromY * board.cell + board.cell / 2;
-  const toX = board.x + preview.toX * board.cell + board.cell / 2;
-  const toY = board.y + preview.toY * board.cell + board.cell / 2;
+  const from = getBoardCellCenter(board, { x: preview.fromX, y: preview.fromY });
+  const to = getBoardCellCenter(board, { x: preview.toX, y: preview.toY });
   const pulse = 1 + Math.sin(performance.now() / 120) * 0.05;
 
   ctx.save();
@@ -3765,26 +3903,26 @@ function drawShowdownMovePreview(board) {
   ctx.lineWidth = 6;
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(fromX, fromY);
-  ctx.lineTo(lerp(fromX, toX, progress), lerp(fromY, toY, progress));
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(lerp(from.x, to.x, progress), lerp(from.y, to.y, progress));
   ctx.stroke();
 
   ctx.fillStyle = "rgba(214, 77, 67, 0.42)";
   ctx.strokeStyle = "rgba(255, 248, 232, 0.92)";
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(toX, toY, board.cell * 0.38 * pulse, 0, Math.PI * 2);
+  ctx.arc(to.x, to.y, board.cell * 0.38 * pulse, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = "rgba(23, 21, 18, 0.78)";
-  roundRect(toX - board.cell * 0.56, toY - board.cell * 0.55, board.cell * 1.12, 26, 7);
+  roundRect(to.x - board.cell * 0.56, to.y - board.cell * 0.55, board.cell * 1.12, 26, 7);
   ctx.fill();
   ctx.fillStyle = "#ffd166";
   ctx.font = "900 13px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("SHOWDOWN", toX, toY - board.cell * 0.55 + 13);
+  ctx.fillText("SHOWDOWN", to.x, to.y - board.cell * 0.55 + 13);
   ctx.restore();
 }
 
@@ -3798,8 +3936,7 @@ function drawPowerup(board) {
   }
 
   const definition = getPowerupDefinition(state.powerup.type);
-  const cx = board.x + state.powerup.x * board.cell + board.cell / 2;
-  const cy = board.y + state.powerup.y * board.cell + board.cell / 2;
+  const { x: cx, y: cy } = getBoardCellCenter(board, state.powerup);
   const pulse = 1 + Math.sin(performance.now() / 180) * 0.08;
 
   ctx.save();
@@ -3830,7 +3967,7 @@ function drawPowerup(board) {
 }
 
 function drawPiece(piece, board) {
-  const visualPosition = getBoardPieceVisualPosition(piece);
+  const visualPosition = gameBoardPositionToViewPosition(getBoardPieceVisualPosition(piece));
   const cx = board.x + visualPosition.x * board.cell + board.cell / 2;
   const cy = board.y + visualPosition.y * board.cell + board.cell * 0.58;
   const scale = board.cell / 96;
@@ -3890,6 +4027,12 @@ function getBoardPieceVisualPosition(piece) {
   };
 }
 
+function compareBoardPieceDrawOrder(a, b) {
+  const aPosition = gameBoardPositionToViewPosition(getBoardPieceVisualPosition(a));
+  const bPosition = gameBoardPositionToViewPosition(getBoardPieceVisualPosition(b));
+  return aPosition.y - bPosition.y || aPosition.x - bPosition.x;
+}
+
 function getBoardPieceMoveAnimation(piece) {
   const preview = state.pendingShowdownPreview;
   if (preview?.attackerId === piece.id) {
@@ -3922,7 +4065,7 @@ function drawPawnBoardSprite(piece) {
 }
 
 function shouldFlipPawnBoardSprite(piece) {
-  return piece?.team === TEAM.WHITE;
+  return piece?.team === getLocalBoardTeam();
 }
 
 function getPawnBoardGifSprite(piece) {
@@ -3957,12 +4100,16 @@ function getPawnBoardGifFrameIndex(piece, config) {
     return Math.min(9, config.frames - 1);
   }
 
-  return Math.min(getBoardMoveDirectionFrame(animation, shouldFlipPawnBoardSprite(piece)), config.frames - 1);
+  return Math.min(getBoardMoveDirectionFrame(animation, shouldFlipPawnBoardSprite(piece), true), config.frames - 1);
 }
 
-function getBoardMoveDirectionFrame(animation, invertVertical = false) {
-  const dx = Math.sign(animation.toX - animation.fromX);
+function getBoardMoveDirectionFrame(animation, invertVertical = false, useBoardPerspective = false) {
+  let dx = Math.sign(animation.toX - animation.fromX);
   let dy = Math.sign(animation.toY - animation.fromY);
+  if (useBoardPerspective && shouldFlipBoardPerspective()) {
+    dx *= -1;
+    dy *= -1;
+  }
   if (invertVertical) {
     dy *= -1;
   }
@@ -4007,7 +4154,7 @@ function drawBlackRookBoardSprite(piece) {
 
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  drawImageBottomCentered(ctx, image, 0, 36, config.draw.width, config.draw.height);
+  drawImageBottomCentered(ctx, image, 0, 36, config.draw.width, config.draw.height, shouldFlipBlackRookBoardSprite(piece));
   ctx.restore();
   return true;
 }
@@ -4018,14 +4165,18 @@ function getBlackRookBoardAnimationConfig(piece) {
   }
 
   const animation = getBoardPieceMoveAnimation(piece);
-  const action = animation ? getBlackRookBoardMoveAction(animation) : "idle";
-  const config = BLACK_ROOK_BOARD_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS.idle;
+  const action = animation ? getBlackRookBoardMoveAction(piece, animation) : BLACK_ROOK_BOARD_IDLE_ACTION;
+  const config = BLACK_ROOK_BOARD_ANIMATIONS[action] ?? BLACK_ROOK_BOARD_ANIMATIONS[BLACK_ROOK_BOARD_IDLE_ACTION];
   return { ...config, action };
 }
 
-function getBlackRookBoardMoveAction(animation) {
-  const index = getBoardMoveDirectionFrame(animation);
-  return BLACK_ROOK_BOARD_MOVE_ACTIONS[index] ?? "idle";
+function getBlackRookBoardMoveAction(piece, animation) {
+  const index = getBoardMoveDirectionFrame(animation, shouldFlipBlackRookBoardSprite(piece), true);
+  return BLACK_ROOK_BOARD_MOVE_ACTIONS[index] ?? BLACK_ROOK_BOARD_IDLE_ACTION;
+}
+
+function shouldFlipBlackRookBoardSprite(piece) {
+  return piece?.team === getLocalBoardTeam();
 }
 
 function getBlackRookBoardFrameIndex(piece, config) {
@@ -5420,7 +5571,7 @@ function getShowdownViewX(x) {
 }
 
 function shouldFlipShowdownPerspective() {
-  return isOnlineGuest();
+  return getLocalShowdownTeam() === TEAM.BLACK;
 }
 
 function getFighterFrame(fighter) {

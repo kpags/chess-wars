@@ -207,6 +207,17 @@ assert.match(html, /id="online-chat"/, "online room should include a text-only c
 assert.match(html, /id="online-chat-input"[\s\S]*maxlength="160"/, "online chat input should limit message length");
 assert.match(html, /id="ai-side-picker"/, "Vs AI mode should include a side picker");
 assert.match(html, /id="ai-side-white"[\s\S]*id="ai-side-black"/, "AI side picker should let the user choose White or Black");
+assert.match(html, /id="confirm-overlay"[\s\S]*id="confirm-title"[\s\S]*id="confirm-detail"[\s\S]*id="confirm-no"[\s\S]*id="confirm-yes"/, "game reset confirmations should use a custom modal");
+assert.match(html, /Confirm this action\?[\s\S]*Cancel[\s\S]*OK/, "confirmation modal should use the requested title and button labels");
+assert.match(main, /function confirmGameChange/, "mode and new-game buttons should confirm before resetting progress");
+assert.match(main, /function showConfirmDialog/, "confirmation should be rendered with the in-game modal");
+assert.match(main, /function resolveConfirmation/, "confirmation modal should resolve through game UI buttons");
+assert.match(main, /confirmAiSideChange/, "AI side buttons should confirm before changing sides");
+assert.match(main, /confirmGameChange\("Switch to Vs AI\?", "The current game will reset\."\)/, "Vs AI button should confirm before switching");
+assert.match(main, /confirmGameChange\("Switch to Local 2P\?", "The current game will reset\."\)/, "Local 2P button should confirm before switching");
+assert.match(main, /confirmGameChange\("Start a new game\?", "The current game will reset\."\)/, "New Game button should confirm before resetting");
+assert.match(main, /confirmGameChange\(`Choose \$\{sideName\} side\?`, "The current Vs AI game will reset\."\)/, "AI side buttons should confirm before resetting");
+assert.doesNotMatch(main, /window\.confirm/, "confirmation should not use the browser default confirm dialog");
 assert.match(main, /SHOWDOWN/, "client should include Showdown phase rendering");
 assert.match(main, /clearCombatInput/, "client should clear combat input to prevent stuck movement");
 assert.match(main, /getShowdownSprite/, "client should use generated sprite frames for showdown");
@@ -250,8 +261,11 @@ assert.match(main, /preserveRemoteShowdownVisuals/, "invited devices should pres
 assert.match(main, /publishSnapshot\("showdown-end"\)/, "host should publish a final snapshot when Showdown ends");
 assert.match(main, /shouldPublishPeriodicSnapshot/, "client should avoid unnecessary idle board snapshots");
 assert.match(main, /canViewPieceMoves/, "client should hide legal moves from online opponents");
-assert.match(main, /ctx\.strokeRect\(board\.x \+ selected\.x/, "opponents should still see the selected square");
+assert.match(main, /gameBoardPositionToViewPosition\(selected\)/, "opponents should still see the selected square through board perspective");
 assert.match(main, /if \(!canViewPieceMoves\(selected\)\) \{\s+return;\s+\}\s+for \(const move of state\.legalMoves\)/s, "legal move dots should remain hidden from opponents");
+assert.match(main, /function getLocalBoardTeam/, "board perspective should track the local player's side");
+assert.match(main, /function shouldFlipBoardPerspective/, "board should flip when the local player is black");
+assert.match(main, /viewBoardSquareToGameSquare/, "board clicks should map from local view squares back to game squares");
 assert.match(main, /SHOWDOWN_ROUND_SECONDS = 60/, "Showdown rounds should have a 60-second timer");
 assert.match(main, /SHOWDOWN_INTRO_SECONDS = 3/, "Showdown should have a 3-second intro delay");
 assert.match(main, /ROUND_RESULT_SECONDS/, "round winner banners should stay visible before advancing");
@@ -259,8 +273,10 @@ assert.match(main, /SHOWDOWN_ROUNDS_TO_WIN = 2/, "Showdown should be first to 2 
 assert.match(main, /roundWins/, "Showdown should track best-of-3 round wins");
 assert.match(main, /finishShowdownRound/, "Showdown should resolve each round before the whole duel");
 assert.match(main, /startNextShowdownRound/, "Showdown should reset into the next round when needed");
+assert.match(main, /showoff\.started = false;\s+showoff\.introTimer = SHOWDOWN_INTRO_SECONDS;/s, "each new Showdown round should get the ready countdown");
 assert.match(main, /y: 0/, "Showdown input should be 2D horizontal only");
-assert.match(main, /shouldFlipShowdownPerspective/, "online guests should see their piece on the left");
+assert.match(main, /return getLocalShowdownTeam\(\) === TEAM\.BLACK;/, "black-side players should see their Showdown piece on the left");
+assert.match(main, /shouldInvertLocalShowdownInput/, "local black-side Showdown controls should follow the flipped view");
 assert.match(main, /MAX_MANA = 100/, "ultimate mana capacity should be 100");
 assert.match(main, /SHOWDOWN_JUMP_HEIGHT_MULTIPLIER = 1\.4/, "Showdown jump height should be increased by 40 percent");
 assert.match(main, /SHOWDOWN_JUMP_VELOCITY = Math\.round\(SHOWDOWN_BASE_JUMP_VELOCITY \* Math\.sqrt\(SHOWDOWN_JUMP_HEIGHT_MULTIPLIER\)\)/, "jump velocity should scale to produce 40 percent more height");
@@ -388,12 +404,13 @@ assert.match(main, /board_move_animation/, "pawns should include top-view board-
 assert.match(main, /assets\/sprites\/pawns\/white\/board_move_animation/, "white pawn board movement should use generated white_pawn_board_move_animation GIF frames");
 assert.doesNotMatch(main, /assets\/sprites\/pawns\/white\/white_pawn_board_move_animation/, "white pawn board movement should not point at a non-generated folder name");
 assert.match(main, /function shouldFlipPawnBoardSprite\(piece\)/, "white pawn board sprites should have an orientation helper");
-assert.match(main, /return piece\?\.team === TEAM\.WHITE;/, "white pawn board sprites should face toward black's side");
+assert.match(main, /return piece\?\.team === getLocalBoardTeam\(\);/, "bottom-side pawn board sprites should face toward the opponent");
 assert.match(main, /dy \*= -1;/, "white pawn board movement frames should keep their visual direction after flipping");
 assert.match(main, /BLACK_ROOK_SHOWDOWN_ANIMATIONS/, "black rooks should support generated Showdown frame animations");
 assert.match(main, /BLACK_ROOK_SHOWDOWN_DRAW/, "black rook Showdown actions should share one rendered size");
 assert.match(main, /draw: BLACK_ROOK_SHOWDOWN_DRAW/, "black rook Showdown configs should use the shared rendered size");
 assert.match(main, /BLACK_ROOK_BOARD_ANIMATIONS/, "black rooks should support generated board frame models");
+assert.match(main, /BLACK_ROOK_BOARD_IDLE_ACTION = "down"/, "black rook board idle state should use the down-facing sprite");
 assert.match(main, /loadBlackRookAnimations/, "black rook animations should be preloaded at boot");
 assert.match(main, /getBlackRookShowdownSprite/, "black rook Showdown rendering should prefer loaded generated frames");
 assert.match(main, /drawBlackRookBoardSprite/, "black rook board rendering should prefer loaded top-view frames");
@@ -473,6 +490,10 @@ assert.doesNotMatch(html, /<aside class="hud"[\s\S]*<div class="log-card"/, "bat
 assert.match(styles, /grid-template-areas:\s*"title title"\s*"board hud"/, "desktop layout should place the title above board and HUD");
 assert.match(styles, /\.game-title\s*\{[\s\S]*justify-self: center/, "game title should be centered at the top");
 assert.match(styles, /\.board-column \.log-card\s*\{/, "battle log should have board-column layout styling");
+assert.match(styles, /\.confirm-overlay\s*\{[\s\S]*position: fixed/, "confirmation modal should dim the page");
+assert.match(styles, /\.confirm-dialog\s*\{[\s\S]*border-radius: 14px/, "confirmation modal should use the rounded reference panel style");
+assert.match(styles, /\.confirm-dialog h2\s*\{[\s\S]*color: #ffe6ad/, "confirmation title should use the game gold theme");
+assert.match(styles, /#confirm-yes\s*\{[\s\S]*background: linear-gradient\(180deg, #ffd166, #c6882d\)/, "confirmation OK action should use the game gold theme");
 
 assert.match(server, /\/api\/rooms/, "server should expose room endpoints");
 assert.match(server, /0\.0\.0\.0/, "server should bind beyond localhost for two-device room links");

@@ -141,6 +141,17 @@
       </aside>
     </main>
 
+    <div id="confirm-overlay" class="confirm-overlay is-hidden" aria-hidden="true">
+      <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-detail">
+        <h2 id="confirm-title">Confirm this action?</h2>
+        <p id="confirm-detail">Are you sure?</p>
+        <div class="confirm-actions">
+          <button id="confirm-no" type="button">Cancel</button>
+          <button id="confirm-yes" type="button">OK</button>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
