@@ -22,7 +22,12 @@ const els = {
   aiSidePicker: document.querySelector("#ai-side-picker"),
   aiSideWhite: document.querySelector("#ai-side-white"),
   aiSideBlack: document.querySelector("#ai-side-black"),
+  aiDifficultyPicker: document.querySelector("#ai-difficulty-picker"),
+  aiDifficultyBeginner: document.querySelector("#ai-difficulty-beginner"),
+  aiDifficultyIntermediate: document.querySelector("#ai-difficulty-intermediate"),
+  aiDifficultyHard: document.querySelector("#ai-difficulty-hard"),
   newGame: document.querySelector("#new-game"),
+  musicToggle: document.querySelector("#music-toggle"),
   createRoom: document.querySelector("#create-room"),
   joinRoom: document.querySelector("#join-room"),
   roomCode: document.querySelector("#room-code"),
@@ -293,8 +298,35 @@ const ARENA = {
   attackCooldown: 0.55,
   attackDuration: 0.3,
   blockReduction: 0.35,
-  aiReaction: 0.16,
   aiAttackDistance: 108
+};
+
+const DEFAULT_AI_DIFFICULTY = "intermediate";
+const AI_DIFFICULTIES = {
+  beginner: {
+    label: "Beginner",
+    mode: "Easy",
+    blockChance: 0,
+    armorBonus: 0,
+    attackSpeedBonus: 0,
+    fog: false
+  },
+  intermediate: {
+    label: "Intermediate",
+    mode: "Normal",
+    blockChance: 0.5,
+    armorBonus: 0.05,
+    attackSpeedBonus: 0.1,
+    fog: false
+  },
+  hard: {
+    label: "Hard",
+    mode: "Expert",
+    blockChance: 0.8,
+    armorBonus: 0.1,
+    attackSpeedBonus: 0.15,
+    fog: true
+  }
 };
 
 const SHOWDOWN_ROUND_SECONDS = 60;
@@ -384,6 +416,53 @@ const ONLINE_POLL_INTERVAL = 0.08;
 const ONLINE_SNAPSHOT_INTERVAL = 0.12;
 const REMOTE_SHOWDOWN_LERP = 18;
 const ANNOUNCEMENT_SECONDS = 1;
+const BACKGROUND_MUSIC_VOLUME = 0.3;
+const BACKGROUND_MUSIC_TRACKS = [
+  "assets/sounds/background/bg_1.mp3",
+  "assets/sounds/background/bg_2.mp3",
+  "assets/sounds/background/bg_3.mp3",
+  "assets/sounds/background/bg_4.mp3",
+  "assets/sounds/background/bg_5.mp3",
+  "assets/sounds/background/bg_6.mp3"
+];
+const ATTACK_SOUND_VOLUME = 0.55;
+const ATTACK_SOUND_TRACKS = [
+  "assets/sounds/attack/attack_1.mp3",
+  "assets/sounds/attack/attack_2.mp3",
+  "assets/sounds/attack/attack_3.mp3"
+];
+const SHOWDOWN_MUSIC_VOLUME = BACKGROUND_MUSIC_VOLUME;
+const SHOWDOWN_MUSIC_TRACKS = [
+  "assets/sounds/showdown/showdown_bg_1.mp3",
+  "assets/sounds/showdown/showdown_bg_2.mp3",
+  "assets/sounds/showdown/showdown_bg_3.mp3"
+];
+const PAWN_SHOWDOWN_SOUND_VOLUME = 0.65;
+const PAWN_VOICE_SOUND_VOLUME = 0.7;
+const PAWN_SHOWDOWN_ATTACK_SOUNDS = {
+  [TEAM.WHITE]: {
+    light_attack: "assets/sounds/showdown/attacks/white_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/showdown/attacks/white_pawn_critical_damage_hit.mp3",
+    ultimate: "assets/sounds/showdown/attacks/white_pawn_ultimate_skill.mp3"
+  },
+  [TEAM.BLACK]: {
+    light_attack: "assets/sounds/showdown/attacks/black_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/showdown/attacks/black_pawn_critical_damage_hit.mp3",
+    ultimate: "assets/sounds/showdown/attacks/black_pawn_ultimate_skill.mp3"
+  }
+};
+const PAWN_VOICE_ATTACK_SOUNDS = {
+  [TEAM.WHITE]: {
+    light_attack: "assets/sounds/voices/attacks/white_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/voices/attacks/white_pawn_critical_damage_hit.mp3",
+    defeated: "assets/sounds/voices/attacks/white_pawn_defeated_sound.mp3"
+  },
+  [TEAM.BLACK]: {
+    light_attack: "assets/sounds/voices/attacks/black_pawn_light_attack_hit.mp3",
+    critical: "assets/sounds/voices/attacks/black_pawn_critical_damage_hit.mp3",
+    defeated: "assets/sounds/voices/attacks/black_pawn_defeated_sound.mp3"
+  }
+};
 const spriteCache = new Map();
 const online = {
   clientId: getClientId(),
@@ -408,6 +487,7 @@ const online = {
 const state = {
   mode: "ai",
   playerTeam: TEAM.WHITE,
+  aiDifficulty: DEFAULT_AI_DIFFICULTY,
   phase: "board",
   pieces: createInitialPieces(),
   selectedId: null,
@@ -446,6 +526,17 @@ const state = {
   announcement: null
 };
 const showdownHudHealthTrails = new Map();
+const backgroundMusic = {
+  audio: new Audio(),
+  trackIndex: 0,
+  ready: false,
+  muted: false
+};
+const showdownMusic = {
+  audio: new Audio(),
+  trackIndex: -1,
+  ready: false
+};
 let pendingConfirmation = null;
 
 function boot() {
@@ -453,6 +544,8 @@ function boot() {
   loadPawnGifFrames();
   loadBlackRookAnimations();
   bindEvents();
+  setupBackgroundMusic();
+  setupShowdownMusic();
   syncResponsiveMode();
   syncOnlineHud();
   joinRoomFromUrl();
@@ -475,6 +568,8 @@ function bindEvents() {
   window.addEventListener("blur", clearCombatInput);
   window.addEventListener("pointerup", clearTouchInput);
   window.addEventListener("pointercancel", clearTouchInput);
+  window.addEventListener("pointerdown", requestBackgroundMusicStart, { passive: true });
+  window.addEventListener("keydown", requestBackgroundMusicStart);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       clearCombatInput();
@@ -487,6 +582,9 @@ function bindEvents() {
   });
   els.aiSideWhite.addEventListener("click", () => confirmAiSideChange(TEAM.WHITE));
   els.aiSideBlack.addEventListener("click", () => confirmAiSideChange(TEAM.BLACK));
+  els.aiDifficultyBeginner.addEventListener("click", () => confirmAiDifficultyChange("beginner"));
+  els.aiDifficultyIntermediate.addEventListener("click", () => confirmAiDifficultyChange("intermediate"));
+  els.aiDifficultyHard.addEventListener("click", () => confirmAiDifficultyChange("hard"));
   els.modeLocal.addEventListener("click", async () => {
     if (isSmallScreenMode()) {
       state.message = "Local 2P is disabled on smaller screens.";
@@ -511,6 +609,7 @@ function bindEvents() {
     }
     resetGame();
   });
+  els.musicToggle.addEventListener("click", toggleBackgroundMusicMute);
   els.createRoom.addEventListener("click", createOnlineRoom);
   els.joinRoom.addEventListener("click", joinTypedRoom);
   els.onlineChatForm.addEventListener("submit", sendOnlineChatMessage);
@@ -557,6 +656,198 @@ function bindEvents() {
       sendOnlineInputState();
     });
   });
+}
+
+function setupBackgroundMusic() {
+  if (!BACKGROUND_MUSIC_TRACKS.length || backgroundMusic.ready) {
+    return;
+  }
+
+  backgroundMusic.ready = true;
+  backgroundMusic.audio.autoplay = true;
+  backgroundMusic.audio.volume = BACKGROUND_MUSIC_VOLUME;
+  backgroundMusic.audio.muted = backgroundMusic.muted;
+  backgroundMusic.audio.preload = "auto";
+  backgroundMusic.audio.addEventListener("ended", playNextBackgroundMusicTrack);
+  backgroundMusic.audio.addEventListener("error", () => {
+    window.setTimeout(playNextBackgroundMusicTrack, 300);
+  });
+  loadBackgroundMusicTrack(0);
+  syncMusicToggle();
+  requestBackgroundMusicStart();
+}
+
+function setupShowdownMusic() {
+  if (!SHOWDOWN_MUSIC_TRACKS.length || showdownMusic.ready) {
+    return;
+  }
+
+  showdownMusic.ready = true;
+  showdownMusic.audio.volume = SHOWDOWN_MUSIC_VOLUME;
+  showdownMusic.audio.muted = backgroundMusic.muted;
+  showdownMusic.audio.preload = "auto";
+  showdownMusic.audio.loop = true;
+}
+
+function requestBackgroundMusicStart() {
+  if (!BACKGROUND_MUSIC_TRACKS.length) {
+    return;
+  }
+
+  if (backgroundMusic.muted || state.phase === "showoff" || state.pendingShowdownPreview) {
+    return;
+  }
+
+  if (!backgroundMusic.audio.src) {
+    loadBackgroundMusicTrack(backgroundMusic.trackIndex);
+  }
+  if (!backgroundMusic.audio.paused) {
+    return;
+  }
+
+  backgroundMusic.audio.volume = BACKGROUND_MUSIC_VOLUME;
+  backgroundMusic.audio.muted = backgroundMusic.muted;
+  const playPromise = backgroundMusic.audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function pauseBackgroundMusicForAttack() {
+  backgroundMusic.audio.pause();
+}
+
+function playNextBackgroundMusicTrack() {
+  if (!BACKGROUND_MUSIC_TRACKS.length) {
+    return;
+  }
+
+  loadBackgroundMusicTrack((backgroundMusic.trackIndex + 1) % BACKGROUND_MUSIC_TRACKS.length);
+  requestBackgroundMusicStart();
+}
+
+function loadBackgroundMusicTrack(index) {
+  backgroundMusic.trackIndex = index;
+  backgroundMusic.audio.src = BACKGROUND_MUSIC_TRACKS[index];
+  backgroundMusic.audio.load();
+}
+
+function toggleBackgroundMusicMute() {
+  backgroundMusic.muted = !backgroundMusic.muted;
+  syncMusicMuteState();
+  if (backgroundMusic.muted) {
+    backgroundMusic.audio.pause();
+    showdownMusic.audio.pause();
+  }
+  syncMusicToggle();
+  if (!backgroundMusic.muted) {
+    if (state.phase === "showoff") {
+      requestShowdownMusicStart();
+    } else {
+      requestBackgroundMusicStart();
+    }
+  }
+}
+
+function syncMusicMuteState() {
+  backgroundMusic.audio.muted = backgroundMusic.muted;
+  showdownMusic.audio.muted = backgroundMusic.muted;
+}
+
+function syncMusicToggle() {
+  els.musicToggle.classList.toggle("is-muted", backgroundMusic.muted);
+  els.musicToggle.textContent = backgroundMusic.muted ? "Music Muted" : "Music On";
+  els.musicToggle.setAttribute("aria-pressed", String(backgroundMusic.muted));
+}
+
+function playRandomAttackSound() {
+  if (!ATTACK_SOUND_TRACKS.length) {
+    return;
+  }
+
+  pauseBackgroundMusicForAttack();
+  const audio = new Audio(ATTACK_SOUND_TRACKS[randomInt(0, ATTACK_SOUND_TRACKS.length - 1)]);
+  audio.volume = ATTACK_SOUND_VOLUME;
+  const playPromise = audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function playPawnShowdownSound(team, soundType) {
+  const src = PAWN_SHOWDOWN_ATTACK_SOUNDS[team]?.[soundType];
+  if (!src) {
+    return;
+  }
+  const audio = new Audio(src);
+  audio.volume = PAWN_SHOWDOWN_SOUND_VOLUME;
+  audio.muted = backgroundMusic.muted;
+  const playPromise = audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function playPawnVoiceSound(team, soundType) {
+  const src = PAWN_VOICE_ATTACK_SOUNDS[team]?.[soundType];
+  if (!src) {
+    return;
+  }
+  const audio = new Audio(src);
+  audio.volume = PAWN_VOICE_SOUND_VOLUME;
+  audio.muted = backgroundMusic.muted;
+  const playPromise = audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function startShowdownMusic() {
+  if (!SHOWDOWN_MUSIC_TRACKS.length) {
+    return;
+  }
+
+  backgroundMusic.audio.pause();
+  stopShowdownMusic();
+  const index = randomInt(0, SHOWDOWN_MUSIC_TRACKS.length - 1);
+  loadShowdownMusicTrack(index);
+  requestShowdownMusicStart();
+}
+
+function requestShowdownMusicStart() {
+  if (!SHOWDOWN_MUSIC_TRACKS.length || backgroundMusic.muted) {
+    return;
+  }
+
+  if (!showdownMusic.audio.src) {
+    loadShowdownMusicTrack(randomInt(0, SHOWDOWN_MUSIC_TRACKS.length - 1));
+  }
+
+  showdownMusic.audio.volume = SHOWDOWN_MUSIC_VOLUME;
+  showdownMusic.audio.muted = backgroundMusic.muted;
+  const playPromise = showdownMusic.audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function loadShowdownMusicTrack(index) {
+  showdownMusic.trackIndex = index;
+  showdownMusic.audio.src = SHOWDOWN_MUSIC_TRACKS[index];
+  showdownMusic.audio.loop = true;
+  showdownMusic.audio.load();
+}
+
+function stopShowdownMusic() {
+  showdownMusic.audio.pause();
+  if (showdownMusic.audio.src) {
+    showdownMusic.audio.currentTime = 0;
+  }
+}
+
+function resumeBackgroundMusicAfterShowdown() {
+  stopShowdownMusic();
+  requestBackgroundMusicStart();
 }
 
 function loadPawnSpriteSheets() {
@@ -667,6 +958,7 @@ function setMode(mode) {
   els.modeAi.classList.toggle("is-active", mode === "ai");
   els.modeLocal.classList.toggle("is-active", mode === "local");
   syncAiSidePicker();
+  syncAiDifficultyPicker();
   resetGame();
 }
 
@@ -703,10 +995,56 @@ async function confirmAiSideChange(team) {
   }
 }
 
+function setAiDifficulty(difficulty) {
+  if (!AI_DIFFICULTIES[difficulty]) {
+    return;
+  }
+
+  if (state.aiDifficulty === difficulty) {
+    return;
+  }
+
+  state.aiDifficulty = difficulty;
+  syncAiDifficultyPicker();
+  if (state.mode === "ai") {
+    resetGame();
+  } else {
+    syncHud();
+  }
+}
+
+async function confirmAiDifficultyChange(difficulty) {
+  const config = AI_DIFFICULTIES[difficulty];
+  if (!config || state.aiDifficulty === difficulty) {
+    return;
+  }
+
+  if (await confirmGameChange(`Choose ${config.label} AI?`, "The current Vs AI game will reset.")) {
+    setAiDifficulty(difficulty);
+  }
+}
+
 function syncAiSidePicker() {
   els.aiSidePicker.classList.toggle("is-hidden", state.mode !== "ai");
   els.aiSideWhite.classList.toggle("is-active", state.playerTeam === TEAM.WHITE);
   els.aiSideBlack.classList.toggle("is-active", state.playerTeam === TEAM.BLACK);
+  els.aiSideWhite.setAttribute("aria-pressed", String(state.playerTeam === TEAM.WHITE));
+  els.aiSideBlack.setAttribute("aria-pressed", String(state.playerTeam === TEAM.BLACK));
+}
+
+function syncAiDifficultyPicker() {
+  els.aiDifficultyPicker.classList.toggle("is-hidden", state.mode !== "ai");
+  const buttons = {
+    beginner: els.aiDifficultyBeginner,
+    intermediate: els.aiDifficultyIntermediate,
+    hard: els.aiDifficultyHard
+  };
+
+  for (const [difficulty, button] of Object.entries(buttons)) {
+    const active = state.aiDifficulty === difficulty;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
 }
 
 function isSmallScreenMode() {
@@ -763,6 +1101,7 @@ function resetGame() {
   state.announcement = null;
   showdownHudHealthTrails.clear();
   online.showdownTargets.clear();
+  resumeBackgroundMusicAfterShowdown();
   syncHud();
   if (isAiBoardTurn()) {
     queueAiBoardTurn();
@@ -777,11 +1116,12 @@ function getNewGameMessage() {
     return "White starts. Both players use the same board.";
   }
 
+  const difficulty = getAiDifficultyConfig();
   if (isAiBoardTurn()) {
-    return `${capitalize(getAiTeam())} AI is choosing a move.`;
+    return `${capitalize(getAiTeam())} ${difficulty.label} AI is choosing a move.`;
   }
 
-  return `Select a ${state.playerTeam} piece. ${capitalize(getAiTeam())} is controlled by AI.`;
+  return `Select a ${state.playerTeam} piece. ${capitalize(getAiTeam())} is controlled by ${difficulty.label} AI.`;
 }
 
 function onCanvasClick(event) {
@@ -815,6 +1155,23 @@ function onCanvasClick(event) {
 }
 
 function handleBoardSquare(square) {
+  if (!isBoardSquareVisibleToUser(square.x, square.y)) {
+    // In Hard mode fog: allow moving to fog squares when there is a legal move there
+    const selected = getPieceById(state.pieces, state.selectedId);
+    if (selected) {
+      const move = state.legalMoves.find((candidate) => candidate.x === square.x && candidate.y === square.y);
+      if (move) {
+        performBoardMove(selected, move);
+        return;
+      }
+      state.message = "That square is not available for the selected piece.";
+    } else {
+      state.message = "That square is hidden by fog.";
+    }
+    syncHud();
+    return;
+  }
+
   const clickedPiece = getPieceAt(state.pieces, square.x, square.y);
   const selected = getPieceById(state.pieces, state.selectedId);
 
@@ -938,6 +1295,7 @@ function performBoardMove(piece, move) {
 }
 
 function beginShowdownMovePreview(attacker, defender, move, usedDance) {
+  playRandomAttackSound();
   state.selectedId = null;
   state.legalMoves = [];
   state.pendingShowdownPreview = {
@@ -1060,6 +1418,7 @@ function startShowoff(attacker, defender, move) {
   defender.mana = 0;
   showdownHudHealthTrails.clear();
   state.phase = "showoff";
+  startShowdownMusic();
   state.selectedId = null;
   state.legalMoves = [];
   state.showoff = {
@@ -1163,6 +1522,7 @@ function endShowoff(winnerId, loserId) {
   if (!winner || !loser || !attacker || !defender) {
     state.phase = "board";
     state.showoff = null;
+    resumeBackgroundMusicAfterShowdown();
     syncHud();
     return;
   }
@@ -1188,6 +1548,7 @@ function endShowoff(winnerId, loserId) {
     setWinner(victor, `${capitalize(victor)} wins. The enemy king has fallen.`);
     state.phase = "gameover";
     state.showoff = null;
+    resumeBackgroundMusicAfterShowdown();
     syncHud();
     if (isOnlineHost()) {
       publishSnapshot("showdown-end");
@@ -1198,6 +1559,7 @@ function endShowoff(winnerId, loserId) {
   state.phase = "board";
   state.showoff = null;
   clearCombatInput();
+  resumeBackgroundMusicAfterShowdown();
   endTurn();
 }
 
@@ -2446,6 +2808,10 @@ function canViewPieceMoves(piece) {
   return false;
 }
 
+function getAiDifficultyConfig() {
+  return AI_DIFFICULTIES[state.aiDifficulty] ?? AI_DIFFICULTIES[DEFAULT_AI_DIFFICULTY];
+}
+
 function isAiControlled(team) {
   return state.mode === "ai" && team === getAiTeam();
 }
@@ -2793,6 +3159,10 @@ function finishShowdownRound(winnerId, loserId, reason) {
   state.message = `${describePiece(winner)} wins round ${showoff.round} ${reasonText}. Score ${score}.`;
   addLog(`${describePiece(winner)} wins Showdown round ${showoff.round} ${reasonText}.`);
 
+  if (loser.type === "pawn") {
+    playPawnVoiceSound(loser.team, "defeated");
+  }
+
   if (!showoff.finished) {
     addFloatingText(`Round ${showoff.round}`, 480, 250, "#ffd166");
   }
@@ -2947,12 +3317,8 @@ function getLocalControlSlot(fighter) {
 function getAiFighterInput(fighter, dt) {
   const opponent = getOpponentFighter(fighter);
   const distance = Math.abs(opponent.x - fighter.x);
-  const verticalDistance = opponent.y - fighter.y;
 
   fighter.aiHoldBlock = Math.max(0, fighter.aiHoldBlock - dt);
-  if (Math.random() < ARENA.aiReaction * dt && distance < 145 && opponent.attackTimer > 0) {
-    fighter.aiHoldBlock = 0.35;
-  }
 
   return {
     x: distance > ARENA.aiAttackDistance ? Math.sign(opponent.x - fighter.x) : (Math.random() - 0.5) * 0.35,
@@ -3025,7 +3391,8 @@ function applyFighterInput(fighter, input, dt) {
 
 function getAttackCooldown(fighter) {
   const intimidateMultiplier = (fighter.intimidateTimer ?? 0) > 0 ? PASSIVE_INTIMIDATE_COOLDOWN_MULTIPLIER : 1;
-  return ARENA.attackCooldown * intimidateMultiplier;
+  const aiAttackSpeedMultiplier = isAiFighter(fighter.team) ? 1 + getAiDifficultyConfig().attackSpeedBonus : 1;
+  return (ARENA.attackCooldown * intimidateMultiplier) / aiAttackSpeedMultiplier;
 }
 
 function tryAttack(fighter) {
@@ -3065,6 +3432,13 @@ function tryAttack(fighter) {
     color: critical ? "#ffd166" : "#f7efe0"
   });
   addLog(`${describePiece(attackerPiece)} uses ${stat.weapon} for ${formatNumber(dealt)}${critical ? " critical" : ""}.`);
+  if (attackerPiece.type === "pawn" && dealt > 0) {
+    playPawnShowdownSound(fighter.team, critical ? "critical" : "light_attack");
+    playPawnVoiceSound(fighter.team, "light_attack");
+  }
+  if (opponentPiece.type === "pawn" && critical && dealt > 0) {
+    playPawnVoiceSound(opponent.team, "critical");
+  }
   if (passive === "lifeSteal" && dealt > 0) {
     applyLifeStealPassive(fighter, opponent);
   }
@@ -3157,7 +3531,8 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
   }
 
   let damage = amount;
-  const blocked = !options.ignoreBlock && Boolean(opponent.block);
+  const aiBlocked = maybeAiBlocksIncomingAttack(opponent, options);
+  const blocked = !options.ignoreBlock && (Boolean(opponent.block) || aiBlocked);
   const criticalBlocked = blocked && Boolean(options.critical);
   if (criticalBlocked) {
     damage = roundDamage(Math.max(1, damage * 0.5));
@@ -3187,13 +3562,35 @@ function dealCombatDamage(attacker, opponent, amount, options = {}) {
   return damage;
 }
 
+function maybeAiBlocksIncomingAttack(opponent, options) {
+  if (options.ignoreBlock || !isAiFighter(opponent.team)) {
+    return false;
+  }
+
+  const chance = getAiDifficultyConfig().blockChance;
+  if (chance <= 0 || Math.random() >= chance) {
+    return false;
+  }
+
+  opponent.block = true;
+  opponent.blockTimer = Math.max(opponent.blockTimer ?? 0, 0.28);
+  opponent.aiHoldBlock = Math.max(opponent.aiHoldBlock ?? 0, 0.35);
+  return true;
+}
+
 function applyArmorReduction(piece, damage) {
   const armor = getPieceArmor(piece);
-  if (!armor || damage <= 0) {
+  const aiArmorBonus = getAiArmorBonus(piece);
+  if ((!armor && aiArmorBonus <= 0) || damage <= 0) {
     return damage;
   }
 
-  return roundDamage(Math.max(0, damage * (1 - armor.reduction)));
+  const reduction = clamp((armor?.reduction ?? 0) + aiArmorBonus, 0, 0.9);
+  return roundDamage(Math.max(0, damage * (1 - reduction)));
+}
+
+function getAiArmorBonus(piece) {
+  return state.mode === "ai" && piece?.team === getAiTeam() ? getAiDifficultyConfig().armorBonus : 0;
 }
 
 function getPieceArmor(piece) {
@@ -3219,6 +3616,12 @@ function tryUltimate(fighter) {
 
   if (piece.type === "pawn") {
     dealUltimateDamage(fighter, opponent, 25, ultimate.name);
+    playPawnShowdownSound(fighter.team, "ultimate");
+    playPawnVoiceSound(fighter.team, "light_attack");
+    const opponentPiece = getPieceById(state.pieces, opponent.id);
+    if (opponentPiece?.type === "pawn") {
+      playPawnVoiceSound(opponent.team, "critical");
+    }
   } else if (piece.type === "rook") {
     fighter.fortifyTimer = 5;
     addFloatingText("Fortify", fighter.x, fighter.y - 118, "#68c284");
@@ -3422,6 +3825,7 @@ function readKeyGroup(keys) {
 
 function syncHud() {
   syncAiSidePicker();
+  syncAiDifficultyPicker();
   els.turnLabel.textContent = state.winner ? `${capitalize(state.winner)} wins` : capitalize(state.currentTeam);
   els.status.textContent = state.message;
   syncPowerupHud();
@@ -3675,6 +4079,7 @@ function render() {
 function drawBoard() {
   drawBackground();
   const board = getBoardRect();
+  const fogVisibleSquares = isAiDifficultyFogActive() ? getVisibleBoardSquaresForTeam(getHumanTeam()) : null;
   drawBoardPlinth(board);
   drawWoodFrame(board);
 
@@ -3685,16 +4090,114 @@ function drawBoard() {
   }
 
   drawCoordinates(board);
-  drawMoveHighlights(board);
+  drawMoveHighlights(board, fogVisibleSquares);
   drawShowdownMovePreview(board);
-  drawPowerup(board);
+  drawPowerup(board, fogVisibleSquares);
 
   for (const piece of [...state.pieces].sort(compareBoardPieceDrawOrder)) {
+    if (!isBoardSquareVisibleForFog(piece.x, piece.y, fogVisibleSquares)) {
+      continue;
+    }
     drawPiece(piece, board);
   }
 
+  drawAiDifficultyFog(board, fogVisibleSquares);
   drawBoardBanner(board);
   drawVictoryIndicator(board);
+}
+
+function drawAiDifficultyFog(board, visibleSquares = null) {
+  if (!isAiDifficultyFogActive()) {
+    return;
+  }
+
+  visibleSquares ??= getVisibleBoardSquaresForTeam(getHumanTeam());
+  const time = performance.now() / 1000;
+
+  ctx.save();
+  for (let y = 0; y < BOARD_SIZE; y += 1) {
+    for (let x = 0; x < BOARD_SIZE; x += 1) {
+      if (isBoardSquareVisibleForFog(x, y, visibleSquares)) {
+        continue;
+      }
+
+      const viewPosition = gameBoardPositionToViewPosition({ x, y });
+      const sx = board.x + viewPosition.x * board.cell;
+      const sy = board.y + viewPosition.y * board.cell;
+      ctx.fillStyle = "#020403";
+      ctx.fillRect(sx, sy, board.cell, board.cell);
+
+      const haze = 0.08 + Math.sin(time * 0.8 + x * 1.7 + y * 1.2) * 0.03;
+      const fogAlpha = clamp(0.88 + haze, 0.9, 0.98);
+      const gradient = ctx.createLinearGradient(sx, sy, sx + board.cell, sy + board.cell);
+      gradient.addColorStop(0, "rgba(4, 7, 8, 0.96)");
+      gradient.addColorStop(0.58, `rgba(15, 22, 18, ${fogAlpha})`);
+      gradient.addColorStop(1, "rgba(1, 2, 3, 0.98)");
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(sx, sy, board.cell, board.cell);
+
+      ctx.strokeStyle = "rgba(177, 185, 154, 0.08)";
+      ctx.lineWidth = Math.max(1, board.cell * 0.018);
+      ctx.beginPath();
+      const drift = Math.sin(time * 0.7 + x * 2.3 + y) * board.cell * 0.08;
+      ctx.moveTo(sx + board.cell * 0.12, sy + board.cell * 0.38 + drift);
+      ctx.bezierCurveTo(
+        sx + board.cell * 0.36,
+        sy + board.cell * 0.26 - drift,
+        sx + board.cell * 0.62,
+        sy + board.cell * 0.58 + drift,
+        sx + board.cell * 0.88,
+        sy + board.cell * 0.48 - drift
+      );
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function isAiDifficultyFogActive() {
+  return state.mode === "ai" && state.phase === "board" && getAiDifficultyConfig().fog;
+}
+
+function isBoardSquareVisibleToUser(x, y) {
+  if (!isAiDifficultyFogActive()) {
+    return true;
+  }
+
+  return getVisibleBoardSquaresForTeam(getHumanTeam()).has(toBoardSquareKey(x, y));
+}
+
+function isBoardSquareVisibleForFog(x, y, visibleSquares) {
+  return !visibleSquares || visibleSquares.has(toBoardSquareKey(x, y));
+}
+
+function getVisibleBoardSquaresForTeam(team) {
+  const visibleSquares = new Set();
+  for (const piece of state.pieces) {
+    if (piece.team !== team) {
+      continue;
+    }
+
+    for (let dy = -1; dy <= 1; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const x = piece.x + dx;
+        const y = piece.y + dy;
+        if (isBoardSquareInBounds(x, y)) {
+          visibleSquares.add(toBoardSquareKey(x, y));
+        }
+      }
+    }
+  }
+  return visibleSquares;
+}
+
+function isBoardSquareInBounds(x, y) {
+  return x >= 0 && y >= 0 && x < BOARD_SIZE && y < BOARD_SIZE;
+}
+
+function toBoardSquareKey(x, y) {
+  return `${x},${y}`;
 }
 
 function drawBoardPlinth(board) {
@@ -3898,7 +4401,7 @@ function drawCoordinates(board) {
   ctx.restore();
 }
 
-function drawMoveHighlights(board) {
+function drawMoveHighlights(board, fogVisibleSquares = null) {
   const selected = getPieceById(state.pieces, state.selectedId);
   if (!selected) {
     return;
@@ -3914,13 +4417,18 @@ function drawMoveHighlights(board) {
   }
 
   for (const move of state.legalMoves) {
+    // In Hard mode fog: show all possible moves. Captures in hidden fog areas
+    // appear as regular moves since the enemy piece is not visible.
+    const visibleInFog = isBoardSquareVisibleForFog(move.x, move.y, fogVisibleSquares);
+    const showAsCapture = move.capture && visibleInFog;
+
     const { x: cx, y: cy } = getBoardCellCenter(board, move);
-    ctx.fillStyle = move.capture ? BOARD_THEME.capture : BOARD_THEME.move;
+    ctx.fillStyle = showAsCapture ? BOARD_THEME.capture : BOARD_THEME.move;
     ctx.beginPath();
-    ctx.arc(cx, cy, move.capture ? board.cell * 0.34 : board.cell * 0.18, 0, Math.PI * 2);
+    ctx.arc(cx, cy, showAsCapture ? board.cell * 0.34 : board.cell * 0.18, 0, Math.PI * 2);
     ctx.fill();
 
-    if (move.capture) {
+    if (showAsCapture) {
       ctx.strokeStyle = "rgba(255, 248, 232, 0.85)";
       ctx.lineWidth = 3;
       ctx.stroke();
@@ -3968,12 +4476,16 @@ function drawShowdownMovePreview(board) {
   ctx.restore();
 }
 
-function drawPowerup(board) {
+function drawPowerup(board, fogVisibleSquares = null) {
   if (!POWERUPS_ENABLED) {
     return;
   }
 
   if (!state.powerup) {
+    return;
+  }
+
+  if (!isBoardSquareVisibleForFog(state.powerup.x, state.powerup.y, fogVisibleSquares)) {
     return;
   }
 

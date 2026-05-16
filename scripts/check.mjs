@@ -284,16 +284,61 @@ assert.match(html, /id="online-chat"/, "online room should include a text-only c
 assert.match(html, /id="online-chat-input"[\s\S]*maxlength="160"/, "online chat input should limit message length");
 assert.match(html, /id="ai-side-picker"/, "Vs AI mode should include a side picker");
 assert.match(html, /id="ai-side-white"[\s\S]*id="ai-side-black"/, "AI side picker should let the user choose White or Black");
+assert.match(html, /id="ai-difficulty-picker"/, "Vs AI mode should include a difficulty picker");
+assert.match(html, /id="ai-difficulty-beginner"[\s\S]*id="ai-difficulty-intermediate"[\s\S]*id="ai-difficulty-hard"/, "AI difficulty picker should include Beginner, Intermediate, and Hard");
+assert.match(html, /id="music-toggle"/, "HUD should include a background music mute button");
+for (const track of ["bg_1.mp3", "bg_2.mp3", "bg_3.mp3", "bg_4.mp3", "bg_5.mp3", "bg_6.mp3"]) {
+  assert.ok(existsSync(new URL(`../assets/sounds/background/${track}`, import.meta.url)), `background music asset should exist: ${track}`);
+}
+for (const track of ["attack_1.mp3", "attack_2.mp3", "attack_3.mp3"]) {
+  assert.ok(existsSync(new URL(`../assets/sounds/attack/${track}`, import.meta.url)), `attack sound asset should exist: ${track}`);
+}
+for (const track of ["showdown_bg_1.mp3", "showdown_bg_2.mp3", "showdown_bg_3.mp3"]) {
+  assert.ok(existsSync(new URL(`../assets/sounds/showdown/${track}`, import.meta.url)), `showdown music asset should exist: ${track}`);
+}
 assert.match(html, /id="confirm-overlay"[\s\S]*id="confirm-title"[\s\S]*id="confirm-detail"[\s\S]*id="confirm-no"[\s\S]*id="confirm-yes"/, "game reset confirmations should use a custom modal");
 assert.match(html, /Confirm this action\?[\s\S]*Cancel[\s\S]*OK/, "confirmation modal should use the requested title and button labels");
 assert.match(main, /function confirmGameChange/, "mode and new-game buttons should confirm before resetting progress");
 assert.match(main, /function showConfirmDialog/, "confirmation should be rendered with the in-game modal");
 assert.match(main, /function resolveConfirmation/, "confirmation modal should resolve through game UI buttons");
 assert.match(main, /confirmAiSideChange/, "AI side buttons should confirm before changing sides");
+assert.match(main, /AI_DIFFICULTIES[\s\S]*blockChance: 0[\s\S]*blockChance: 0\.5[\s\S]*blockChance: 0\.8/, "AI difficulties should configure block chance per patch notes");
+assert.match(main, /AI_DIFFICULTIES[\s\S]*armorBonus: 0[\s\S]*armorBonus: 0\.05[\s\S]*armorBonus: 0\.1/, "AI difficulties should configure armor bonus per patch notes");
+assert.match(main, /AI_DIFFICULTIES[\s\S]*attackSpeedBonus: 0[\s\S]*attackSpeedBonus: 0\.1[\s\S]*attackSpeedBonus: 0\.15/, "AI difficulties should configure attack speed bonus per patch notes");
+assert.match(main, /function confirmAiDifficultyChange/, "AI difficulty buttons should confirm before resetting");
+assert.match(main, /function syncAiDifficultyPicker/, "AI difficulty picker should stay in sync with state");
 assert.match(main, /confirmGameChange\("Switch to Vs AI\?", "The current game will reset\."\)/, "Vs AI button should confirm before switching");
 assert.match(main, /confirmGameChange\("Switch to Local 2P\?", "The current game will reset\."\)/, "Local 2P button should confirm before switching");
 assert.match(main, /confirmGameChange\("Start a new game\?", "The current game will reset\."\)/, "New Game button should confirm before resetting");
 assert.match(main, /confirmGameChange\(`Choose \$\{sideName\} side\?`, "The current Vs AI game will reset\."\)/, "AI side buttons should confirm before resetting");
+assert.match(main, /confirmGameChange\(`Choose \$\{config\.label\} AI\?`, "The current Vs AI game will reset\."\)/, "AI difficulty buttons should confirm before resetting");
+assert.match(main, /function maybeAiBlocksIncomingAttack[\s\S]*getAiDifficultyConfig\(\)\.blockChance/, "AI difficulty should drive Showdown block chance");
+assert.match(main, /function getAiArmorBonus[\s\S]*getAiDifficultyConfig\(\)\.armorBonus/, "AI difficulty should add armor bonus to AI pieces");
+assert.match(main, /function getAttackCooldown\(fighter\)[\s\S]*attackSpeedBonus/, "AI difficulty should adjust AI attack speed");
+assert.match(main, /function drawAiDifficultyFog/, "Hard AI should draw a fog overlay on unseen board squares");
+assert.match(main, /function getVisibleBoardSquaresForTeam[\s\S]*dy = -1[\s\S]*dx = -1/s, "Hard AI visibility should include each user piece and adjacent squares");
+assert.match(main, /const fogVisibleSquares = isAiDifficultyFogActive\(\) \? getVisibleBoardSquaresForTeam\(getHumanTeam\(\)\) : null/, "Hard AI should compute visible squares once for board rendering");
+assert.match(main, /if \(!isBoardSquareVisibleForFog\(piece\.x, piece\.y, fogVisibleSquares\)\) \{[\s\S]*continue;/, "Hard AI fog should skip drawing unseen pieces");
+assert.match(main, /if \(!isBoardSquareVisibleToUser\(square\.x, square\.y\)\)/, "Hard AI fog should prevent clicking unseen squares from revealing pieces");
+assert.match(main, /ctx\.fillStyle = "#020403"[\s\S]*ctx\.fillRect\(sx, sy, board\.cell, board\.cell\)/, "Hard AI fog should fully darken unseen squares");
+assert.match(main, /BACKGROUND_MUSIC_VOLUME = 0\.3/, "background music should play at 30 percent volume");
+assert.match(main, /BACKGROUND_MUSIC_TRACKS = \[[\s\S]*bg_1\.mp3[\s\S]*bg_6\.mp3[\s\S]*\]/, "background music should queue the available background tracks");
+assert.match(main, /ATTACK_SOUND_TRACKS = \[[\s\S]*attack_1\.mp3[\s\S]*attack_3\.mp3[\s\S]*\]/, "attack sounds should queue the available attack clips");
+assert.match(main, /SHOWDOWN_MUSIC_TRACKS = \[[\s\S]*showdown_bg_1\.mp3[\s\S]*showdown_bg_3\.mp3[\s\S]*\]/, "Showdown should queue the available Showdown music tracks");
+assert.match(main, /function setupBackgroundMusic/, "background music should initialize at boot");
+assert.match(main, /function setupShowdownMusic/, "Showdown music should initialize at boot");
+assert.match(main, /backgroundMusic\.audio\.autoplay = true/, "background music should attempt to start as the page opens");
+assert.match(main, /function toggleBackgroundMusicMute/, "background music should have a mute toggle");
+assert.match(main, /function syncMusicMuteState[\s\S]*showdownMusic\.audio\.muted = backgroundMusic\.muted/, "music mute should also apply to Showdown music");
+assert.match(main, /addEventListener\("ended", playNextBackgroundMusicTrack\)/, "background music should advance when each track ends");
+assert.match(main, /\(backgroundMusic\.trackIndex \+ 1\) % BACKGROUND_MUSIC_TRACKS\.length/, "background music should loop the queue forever");
+assert.match(main, /function playRandomAttackSound/, "board attacks should play a random attack sound");
+assert.match(main, /function playRandomAttackSound[\s\S]*pauseBackgroundMusicForAttack\(\)/, "board attacks should pause background music before playing the attack cue");
+assert.match(main, /function beginShowdownMovePreview[\s\S]*playRandomAttackSound\(\)/, "attack sound should play before Showdown starts");
+assert.match(main, /function startShowoff[\s\S]*state\.phase = "showoff";[\s\S]*startShowdownMusic\(\)/, "Showdown should start random looping Showdown music");
+assert.match(main, /function startShowdownMusic[\s\S]*randomInt\(0, SHOWDOWN_MUSIC_TRACKS\.length - 1\)/, "each Showdown should choose a random Showdown music track");
+assert.match(main, /showdownMusic\.audio\.loop = true/, "Showdown music should loop for the duration of the duel");
+assert.match(main, /function endShowoff[\s\S]*resumeBackgroundMusicAfterShowdown\(\)/, "normal background music should resume after Showdown ends");
 assert.doesNotMatch(main, /window\.confirm/, "confirmation should not use the browser default confirm dialog");
 assert.match(main, /SHOWDOWN/, "client should include Showdown phase rendering");
 assert.match(main, /clearCombatInput/, "client should clear combat input to prevent stuck movement");
@@ -384,7 +429,7 @@ assert.match(main, /barrageShots = 5/, "queen Barrage should launch 5 attacks");
 assert.match(main, /Hard Swing/, "king ultimate should be Hard Swing");
 assert.match(main, /grantMana/, "basic attacks should grant ultimate mana");
 assert.match(main, /tryUltimate/, "fighters should be able to activate ultimate skills");
-assert.match(main, /const blocked = !options\.ignoreBlock && Boolean\(opponent\.block\)/, "damage ultimates should be able to ignore block effects");
+assert.match(main, /const blocked = !options\.ignoreBlock && \(Boolean\(opponent\.block\) \|\| aiBlocked\)/, "damage ultimates should be able to ignore block effects");
 assert.match(main, /dealCombatDamage\(fighter, opponent, boostedDamage,[\s\S]*ignoreBlock: true/, "damage-dealing ultimates should ignore block effects");
 assert.match(main, /PASSIVE_TRIGGER_CHANCE = 0\.1/, "class passive skills should have a 10 percent activation chance");
 assert.match(main, /PASSIVE_PLUS_DAMAGE = 3/, "pawn passive should add 3 attack damage");
@@ -578,6 +623,10 @@ assert.match(styles, /\.confirm-overlay\s*\{[\s\S]*position: fixed/, "confirmati
 assert.match(styles, /\.confirm-dialog\s*\{[\s\S]*border-radius: 14px/, "confirmation modal should use the rounded reference panel style");
 assert.match(styles, /\.confirm-dialog h2\s*\{[\s\S]*color: #ffe6ad/, "confirmation title should use the game gold theme");
 assert.match(styles, /#confirm-yes\s*\{[\s\S]*background: linear-gradient\(180deg, #ffd166, #c6882d\)/, "confirmation OK action should use the game gold theme");
+assert.match(styles, /\.segmented-three\s*\{[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/, "AI difficulty picker should lay out three choices cleanly");
+assert.match(styles, /\.ai-difficulty-picker\s*\{/, "AI difficulty picker should share the game menu styling");
+assert.match(styles, /\.audio-toggle\s*\{[\s\S]*background: rgba\(255, 209, 102, 0\.16\)/, "music mute button should use the game gold theme");
+assert.match(styles, /\.audio-toggle\.is-muted\s*\{/, "music mute button should show muted state");
 
 assert.match(server, /\/api\/rooms/, "server should expose room endpoints");
 assert.match(server, /0\.0\.0\.0/, "server should bind beyond localhost for two-device room links");

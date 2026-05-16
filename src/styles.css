@@ -146,8 +146,13 @@ button {
   background: rgba(255, 248, 232, 0.08);
 }
 
+.segmented-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .segmented button,
 .primary-action,
+.audio-toggle,
 .touch-controls button {
   min-height: 42px;
   padding: 0 8px;
@@ -180,6 +185,7 @@ button {
 
 .segmented button:hover,
 .primary-action:hover,
+.audio-toggle:hover,
 .touch-controls button:hover {
   border-color: rgba(255, 209, 102, 0.5);
 }
@@ -195,7 +201,14 @@ button {
   margin-top: 10px;
 }
 
-.ai-side-picker.is-hidden {
+.ai-difficulty-picker {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ai-side-picker.is-hidden,
+.ai-difficulty-picker.is-hidden {
   display: none;
 }
 
@@ -209,6 +222,18 @@ button {
   margin-top: 10px;
   font-weight: 800;
   background: linear-gradient(135deg, var(--crimson), #a93c35);
+}
+
+.audio-toggle {
+  width: 100%;
+  margin-top: 8px;
+  font-weight: 800;
+  background: rgba(255, 209, 102, 0.16);
+}
+
+.audio-toggle.is-muted {
+  color: rgba(255, 248, 232, 0.76);
+  background: rgba(255, 248, 232, 0.06);
 }
 
 .confirm-overlay {
