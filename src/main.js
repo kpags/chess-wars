@@ -940,6 +940,29 @@ function playBlackKnightVoiceSound(team, soundType) {
   playPieceSound(src, PAWN_VOICE_SOUND_VOLUME);
 }
 
+function playShowdownAttackAttemptSounds(piece, fighter, soundType = "light_attack") {
+  if (piece?.type === "pawn") {
+    playPawnShowdownSound(fighter.team, soundType);
+    playPawnVoiceSound(fighter.team, "light_attack");
+  } else if (piece?.type === "rook") {
+    playRookShowdownSound(fighter.team, soundType);
+    playRookVoiceSound(fighter.team, "light_attack");
+  } else if (isBlackKnightSoundPiece(piece)) {
+    playBlackKnightShowdownSound(fighter.team, soundType);
+    playBlackKnightVoiceSound(fighter.team, "light_attack");
+  }
+}
+
+function playCriticalHitReactionSound(piece, fighter) {
+  if (piece?.type === "pawn") {
+    playPawnVoiceSound(fighter.team, "critical");
+  } else if (piece?.type === "rook") {
+    playRookVoiceSound(fighter.team, "critical");
+  } else if (isBlackKnightSoundPiece(piece)) {
+    playBlackKnightVoiceSound(fighter.team, "critical");
+  }
+}
+
 function playBlackKnightUltimateSound(fighter) {
   const src = BLACK_KNIGHT_SHOWDOWN_ATTACK_SOUNDS[fighter?.team]?.ultimate;
   if (!src || pieceSounds.muted) {
@@ -3630,13 +3653,18 @@ function tryAttack(fighter) {
   fighter.cooldown = getAttackCooldown(fighter);
   fighter.attackTimer = ARENA.attackDuration;
 
+  if (!attackerPiece) {
+    return;
+  }
+
   if (dx > ARENA.attackRange) {
+    playShowdownAttackAttemptSounds(attackerPiece, fighter, "light_attack");
     addFloatingText("Miss", fighter.x + fighter.facing * 56, fighter.y - 96, "#f2dfbb");
     return;
   }
 
   const opponentPiece = getPieceById(state.pieces, opponent.id);
-  if (!opponentPiece || !attackerPiece) {
+  if (!opponentPiece) {
     return;
   }
 
@@ -3651,6 +3679,7 @@ function tryAttack(fighter) {
     fighter.criticalAttackTimer = CRITICAL_ATTACK_FLASH_SECONDS;
   }
   damage = applySmashDamageBonus(attackerPiece, damage);
+  playShowdownAttackAttemptSounds(attackerPiece, fighter, critical ? "critical" : "light_attack");
 
   const dealt = dealCombatDamage(fighter, opponent, damage, {
     label: stat.weapon,
@@ -3660,26 +3689,8 @@ function tryAttack(fighter) {
     color: critical ? "#ffd166" : "#f7efe0"
   });
   addLog(`${describePiece(attackerPiece)} uses ${stat.weapon} for ${formatNumber(dealt)}${critical ? " critical" : ""}.`);
-  if (attackerPiece.type === "pawn" && dealt > 0) {
-    playPawnShowdownSound(fighter.team, critical ? "critical" : "light_attack");
-    playPawnVoiceSound(fighter.team, "light_attack");
-  }
-  if (opponentPiece.type === "pawn" && critical && dealt > 0) {
-    playPawnVoiceSound(opponent.team, "critical");
-  }
-  if (attackerPiece.type === "rook" && dealt > 0) {
-    playRookShowdownSound(fighter.team, critical ? "critical" : "light_attack");
-    playRookVoiceSound(fighter.team, "light_attack");
-  }
-  if (opponentPiece.type === "rook" && critical && dealt > 0) {
-    playRookVoiceSound(opponent.team, "critical");
-  }
-  if (isBlackKnightSoundPiece(attackerPiece) && dealt > 0) {
-    playBlackKnightShowdownSound(fighter.team, critical ? "critical" : "light_attack");
-    playBlackKnightVoiceSound(fighter.team, "light_attack");
-  }
-  if (isBlackKnightSoundPiece(opponentPiece) && critical && dealt > 0) {
-    playBlackKnightVoiceSound(opponent.team, "critical");
+  if (critical) {
+    playCriticalHitReactionSound(opponentPiece, opponent);
   }
   if (passive === "lifeSteal" && dealt > 0) {
     applyLifeStealPassive(fighter, opponent);
