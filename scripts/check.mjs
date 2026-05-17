@@ -387,6 +387,12 @@ for (const track of ["attack_1.mp3", "attack_2.mp3", "attack_3.mp3"]) {
 for (const track of ["showdown_bg_1.mp3", "showdown_bg_2.mp3", "showdown_bg_3.mp3"]) {
   assert.ok(existsSync(new URL(`../assets/sounds/showdown/${track}`, import.meta.url)), `showdown music asset should exist: ${track}`);
 }
+for (const track of ["black_knight_light_attack_hit.mp3", "black_knight_critical_damage_hit.mp3", "black_knight_ultimate_skill.mp3"]) {
+  assert.ok(existsSync(new URL(`../assets/sounds/showdown/attacks/black_knight/${track}`, import.meta.url)), `black knight Showdown attack sound should exist: ${track}`);
+}
+for (const track of ["black_knight_light_attack_hit.mp3", "black_knight_critical_damage_hit.mp3", "black_knight_defeated_sound.mp3"]) {
+  assert.ok(existsSync(new URL(`../assets/sounds/voices/attacks/black_knight/${track}`, import.meta.url)), `black knight voice attack sound should exist: ${track}`);
+}
 assert.match(html, /id="confirm-overlay"[\s\S]*id="confirm-title"[\s\S]*id="confirm-detail"[\s\S]*id="confirm-no"[\s\S]*id="confirm-yes"/, "game reset confirmations should use a custom modal");
 assert.match(html, /Confirm this action\?[\s\S]*Cancel[\s\S]*OK/, "confirmation modal should use the requested title and button labels");
 assert.match(main, /function confirmGameChange/, "mode and new-game buttons should confirm before resetting progress");
@@ -427,6 +433,13 @@ assert.match(main, /\(backgroundMusic\.trackIndex \+ 1\) % BACKGROUND_MUSIC_TRAC
 assert.match(main, /function playRandomAttackSound/, "board attacks should play a random attack sound");
 assert.match(main, /function playRandomAttackSound[\s\S]*pieceSounds\.muted/, "piece-sounds mute should silence board attack sounds");
 assert.match(main, /function playPieceSound[\s\S]*pieceSounds\.muted/, "piece-sounds mute should silence Showdown and voice sounds");
+assert.match(main, /BLACK_KNIGHT_SHOWDOWN_ATTACK_SOUNDS[\s\S]*black_knight_light_attack_hit\.mp3[\s\S]*black_knight_critical_damage_hit\.mp3[\s\S]*black_knight_ultimate_skill\.mp3/, "black knight should define Showdown attack, critical, and ultimate sounds");
+assert.match(main, /BLACK_KNIGHT_VOICE_ATTACK_SOUNDS[\s\S]*black_knight_light_attack_hit\.mp3[\s\S]*black_knight_critical_damage_hit\.mp3[\s\S]*black_knight_defeated_sound\.mp3/, "black knight should define voice attack, critical-hit, and defeated sounds");
+assert.match(main, /function playBlackKnightShowdownSound/, "black knight should play Showdown attack sound assets");
+assert.match(main, /function playBlackKnightVoiceSound/, "black knight should play voice sound assets");
+assert.match(main, /function playBlackKnightUltimateSound[\s\S]*audio\.loop = true/, "black knight ultimate sound should loop while Stampede is active");
+assert.match(main, /function stopBlackKnightUltimateSound/, "black knight ultimate sound should be stoppable when Stampede ends");
+assert.match(main, /function togglePieceSoundsMute[\s\S]*stopBlackKnightUltimateSound\(\)/, "muting piece sounds should stop a looping black knight ultimate sound");
 assert.match(main, /function playRandomAttackSound[\s\S]*pauseBackgroundMusicForAttack\(\)/, "board attacks should pause background music before playing the attack cue");
 assert.match(main, /function beginShowdownMovePreview[\s\S]*playRandomAttackSound\(\)/, "attack sound should play before Showdown starts");
 assert.match(main, /function startShowoff[\s\S]*state\.phase = "showoff";[\s\S]*startShowdownMusic\(\)/, "Showdown should start random looping Showdown music");
@@ -523,6 +536,11 @@ assert.match(main, /barrageShots = 5/, "queen Barrage should launch 5 attacks");
 assert.match(main, /Hard Swing/, "king ultimate should be Hard Swing");
 assert.match(main, /grantMana/, "basic attacks should grant ultimate mana");
 assert.match(main, /tryUltimate/, "fighters should be able to activate ultimate skills");
+assert.match(main, /isBlackKnightSoundPiece\(attackerPiece\)[\s\S]*playBlackKnightShowdownSound\(fighter\.team, critical \? "critical" : "light_attack"\)[\s\S]*playBlackKnightVoiceSound\(fighter\.team, "light_attack"\)/, "black knight basic attacks should play Showdown and voice sounds like pawns and rooks");
+assert.match(main, /isBlackKnightSoundPiece\(opponentPiece\)[\s\S]*critical[\s\S]*playBlackKnightVoiceSound\(opponent\.team, "critical"\)/, "black knight should play a critical-hit voice reaction when hit by a critical attack");
+assert.match(main, /isBlackKnightSoundPiece\(loser\)[\s\S]*playBlackKnightVoiceSound\(loser\.team, "defeated"\)/, "black knight should play defeated voice when losing a Showdown round");
+assert.match(main, /isBlackKnightSoundPiece\(piece\)[\s\S]*playBlackKnightUltimateSound\(fighter\)[\s\S]*playBlackKnightVoiceSound\(fighter\.team, "light_attack"\)/, "black knight Stampede should play looping ultimate and voice sounds");
+assert.match(main, /if \(!isStampeding\(fighter\)\) \{[\s\S]*stopBlackKnightUltimateSound\(fighter\)/, "black knight ultimate sound should stop when Stampede ends");
 assert.match(main, /const blocked = !options\.ignoreBlock && \(Boolean\(opponent\.block\) \|\| aiBlocked\)/, "damage ultimates should be able to ignore block effects");
 assert.match(main, /dealCombatDamage\(fighter, opponent, boostedDamage,[\s\S]*ignoreBlock: true/, "damage-dealing ultimates should ignore block effects");
 assert.match(main, /PASSIVE_TRIGGER_CHANCE = 0\.1/, "class passive skills should have a 10 percent activation chance");

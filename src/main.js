@@ -556,6 +556,20 @@ const ROOK_VOICE_ATTACK_SOUNDS = {
     defeated: "assets/sounds/voices/attacks/black_rook/black_rook_defeated_sound.mp3"
   }
 };
+const BLACK_KNIGHT_SHOWDOWN_ATTACK_SOUNDS = {
+  [TEAM.BLACK]: {
+    light_attack: "assets/sounds/showdown/attacks/black_knight/black_knight_light_attack_hit.mp3",
+    critical: "assets/sounds/showdown/attacks/black_knight/black_knight_critical_damage_hit.mp3",
+    ultimate: "assets/sounds/showdown/attacks/black_knight/black_knight_ultimate_skill.mp3"
+  }
+};
+const BLACK_KNIGHT_VOICE_ATTACK_SOUNDS = {
+  [TEAM.BLACK]: {
+    light_attack: "assets/sounds/voices/attacks/black_knight/black_knight_light_attack_hit.mp3",
+    critical: "assets/sounds/voices/attacks/black_knight/black_knight_critical_damage_hit.mp3",
+    defeated: "assets/sounds/voices/attacks/black_knight/black_knight_defeated_sound.mp3"
+  }
+};
 const spriteCache = new Map();
 const online = {
   clientId: getClientId(),
@@ -632,6 +646,10 @@ const showdownMusic = {
 };
 const pieceSounds = {
   muted: false
+};
+const blackKnightUltimateSound = {
+  audio: null,
+  fighterId: null
 };
 let pendingConfirmation = null;
 
@@ -855,6 +873,9 @@ function syncMusicMuteState() {
 
 function togglePieceSoundsMute() {
   pieceSounds.muted = !pieceSounds.muted;
+  if (pieceSounds.muted) {
+    stopBlackKnightUltimateSound();
+  }
   syncPieceSoundsToggle();
 }
 
@@ -907,6 +928,54 @@ function playRookShowdownSound(team, soundType) {
 function playRookVoiceSound(team, soundType) {
   const src = ROOK_VOICE_ATTACK_SOUNDS[team]?.[soundType];
   playPieceSound(src, PAWN_VOICE_SOUND_VOLUME);
+}
+
+function playBlackKnightShowdownSound(team, soundType) {
+  const src = BLACK_KNIGHT_SHOWDOWN_ATTACK_SOUNDS[team]?.[soundType];
+  playPieceSound(src, PAWN_SHOWDOWN_SOUND_VOLUME);
+}
+
+function playBlackKnightVoiceSound(team, soundType) {
+  const src = BLACK_KNIGHT_VOICE_ATTACK_SOUNDS[team]?.[soundType];
+  playPieceSound(src, PAWN_VOICE_SOUND_VOLUME);
+}
+
+function playBlackKnightUltimateSound(fighter) {
+  const src = BLACK_KNIGHT_SHOWDOWN_ATTACK_SOUNDS[fighter?.team]?.ultimate;
+  if (!src || pieceSounds.muted) {
+    return;
+  }
+
+  if (blackKnightUltimateSound.audio && blackKnightUltimateSound.fighterId === fighter.id) {
+    return;
+  }
+
+  stopBlackKnightUltimateSound();
+  const audio = new Audio(src);
+  audio.volume = PAWN_SHOWDOWN_SOUND_VOLUME;
+  audio.loop = true;
+  blackKnightUltimateSound.audio = audio;
+  blackKnightUltimateSound.fighterId = fighter.id;
+
+  const playPromise = audio.play();
+  if (playPromise?.catch) {
+    playPromise.catch(() => {});
+  }
+}
+
+function stopBlackKnightUltimateSound(fighter = null) {
+  if (!blackKnightUltimateSound.audio) {
+    return;
+  }
+  if (fighter && blackKnightUltimateSound.fighterId !== fighter.id) {
+    return;
+  }
+
+  blackKnightUltimateSound.audio.pause();
+  blackKnightUltimateSound.audio.currentTime = 0;
+  blackKnightUltimateSound.audio.loop = false;
+  blackKnightUltimateSound.audio = null;
+  blackKnightUltimateSound.fighterId = null;
 }
 
 function playPieceSound(src, volume) {
@@ -3317,6 +3386,8 @@ function finishShowdownRound(winnerId, loserId, reason) {
     playPawnVoiceSound(loser.team, "defeated");
   } else if (loser.type === "rook") {
     playRookVoiceSound(loser.team, "defeated");
+  } else if (isBlackKnightSoundPiece(loser)) {
+    playBlackKnightVoiceSound(loser.team, "defeated");
   }
 
   if (!showoff.finished) {
@@ -3355,6 +3426,7 @@ function markShowdownEndPoses(showoff, winnerId, loserId) {
 }
 
 function clearFighterActiveEffects(fighter) {
+  stopBlackKnightUltimateSound(fighter);
   fighter.stunTimer = 0;
   fighter.plusDamageTimer = 0;
   fighter.speedTimer = 0;
@@ -3602,6 +3674,13 @@ function tryAttack(fighter) {
   if (opponentPiece.type === "rook" && critical && dealt > 0) {
     playRookVoiceSound(opponent.team, "critical");
   }
+  if (isBlackKnightSoundPiece(attackerPiece) && dealt > 0) {
+    playBlackKnightShowdownSound(fighter.team, critical ? "critical" : "light_attack");
+    playBlackKnightVoiceSound(fighter.team, "light_attack");
+  }
+  if (isBlackKnightSoundPiece(opponentPiece) && critical && dealt > 0) {
+    playBlackKnightVoiceSound(opponent.team, "critical");
+  }
   if (passive === "lifeSteal" && dealt > 0) {
     applyLifeStealPassive(fighter, opponent);
   }
@@ -3792,6 +3871,10 @@ function tryUltimate(fighter) {
     playRookVoiceSound(fighter.team, "light_attack");
   } else if (piece.type === "horse") {
     startStampede(fighter, opponent);
+    if (isBlackKnightSoundPiece(piece)) {
+      playBlackKnightUltimateSound(fighter);
+      playBlackKnightVoiceSound(fighter.team, "light_attack");
+    }
   } else if (piece.type === "bishop") {
     const restored = roundDamage(piece.maxHp * 0.3);
     piece.hp = roundDamage(Math.min(piece.maxHp, piece.hp + restored));
@@ -3833,6 +3916,7 @@ function updateStampede(fighter, dt) {
   const opponentPiece = opponent ? getPieceById(state.pieces, opponent.id) : null;
   if (!attackerPiece || !opponentPiece) {
     fighter.stampedeTimer = 0;
+    stopBlackKnightUltimateSound(fighter);
     return;
   }
 
@@ -3842,6 +3926,7 @@ function updateStampede(fighter, dt) {
   fighter.stampedeTrailTimer = Math.max(0, (fighter.stampedeTrailTimer ?? 0) - dt);
   if (!isStampeding(fighter)) {
     fighter.stampedeTrailTimer = 0;
+    stopBlackKnightUltimateSound(fighter);
     return;
   }
 
@@ -5245,6 +5330,10 @@ function getBlackKnightAnimationFrame(section, action, index) {
 }
 
 function isBlackKnightSpritePiece(piece) {
+  return piece?.type === "horse" && piece.team === TEAM.BLACK;
+}
+
+function isBlackKnightSoundPiece(piece) {
   return piece?.type === "horse" && piece.team === TEAM.BLACK;
 }
 
