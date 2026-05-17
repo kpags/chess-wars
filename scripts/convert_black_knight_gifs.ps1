@@ -1,12 +1,15 @@
-param()
+param(
+  [ValidateSet("black", "white")]
+  [string]$Team = "black"
+)
 
 $ErrorActionPreference = "Stop"
 
 Add-Type -AssemblyName System.Drawing
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$SourceDir = Join-Path $Root "assets/gif/black_knight"
-$OutputDir = Join-Path $Root "assets/sprites/knights/black"
+$SourceDir = Join-Path $Root "assets/gif/$($Team)_knight"
+$OutputDir = Join-Path $Root "assets/sprites/knights/$Team"
 $PreviewPath = Join-Path $OutputDir "preview-sheet.png"
 $ManifestPath = Join-Path $OutputDir "manifest.json"
 
@@ -24,6 +27,10 @@ $ActionFiles = [ordered]@{
   "ultimate_skill" = "ultimate_skill.gif"
   "victory" = "victory.gif"
   "walk" = "move_gallop.gif"
+}
+
+if ($Team -eq "white" -and -not (Test-Path (Join-Path $SourceDir "ultimate_skill.gif"))) {
+  $ActionFiles["ultimate_skill"] = "move_gallop.gif"
 }
 
 $ShowdownActions = @(
@@ -338,7 +345,7 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $manifest = [ordered]@{
   piece = "knight"
-  team = "black"
+  team = $Team
   source = Get-RelativeAssetPath $SourceDir
   showdownFrameSize = [ordered]@{
     width = $ShowdownFrameSize.Width
@@ -364,6 +371,7 @@ foreach ($action in $ActionFiles.Keys) {
 
   $actionDir = Join-Path $OutputDir $action
   New-Item -ItemType Directory -Force -Path $actionDir | Out-Null
+  Get-ChildItem -Path $actionDir -Filter "frame-*.png" -File | Remove-Item -Force
   $targetSize = if ($BoardActions -contains $action) { $BoardFrameSize } else { $ShowdownFrameSize }
   $targetContentSize = if ($BoardActions -contains $action) { $BoardContentSize } else { $ShowdownContentSize }
   $result = Convert-SourceFrames $source $actionDir $targetSize $targetContentSize
@@ -383,4 +391,4 @@ foreach ($action in $ActionFiles.Keys) {
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $ManifestPath -Encoding UTF8
 Render-PreviewSheet $previewRows $PreviewPath
 
-Write-Output "Generated black knight frames in $(Get-RelativeAssetPath $OutputDir)"
+Write-Output "Generated $Team knight frames in $(Get-RelativeAssetPath $OutputDir)"

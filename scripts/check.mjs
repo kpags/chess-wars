@@ -198,42 +198,76 @@ for (const [action, expectedFrames] of Object.entries(blackRookGeneratedFrames))
 assert.ok(existsSync(new URL("../assets/sprites/rooks/black/preview-sheet.png", import.meta.url)), "generated black rook preview sheet should exist");
 assert.ok(existsSync(new URL("../assets/sprites/rooks/black/manifest.json", import.meta.url)), "generated black rook manifest should exist");
 
-const blackKnightSourceAssets = [
-  "board_move_animation.gif",
-  "board_top_view.png",
-  "defeat.png",
-  "defense_block.gif",
-  "heavy_attack.gif",
-  "hit_hurt.png",
-  "idle_ready.gif",
-  "jump_rear.gif",
-  "light_attack_pierce.gif",
-  "move_gallop.gif",
-  "ultimate_skill.gif",
-  "victory.gif"
-];
-
-for (const asset of blackKnightSourceAssets) {
-  assert.ok(existsSync(new URL(`../assets/gif/black_knight/${asset}`, import.meta.url)), `black knight source asset should exist: ${asset}`);
-}
-
-const blackKnightGeneratedFrames = {
-  board_idle: 1,
-  board_move_animation: 7,
-  charge_dash: 3,
-  guard_block: 4,
-  heavy_attack: 3,
-  hit_hurt: 1,
-  idle_ready: 8,
-  jump_rear: 4,
-  knocked_down_defeat: 1,
-  light_attack_pierce: 3,
-  ultimate_skill: 6,
-  victory: 3,
-  walk: 3
+const knightSourceAssets = {
+  black: [
+    "board_move_animation.gif",
+    "board_top_view.png",
+    "defeat.png",
+    "defense_block.gif",
+    "heavy_attack.gif",
+    "hit_hurt.png",
+    "idle_ready.gif",
+    "jump_rear.gif",
+    "light_attack_pierce.gif",
+    "move_gallop.gif",
+    "ultimate_skill.gif",
+    "victory.gif"
+  ],
+  white: [
+    "board_move_animation.gif",
+    "board_top_view.png",
+    "defeat.png",
+    "defense_block.gif",
+    "heavy_attack.gif",
+    "hit_hurt.png",
+    "idle_ready.gif",
+    "jump_rear.gif",
+    "light_attack_pierce.gif",
+    "move_gallop.gif",
+    "victory.gif"
+  ]
 };
 
-const blackKnightShowdownGeneratedFrames = new Set([
+for (const [team, assets] of Object.entries(knightSourceAssets)) {
+  for (const asset of assets) {
+    assert.ok(existsSync(new URL(`../assets/gif/${team}_knight/${asset}`, import.meta.url)), `${team} knight source asset should exist: ${asset}`);
+  }
+}
+
+const knightGeneratedFrames = {
+  black: {
+    board_idle: 1,
+    board_move_animation: 7,
+    charge_dash: 3,
+    guard_block: 4,
+    heavy_attack: 3,
+    hit_hurt: 1,
+    idle_ready: 8,
+    jump_rear: 4,
+    knocked_down_defeat: 1,
+    light_attack_pierce: 3,
+    ultimate_skill: 6,
+    victory: 3,
+    walk: 3
+  },
+  white: {
+    board_idle: 1,
+    board_move_animation: 8,
+    charge_dash: 4,
+    guard_block: 4,
+    heavy_attack: 4,
+    hit_hurt: 1,
+    idle_ready: 1,
+    jump_rear: 5,
+    knocked_down_defeat: 1,
+    light_attack_pierce: 4,
+    ultimate_skill: 4,
+    victory: 5,
+    walk: 4
+  }
+};
+
+const knightShowdownGeneratedFrames = new Set([
   "charge_dash",
   "guard_block",
   "heavy_attack",
@@ -246,24 +280,30 @@ const blackKnightShowdownGeneratedFrames = new Set([
   "victory",
   "walk"
 ]);
-let blackKnightShowdownFrameSize = null;
 
-for (const [action, expectedFrames] of Object.entries(blackKnightGeneratedFrames)) {
-  const actionDir = new URL(`../assets/sprites/knights/black/${action}/`, import.meta.url);
-  assert.ok(existsSync(actionDir), `generated black knight action folder should exist for ${action}`);
-  const frames = readdirSync(actionDir).filter((name) => /^frame-\d+\.png$/.test(name));
-  assert.equal(frames.length, expectedFrames, `generated black knight action ${action} should have ${expectedFrames} frames`);
+for (const [team, generatedFrames] of Object.entries(knightGeneratedFrames)) {
+  let knightShowdownFrameSize = null;
 
-  if (blackKnightShowdownGeneratedFrames.has(action)) {
-    for (const frame of frames) {
-      const size = readPngSize(new URL(frame, actionDir));
-      blackKnightShowdownFrameSize ??= size;
-      assert.deepEqual(size, blackKnightShowdownFrameSize, `black knight Showdown frame ${action}/${frame} should use the shared canvas size`);
+  for (const [action, expectedFrames] of Object.entries(generatedFrames)) {
+    const actionDir = new URL(`../assets/sprites/knights/${team}/${action}/`, import.meta.url);
+    assert.ok(existsSync(actionDir), `generated ${team} knight action folder should exist for ${action}`);
+    const frames = readdirSync(actionDir).filter((name) => /^frame-\d+\.png$/.test(name));
+    assert.equal(frames.length, expectedFrames, `generated ${team} knight action ${action} should have ${expectedFrames} frames`);
+
+    if (knightShowdownGeneratedFrames.has(action)) {
+      for (const frame of frames) {
+        const size = readPngSize(new URL(frame, actionDir));
+        knightShowdownFrameSize ??= size;
+        assert.deepEqual(size, knightShowdownFrameSize, `${team} knight Showdown frame ${action}/${frame} should use the shared canvas size`);
+      }
     }
   }
+
+  assert.ok(existsSync(new URL(`../assets/sprites/knights/${team}/preview-sheet.png`, import.meta.url)), `generated ${team} knight preview sheet should exist`);
+  assert.ok(existsSync(new URL(`../assets/sprites/knights/${team}/manifest.json`, import.meta.url)), `generated ${team} knight manifest should exist`);
+  const knightManifest = JSON.parse(readFileSync(new URL(`../assets/sprites/knights/${team}/manifest.json`, import.meta.url), "utf8").replace(/^\uFEFF/, ""));
+  assert.equal(knightManifest.team, team, `${team} knight manifest should record the team`);
 }
-assert.ok(existsSync(new URL("../assets/sprites/knights/black/preview-sheet.png", import.meta.url)), "generated black knight preview sheet should exist");
-assert.ok(existsSync(new URL("../assets/sprites/knights/black/manifest.json", import.meta.url)), "generated black knight manifest should exist");
 assert.match(main, /BLACK_KNIGHT_SHOWDOWN_DRAW = \{ width: 378, height: 286 \}/, "black knight Showdown draw size should be larger while staying under the rook width");
 assert.match(main, /BLACK_KNIGHT_BOARD_DRAW = \{ width: 92, height: 100 \}/, "black knight board draw size should be larger than the old pawn-sized box");
 assert.match(main, /BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE = \{ width: 268, height: 300 \}/, "black knight Showdown scaling should use the idle model size as a stable reference");
@@ -276,7 +316,7 @@ assert.match(main, /BLACK_KNIGHT_BACKDROP_MIN_COMPONENT_PIXELS = 2000/, "black k
 assert.match(main, /function getBlackKnightModelSource/, "black knight frames should use a dedicated cleaned source canvas");
 assert.match(main, /function removeBlackKnightFlatBackdrop/, "black knight celebration backdrop should be keyed out at render time");
 assert.match(main, /drawImageVisibleBoundsBottomCentered\(spriteCtx, source/, "black knight Showdown frames should draw from visible bounds to avoid attack-size drift");
-assert.match(main, /referenceHeight: BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE\.height/, "black knight Showdown frames should keep one scale through attacks and victory");
+assert.match(main, /const referenceSize = getBlackKnightShowdownReferenceSize\(piece\.team\)[\s\S]*referenceHeight: referenceSize\.height/, "knight Showdown frames should keep one scale through attacks and victory");
 assert.match(main, /canvasWidth: BLACK_KNIGHT_ATTACK_SPRITE_WIDTH/, "black knight attack frames should render into the standard-width internal canvas");
 assert.match(main, /referenceHeight: BLACK_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE\.height/, "black knight light attacks should override the default idle-height scale");
 assert.match(main, /allowHorizontalOverflow: true/, "black knight attack frames should keep uniform scale and crop instead of squeezing width");
@@ -670,13 +710,20 @@ assert.match(main, /heavy_attack_double_crush/, "black rook critical strikes sho
 assert.match(main, /ground_smash/, "black rook ultimate casting should use the ground-smash animation frames");
 assert.match(main, /isRookSpritePiece/, "rook sprite support should include generated black and white rooks");
 assert.match(main, /BLACK_KNIGHT_SHOWDOWN_ANIMATIONS/, "black knight should support generated Showdown frame animations");
+assert.match(main, /WHITE_KNIGHT_SHOWDOWN_ANIMATIONS/, "white knight should support generated Showdown frame animations");
+assert.match(main, /KNIGHT_SHOWDOWN_ANIMATIONS/, "knight Showdown animations should be selectable by team");
 assert.match(main, /BLACK_KNIGHT_BOARD_ANIMATIONS/, "black knight should support generated board frame models");
+assert.match(main, /WHITE_KNIGHT_BOARD_ANIMATIONS/, "white knight should support generated board frame models");
+assert.match(main, /KNIGHT_BOARD_ANIMATIONS/, "knight board animations should be selectable by team");
 assert.match(main, /loadBlackKnightAnimations/, "black knight animations should be preloaded at boot");
 assert.match(main, /getBlackKnightShowdownSprite/, "black knight Showdown rendering should prefer loaded generated frames");
 assert.match(main, /drawBlackKnightBoardSprite/, "black knight board rendering should prefer loaded top-view frames");
 assert.match(main, /blackKnightAnimationFrames/, "black knight frame folders should be cached like rook frames");
-assert.match(main, /isBlackKnightSpritePiece/, "black knight sprite support should be limited to black knight pieces");
-assert.match(main, /piece\?\.type === "horse" && piece\.team === TEAM\.BLACK/, "black knight sprite routing should use the internal horse type");
+assert.match(main, /WHITE_KNIGHT_SPRITE_BASE = "assets\/sprites\/knights\/white"/, "white knight should load generated sprite frames");
+assert.match(main, /getBlackKnightAnimationFrame\(piece\.team, "showdown"/, "knight Showdown frame caches should include the piece team");
+assert.match(main, /getBlackKnightAnimationFrame\(piece\.team, "board"/, "knight board frame caches should include the piece team");
+assert.match(main, /isKnightSpritePiece/, "knight sprite support should include generated black and white knights");
+assert.match(main, /piece\?\.type === "horse" && Boolean\(KNIGHT_SHOWDOWN_ANIMATIONS\[piece\.team\] && KNIGHT_BOARD_ANIMATIONS\[piece\.team\]\)/, "knight sprite routing should use the internal horse type and team asset maps");
 assert.match(main, /playerTeam: TEAM\.WHITE/, "AI games should track the human player's selected side");
 assert.match(main, /function setAiPlayerTeam/, "AI side picker should update the selected human side");
 assert.match(main, /function getAiTeam/, "AI ownership should be derived from the player's selected side");

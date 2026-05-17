@@ -270,6 +270,74 @@ const BLACK_KNIGHT_BOARD_ANIMATIONS = {
   idle: { path: `${BLACK_KNIGHT_SPRITE_BASE}/board_idle`, frames: 1, frameMs: 700, draw: BLACK_KNIGHT_BOARD_DRAW },
   board_move_animation: { path: `${BLACK_KNIGHT_SPRITE_BASE}/board_move_animation`, frames: 7, frameMs: 120, draw: BLACK_KNIGHT_BOARD_DRAW }
 };
+const WHITE_KNIGHT_SPRITE_BASE = "assets/sprites/knights/white";
+const WHITE_KNIGHT_SHOWDOWN_DRAW = BLACK_KNIGHT_SHOWDOWN_DRAW;
+const WHITE_KNIGHT_BOARD_DRAW = BLACK_KNIGHT_BOARD_DRAW;
+const WHITE_KNIGHT_SHOWDOWN_REFERENCE_SIZE = BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE;
+const WHITE_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE = BLACK_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE;
+const WHITE_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE = BLACK_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE;
+const WHITE_KNIGHT_VICTORY_REFERENCE_SIZE = BLACK_KNIGHT_VICTORY_REFERENCE_SIZE;
+const WHITE_KNIGHT_BOARD_REFERENCE_SIZE = BLACK_KNIGHT_BOARD_REFERENCE_SIZE;
+const WHITE_KNIGHT_SHOWDOWN_ANIMATIONS = {
+  idle_ready: { path: `${WHITE_KNIGHT_SPRITE_BASE}/idle_ready`, frames: 1, frameMs: 120, draw: WHITE_KNIGHT_SHOWDOWN_DRAW },
+  walk: { path: `${WHITE_KNIGHT_SPRITE_BASE}/walk`, frames: 4, frameMs: 80, draw: WHITE_KNIGHT_SHOWDOWN_DRAW },
+  charge_dash: { path: `${WHITE_KNIGHT_SPRITE_BASE}/charge_dash`, frames: 4, frameMs: 80, draw: WHITE_KNIGHT_SHOWDOWN_DRAW },
+  light_attack_pierce: {
+    path: `${WHITE_KNIGHT_SPRITE_BASE}/light_attack_pierce`,
+    frames: 4,
+    frameMs: 150,
+    draw: WHITE_KNIGHT_SHOWDOWN_DRAW,
+    render: {
+      canvasWidth: BLACK_KNIGHT_ATTACK_SPRITE_WIDTH,
+      referenceWidth: WHITE_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE.width,
+      referenceHeight: WHITE_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE.height,
+      allowHorizontalOverflow: true,
+      maxDrawHeight: WHITE_KNIGHT_SHOWDOWN_DRAW.height
+    }
+  },
+  heavy_attack: {
+    path: `${WHITE_KNIGHT_SPRITE_BASE}/heavy_attack`,
+    frames: 4,
+    frameMs: 160,
+    draw: WHITE_KNIGHT_SHOWDOWN_DRAW,
+    render: {
+      canvasWidth: BLACK_KNIGHT_ATTACK_SPRITE_WIDTH,
+      referenceWidth: WHITE_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE.width,
+      referenceHeight: WHITE_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE.height,
+      allowHorizontalOverflow: true,
+      maxDrawHeight: WHITE_KNIGHT_SHOWDOWN_DRAW.height
+    }
+  },
+  ultimate_skill: { path: `${WHITE_KNIGHT_SPRITE_BASE}/ultimate_skill`, frames: 4, frameMs: 80, draw: WHITE_KNIGHT_SHOWDOWN_DRAW },
+  jump_rear: { path: `${WHITE_KNIGHT_SPRITE_BASE}/jump_rear`, frames: 5, frameMs: 120, draw: WHITE_KNIGHT_SHOWDOWN_DRAW, floorOffset: 18 },
+  guard_block: { path: `${WHITE_KNIGHT_SPRITE_BASE}/guard_block`, frames: 4, frameMs: 110, draw: WHITE_KNIGHT_SHOWDOWN_DRAW },
+  hit_hurt: { path: `${WHITE_KNIGHT_SPRITE_BASE}/hit_hurt`, frames: 1, frameMs: 700, draw: WHITE_KNIGHT_SHOWDOWN_DRAW },
+  victory: {
+    path: `${WHITE_KNIGHT_SPRITE_BASE}/victory`,
+    frames: 5,
+    frameMs: 220,
+    draw: WHITE_KNIGHT_SHOWDOWN_DRAW,
+    render: {
+      referenceWidth: WHITE_KNIGHT_VICTORY_REFERENCE_SIZE.width,
+      referenceHeight: WHITE_KNIGHT_VICTORY_REFERENCE_SIZE.height,
+      drawWidthFromReference: true,
+      maxDrawHeight: WHITE_KNIGHT_SHOWDOWN_DRAW.height
+    }
+  },
+  knocked_down_defeat: { path: `${WHITE_KNIGHT_SPRITE_BASE}/knocked_down_defeat`, frames: 1, frameMs: 700, draw: WHITE_KNIGHT_SHOWDOWN_DRAW }
+};
+const WHITE_KNIGHT_BOARD_ANIMATIONS = {
+  idle: { path: `${WHITE_KNIGHT_SPRITE_BASE}/board_idle`, frames: 1, frameMs: 700, draw: WHITE_KNIGHT_BOARD_DRAW },
+  board_move_animation: { path: `${WHITE_KNIGHT_SPRITE_BASE}/board_move_animation`, frames: 8, frameMs: 100, draw: WHITE_KNIGHT_BOARD_DRAW }
+};
+const KNIGHT_SHOWDOWN_ANIMATIONS = {
+  [TEAM.BLACK]: BLACK_KNIGHT_SHOWDOWN_ANIMATIONS,
+  [TEAM.WHITE]: WHITE_KNIGHT_SHOWDOWN_ANIMATIONS
+};
+const KNIGHT_BOARD_ANIMATIONS = {
+  [TEAM.BLACK]: BLACK_KNIGHT_BOARD_ANIMATIONS,
+  [TEAM.WHITE]: WHITE_KNIGHT_BOARD_ANIMATIONS
+};
 const BOARD_MOVE_ANIMATION_SECONDS = 0.52;
 const SHOWDOWN_PREVIEW_SECONDS = 0.68;
 const PAWN_SPRITE_ATLAS = {
@@ -1157,34 +1225,42 @@ function loadBlackRookAnimations() {
 }
 
 function loadBlackKnightAnimations() {
-  const sets = {
-    showdown: BLACK_KNIGHT_SHOWDOWN_ANIMATIONS,
-    board: BLACK_KNIGHT_BOARD_ANIMATIONS
+  const setsByTeam = {
+    [TEAM.BLACK]: {
+      showdown: BLACK_KNIGHT_SHOWDOWN_ANIMATIONS,
+      board: BLACK_KNIGHT_BOARD_ANIMATIONS
+    },
+    [TEAM.WHITE]: {
+      showdown: WHITE_KNIGHT_SHOWDOWN_ANIMATIONS,
+      board: WHITE_KNIGHT_BOARD_ANIMATIONS
+    }
   };
 
-  for (const [section, animations] of Object.entries(sets)) {
-    for (const [action, config] of Object.entries(animations)) {
-      const cacheKey = `${section}:${action}`;
-      if (blackKnightAnimationFrames.has(cacheKey)) {
-        continue;
-      }
+  for (const [team, sets] of Object.entries(setsByTeam)) {
+    for (const [section, animations] of Object.entries(sets)) {
+      for (const [action, config] of Object.entries(animations)) {
+        const cacheKey = `${team}:${section}:${action}`;
+        if (blackKnightAnimationFrames.has(cacheKey)) {
+          continue;
+        }
 
-      const frames = [];
-      blackKnightAnimationFrames.set(cacheKey, frames);
-      for (let index = 0; index < config.frames; index += 1) {
-        const image = new Image();
-        const record = { image, loaded: false, failed: false };
-        frames.push(record);
-        image.onload = () => {
-          record.loaded = true;
-          record.failed = false;
-          blackKnightRenderCache.clear();
-        };
-        image.onerror = () => {
-          record.loaded = false;
-          record.failed = true;
-        };
-        image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
+        const frames = [];
+        blackKnightAnimationFrames.set(cacheKey, frames);
+        for (let index = 0; index < config.frames; index += 1) {
+          const image = new Image();
+          const record = { image, loaded: false, failed: false };
+          frames.push(record);
+          image.onload = () => {
+            record.loaded = true;
+            record.failed = false;
+            blackKnightRenderCache.clear();
+          };
+          image.onerror = () => {
+            record.loaded = false;
+            record.failed = true;
+          };
+          image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
+        }
       }
     }
   }
@@ -5166,9 +5242,10 @@ function drawBlackKnightBoardSprite(piece) {
 
   const animation = getBoardPieceMoveAnimation(piece);
   const action = animation ? "board_move_animation" : "idle";
-  const config = BLACK_KNIGHT_BOARD_ANIMATIONS[action] ?? BLACK_KNIGHT_BOARD_ANIMATIONS.idle;
+  const animations = KNIGHT_BOARD_ANIMATIONS[piece.team];
+  const config = animations[action] ?? animations.idle;
   const frameIndex = getBlackKnightBoardFrameIndex(animation, config);
-  const image = getBlackKnightAnimationFrame("board", action, frameIndex);
+  const image = getBlackKnightAnimationFrame(piece.team, "board", action, frameIndex);
   if (!image) {
     return false;
   }
@@ -5177,8 +5254,8 @@ function drawBlackKnightBoardSprite(piece) {
   ctx.imageSmoothingEnabled = false;
   const source = getBlackKnightModelSource(image);
   drawImageVisibleBoundsBottomCentered(ctx, source, 0, 36, config.draw.width, config.draw.height, shouldFlipBlackKnightBoardSprite(piece), {
-    referenceWidth: BLACK_KNIGHT_BOARD_REFERENCE_SIZE.width,
-    referenceHeight: BLACK_KNIGHT_BOARD_REFERENCE_SIZE.height
+    referenceWidth: getBlackKnightBoardReferenceSize(piece.team).width,
+    referenceHeight: getBlackKnightBoardReferenceSize(piece.team).height
   });
   ctx.restore();
   return true;
@@ -5201,18 +5278,18 @@ function getBlackKnightShowdownSprite(piece, frame, fighter) {
     return null;
   }
 
-  const frameInfo = getBlackKnightShowdownFrameInfo(frame, fighter);
+  const frameInfo = getBlackKnightShowdownFrameInfo(frame, fighter, piece.team);
   if (!frameInfo) {
     return null;
   }
 
-  const config = BLACK_KNIGHT_SHOWDOWN_ANIMATIONS[frameInfo.action];
-  const image = getBlackKnightAnimationFrame("showdown", frameInfo.action, frameInfo.index);
+  const config = KNIGHT_SHOWDOWN_ANIMATIONS[piece.team]?.[frameInfo.action];
+  const image = getBlackKnightAnimationFrame(piece.team, "showdown", frameInfo.action, frameInfo.index);
   if (!config || !image) {
     return null;
   }
 
-  const key = `knight-render:black:${frameInfo.action}:${frameInfo.index}`;
+  const key = `knight-render:${piece.team}:${frameInfo.action}:${frameInfo.index}`;
   if (blackKnightRenderCache.has(key)) {
     return blackKnightRenderCache.get(key);
   }
@@ -5226,9 +5303,10 @@ function getBlackKnightShowdownSprite(piece, frame, fighter) {
 
   const floorY = SHOWDOWN_SPRITE_FLOOR_Y - (config.floorOffset ?? 0);
   const source = getBlackKnightModelSource(image);
+  const referenceSize = getBlackKnightShowdownReferenceSize(piece.team);
   drawImageVisibleBoundsBottomCentered(spriteCtx, source, sprite.width / 2, floorY, config.draw.width, config.draw.height, false, {
-    referenceWidth: BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE.width,
-    referenceHeight: BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE.height,
+    referenceWidth: referenceSize.width,
+    referenceHeight: referenceSize.height,
     maxDrawWidth: render.allowHorizontalOverflow ? Number.POSITIVE_INFINITY : sprite.width - 8,
     ...render
   });
@@ -5236,23 +5314,23 @@ function getBlackKnightShowdownSprite(piece, frame, fighter) {
   return sprite;
 }
 
-function getBlackKnightShowdownFrameInfo(frame, fighter) {
+function getBlackKnightShowdownFrameInfo(frame, fighter, team = TEAM.BLACK) {
   if (frame.startsWith("defeated-fall")) {
     return {
       action: "knocked_down_defeat",
-      index: getBlackKnightProgressFrame("knocked_down_defeat", fighter?.fallTimer ?? 0)
+      index: getBlackKnightProgressFrame("knocked_down_defeat", fighter?.fallTimer ?? 0, false, team)
     };
   }
   if (frame.startsWith("victory-wave")) {
     return {
       action: "victory",
-      index: getBlackKnightLoopFrame("victory", fighter?.victoryTimer ?? performance.now() / 1000)
+      index: getBlackKnightLoopFrame("victory", fighter?.victoryTimer ?? performance.now() / 1000, team)
     };
   }
   if (frame === "hit-stagger") {
     return {
       action: "hit_hurt",
-      index: getBlackKnightLoopFrame("hit_hurt", performance.now() / 1000)
+      index: getBlackKnightLoopFrame("hit_hurt", performance.now() / 1000, team)
     };
   }
   if (frame === "ultimate-cast") {
@@ -5260,7 +5338,7 @@ function getBlackKnightShowdownFrameInfo(frame, fighter) {
     const progress = timer > 0 ? 1 - timer / 0.45 : 1;
     return {
       action: "ultimate_skill",
-      index: getBlackKnightProgressFrame("ultimate_skill", progress, true)
+      index: getBlackKnightProgressFrame("ultimate_skill", progress, true, team)
     };
   }
   if (frame === "critical-strike") {
@@ -5268,20 +5346,21 @@ function getBlackKnightShowdownFrameInfo(frame, fighter) {
     const progress = timer > 0 ? 1 - timer / Math.max(CRITICAL_ATTACK_FLASH_SECONDS, 0.01) : 1;
     return {
       action: "heavy_attack",
-      index: getBlackKnightProgressFrame("heavy_attack", progress, true)
+      index: getBlackKnightProgressFrame("heavy_attack", progress, true, team)
     };
   }
   if (frame.startsWith("attack-")) {
     const attackFrames = ["attack-windup", "attack-swing", "attack-strike", "attack-recover"];
+    const attackFrameCount = KNIGHT_SHOWDOWN_ANIMATIONS[team]?.light_attack_pierce?.frames ?? 1;
     return {
       action: "light_attack_pierce",
-      index: Math.min(Math.max(0, attackFrames.indexOf(frame)), BLACK_KNIGHT_SHOWDOWN_ANIMATIONS.light_attack_pierce.frames - 1)
+      index: Math.min(Math.max(0, attackFrames.indexOf(frame)), attackFrameCount - 1)
     };
   }
   if (frame.startsWith("block")) {
     return {
       action: "guard_block",
-      index: frame === "block-brace" ? 3 : getBlackKnightLoopFrame("guard_block", performance.now() / 1000)
+      index: frame === "block-brace" ? 3 : getBlackKnightLoopFrame("guard_block", performance.now() / 1000, team)
     };
   }
   if (frame === "jump-rise") {
@@ -5294,17 +5373,17 @@ function getBlackKnightShowdownFrameInfo(frame, fighter) {
     const action = (fighter?.speedTimer ?? 0) > 0 || (fighter?.dashTimer ?? 0) > 0 ? "charge_dash" : "walk";
     return {
       action,
-      index: getBlackKnightLoopFrame(action, fighter?.motionTime ?? performance.now() / 1000)
+      index: getBlackKnightLoopFrame(action, fighter?.motionTime ?? performance.now() / 1000, team)
     };
   }
   return {
     action: "idle_ready",
-    index: getBlackKnightLoopFrame("idle_ready", performance.now() / 1000)
+    index: getBlackKnightLoopFrame("idle_ready", performance.now() / 1000, team)
   };
 }
 
-function getBlackKnightLoopFrame(action, seconds) {
-  const config = BLACK_KNIGHT_SHOWDOWN_ANIMATIONS[action] ?? BLACK_KNIGHT_BOARD_ANIMATIONS[action];
+function getBlackKnightLoopFrame(action, seconds, team = TEAM.BLACK) {
+  const config = KNIGHT_SHOWDOWN_ANIMATIONS[team]?.[action] ?? KNIGHT_BOARD_ANIMATIONS[team]?.[action];
   return getBlackKnightLoopFrameForConfig(config, seconds);
 }
 
@@ -5316,8 +5395,8 @@ function getBlackKnightLoopFrameForConfig(config, seconds) {
   return Math.floor((seconds * 1000) / config.frameMs) % config.frames;
 }
 
-function getBlackKnightProgressFrame(action, value, normalized = false) {
-  const config = BLACK_KNIGHT_SHOWDOWN_ANIMATIONS[action] ?? BLACK_KNIGHT_BOARD_ANIMATIONS[action];
+function getBlackKnightProgressFrame(action, value, normalized = false, team = TEAM.BLACK) {
+  const config = KNIGHT_SHOWDOWN_ANIMATIONS[team]?.[action] ?? KNIGHT_BOARD_ANIMATIONS[team]?.[action];
   return getBlackKnightProgressFrameForConfig(config, value, normalized);
 }
 
@@ -5330,8 +5409,8 @@ function getBlackKnightProgressFrameForConfig(config, value, normalized = false)
   return clamp(Math.floor(progress * config.frames), 0, config.frames - 1);
 }
 
-function getBlackKnightAnimationFrame(section, action, index) {
-  const records = blackKnightAnimationFrames.get(`${section}:${action}`);
+function getBlackKnightAnimationFrame(team, section, action, index) {
+  const records = blackKnightAnimationFrames.get(`${team}:${section}:${action}`);
   if (!records?.length) {
     return null;
   }
@@ -5341,7 +5420,19 @@ function getBlackKnightAnimationFrame(section, action, index) {
 }
 
 function isBlackKnightSpritePiece(piece) {
-  return piece?.type === "horse" && piece.team === TEAM.BLACK;
+  return isKnightSpritePiece(piece);
+}
+
+function isKnightSpritePiece(piece) {
+  return piece?.type === "horse" && Boolean(KNIGHT_SHOWDOWN_ANIMATIONS[piece.team] && KNIGHT_BOARD_ANIMATIONS[piece.team]);
+}
+
+function getBlackKnightShowdownReferenceSize(team) {
+  return team === TEAM.WHITE ? WHITE_KNIGHT_SHOWDOWN_REFERENCE_SIZE : BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE;
+}
+
+function getBlackKnightBoardReferenceSize(team) {
+  return team === TEAM.WHITE ? WHITE_KNIGHT_BOARD_REFERENCE_SIZE : BLACK_KNIGHT_BOARD_REFERENCE_SIZE;
 }
 
 function isBlackKnightSoundPiece(piece) {

@@ -10,6 +10,7 @@
     "build:black-pawn-sprites": "python scripts/convert_black_pawn_gifs.py",
     "build:black-rook-sprites": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/convert_black_rook_gifs.ps1",
     "build:white-rook-sprites": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/convert_black_rook_gifs.ps1 -Team white",
-    "build:black-knight-sprites": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/convert_black_knight_gifs.ps1"
+    "build:black-knight-sprites": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/convert_black_knight_gifs.ps1",
+    "build:white-knight-sprites": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/convert_black_knight_gifs.ps1 -Team white"
   }
 }
