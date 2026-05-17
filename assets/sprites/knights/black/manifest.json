@@ -1,0 +1,170 @@
+﻿{
+    "piece":  "knight",
+    "team":  "black",
+    "source":  "assets/gif/black_knight",
+    "showdownFrameSize":  {
+                              "width":  512,
+                              "height":  320
+                          },
+    "showdownContentSize":  {
+                                "width":  452,
+                                "height":  300
+                            },
+    "boardFrameSize":  {
+                           "width":  128,
+                           "height":  128
+                       },
+    "actions":  {
+                    "board_idle":  {
+                                       "frames":  1,
+                                       "durationsMs":  [
+                                                           700
+                                                       ],
+                                       "frameWidth":  128,
+                                       "frameHeight":  128,
+                                       "path":  "assets/sprites/knights/black/board_idle"
+                                   },
+                    "board_move_animation":  {
+                                                 "frames":  7,
+                                                 "durationsMs":  [
+                                                                     120,
+                                                                     120,
+                                                                     120,
+                                                                     120,
+                                                                     120,
+                                                                     120,
+                                                                     120
+                                                                 ],
+                                                 "frameWidth":  128,
+                                                 "frameHeight":  128,
+                                                 "path":  "assets/sprites/knights/black/board_move_animation"
+                                             },
+                    "charge_dash":  {
+                                        "frames":  3,
+                                        "durationsMs":  [
+                                                            110,
+                                                            110,
+                                                            110
+                                                        ],
+                                        "frameWidth":  512,
+                                        "frameHeight":  320,
+                                        "path":  "assets/sprites/knights/black/charge_dash"
+                                    },
+                    "guard_block":  {
+                                        "frames":  4,
+                                        "durationsMs":  [
+                                                            110,
+                                                            100,
+                                                            100,
+                                                            360
+                                                        ],
+                                        "frameWidth":  512,
+                                        "frameHeight":  320,
+                                        "path":  "assets/sprites/knights/black/guard_block"
+                                    },
+                    "heavy_attack":  {
+                                         "frames":  3,
+                                         "durationsMs":  [
+                                                             90,
+                                                             160,
+                                                             240
+                                                         ],
+                                         "frameWidth":  512,
+                                         "frameHeight":  320,
+                                         "path":  "assets/sprites/knights/black/heavy_attack"
+                                     },
+                    "hit_hurt":  {
+                                     "frames":  1,
+                                     "durationsMs":  [
+                                                         700
+                                                     ],
+                                     "frameWidth":  512,
+                                     "frameHeight":  320,
+                                     "path":  "assets/sprites/knights/black/hit_hurt"
+                                 },
+                    "idle_ready":  {
+                                       "frames":  8,
+                                       "durationsMs":  [
+                                                           100,
+                                                           100,
+                                                           100,
+                                                           100,
+                                                           100,
+                                                           100,
+                                                           100,
+                                                           100
+                                                       ],
+                                       "frameWidth":  512,
+                                       "frameHeight":  320,
+                                       "path":  "assets/sprites/knights/black/idle_ready"
+                                   },
+                    "jump_rear":  {
+                                      "frames":  4,
+                                      "durationsMs":  [
+                                                          130,
+                                                          110,
+                                                          110,
+                                                          140
+                                                      ],
+                                      "frameWidth":  512,
+                                      "frameHeight":  320,
+                                      "path":  "assets/sprites/knights/black/jump_rear"
+                                  },
+                    "knocked_down_defeat":  {
+                                                "frames":  1,
+                                                "durationsMs":  [
+                                                                    700
+                                                                ],
+                                                "frameWidth":  512,
+                                                "frameHeight":  320,
+                                                "path":  "assets/sprites/knights/black/knocked_down_defeat"
+                                            },
+                    "light_attack_pierce":  {
+                                                "frames":  3,
+                                                "durationsMs":  [
+                                                                    150,
+                                                                    150,
+                                                                    150
+                                                                ],
+                                                "frameWidth":  512,
+                                                "frameHeight":  320,
+                                                "path":  "assets/sprites/knights/black/light_attack_pierce"
+                                            },
+                    "ultimate_skill":  {
+                                           "frames":  6,
+                                           "durationsMs":  [
+                                                               60,
+                                                               60,
+                                                               50,
+                                                               50,
+                                                               50,
+                                                               60
+                                                           ],
+                                           "frameWidth":  512,
+                                           "frameHeight":  320,
+                                           "path":  "assets/sprites/knights/black/ultimate_skill"
+                                       },
+                    "victory":  {
+                                    "frames":  3,
+                                    "durationsMs":  [
+                                                        180,
+                                                        320,
+                                                        160
+                                                    ],
+                                    "frameWidth":  512,
+                                    "frameHeight":  320,
+                                    "path":  "assets/sprites/knights/black/victory"
+                                },
+                    "walk":  {
+                                 "frames":  3,
+                                 "durationsMs":  [
+                                                     110,
+                                                     110,
+                                                     110
+                                                 ],
+                                 "frameWidth":  512,
+                                 "frameHeight":  320,
+                                 "path":  "assets/sprites/knights/black/walk"
+                             }
+                }
+}

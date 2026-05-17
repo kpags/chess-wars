@@ -198,6 +198,96 @@ for (const [action, expectedFrames] of Object.entries(blackRookGeneratedFrames))
 assert.ok(existsSync(new URL("../assets/sprites/rooks/black/preview-sheet.png", import.meta.url)), "generated black rook preview sheet should exist");
 assert.ok(existsSync(new URL("../assets/sprites/rooks/black/manifest.json", import.meta.url)), "generated black rook manifest should exist");
 
+const blackKnightSourceAssets = [
+  "board_move_animation.gif",
+  "board_top_view.png",
+  "defeat.png",
+  "defense_block.gif",
+  "heavy_attack.gif",
+  "hit_hurt.png",
+  "idle_ready.gif",
+  "jump_rear.gif",
+  "light_attack_pierce.gif",
+  "move_gallop.gif",
+  "ultimate_skill.gif",
+  "victory.gif"
+];
+
+for (const asset of blackKnightSourceAssets) {
+  assert.ok(existsSync(new URL(`../assets/gif/black_knight/${asset}`, import.meta.url)), `black knight source asset should exist: ${asset}`);
+}
+
+const blackKnightGeneratedFrames = {
+  board_idle: 1,
+  board_move_animation: 7,
+  charge_dash: 3,
+  guard_block: 4,
+  heavy_attack: 3,
+  hit_hurt: 1,
+  idle_ready: 8,
+  jump_rear: 4,
+  knocked_down_defeat: 1,
+  light_attack_pierce: 3,
+  ultimate_skill: 6,
+  victory: 3,
+  walk: 3
+};
+
+const blackKnightShowdownGeneratedFrames = new Set([
+  "charge_dash",
+  "guard_block",
+  "heavy_attack",
+  "hit_hurt",
+  "idle_ready",
+  "jump_rear",
+  "knocked_down_defeat",
+  "light_attack_pierce",
+  "ultimate_skill",
+  "victory",
+  "walk"
+]);
+let blackKnightShowdownFrameSize = null;
+
+for (const [action, expectedFrames] of Object.entries(blackKnightGeneratedFrames)) {
+  const actionDir = new URL(`../assets/sprites/knights/black/${action}/`, import.meta.url);
+  assert.ok(existsSync(actionDir), `generated black knight action folder should exist for ${action}`);
+  const frames = readdirSync(actionDir).filter((name) => /^frame-\d+\.png$/.test(name));
+  assert.equal(frames.length, expectedFrames, `generated black knight action ${action} should have ${expectedFrames} frames`);
+
+  if (blackKnightShowdownGeneratedFrames.has(action)) {
+    for (const frame of frames) {
+      const size = readPngSize(new URL(frame, actionDir));
+      blackKnightShowdownFrameSize ??= size;
+      assert.deepEqual(size, blackKnightShowdownFrameSize, `black knight Showdown frame ${action}/${frame} should use the shared canvas size`);
+    }
+  }
+}
+assert.ok(existsSync(new URL("../assets/sprites/knights/black/preview-sheet.png", import.meta.url)), "generated black knight preview sheet should exist");
+assert.ok(existsSync(new URL("../assets/sprites/knights/black/manifest.json", import.meta.url)), "generated black knight manifest should exist");
+assert.match(main, /BLACK_KNIGHT_SHOWDOWN_DRAW = \{ width: 378, height: 286 \}/, "black knight Showdown draw size should be larger while staying under the rook width");
+assert.match(main, /BLACK_KNIGHT_BOARD_DRAW = \{ width: 92, height: 100 \}/, "black knight board draw size should be larger than the old pawn-sized box");
+assert.match(main, /BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE = \{ width: 268, height: 300 \}/, "black knight Showdown scaling should use the idle model size as a stable reference");
+assert.match(main, /BLACK_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE = \{ width: 300, height: 240 \}/, "black knight light attacks should use a moderated source-height reference to avoid growing too large");
+assert.match(main, /BLACK_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE = \{ width: 300, height: 240 \}/, "black knight heavy attacks should use a moderated source-height reference to avoid growing too large");
+assert.match(main, /BLACK_KNIGHT_VICTORY_REFERENCE_SIZE = \{ width: 225, height: 170 \}/, "black knight victory should use a cleaned-frame reference so celebration does not render tiny");
+assert.match(main, /BLACK_KNIGHT_BOARD_REFERENCE_SIZE = \{ width: 84, height: 110 \}/, "black knight board scaling should use a stable board-frame reference size");
+assert.match(main, /BLACK_KNIGHT_ATTACK_SPRITE_WIDTH = 460/, "black knight attack sprites should keep the standard Showdown canvas width");
+assert.match(main, /BLACK_KNIGHT_BACKDROP_MIN_COMPONENT_PIXELS = 2000/, "black knight backdrop removal should ignore small armor-gray clusters");
+assert.match(main, /function getBlackKnightModelSource/, "black knight frames should use a dedicated cleaned source canvas");
+assert.match(main, /function removeBlackKnightFlatBackdrop/, "black knight celebration backdrop should be keyed out at render time");
+assert.match(main, /drawImageVisibleBoundsBottomCentered\(spriteCtx, source/, "black knight Showdown frames should draw from visible bounds to avoid attack-size drift");
+assert.match(main, /referenceHeight: BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE\.height/, "black knight Showdown frames should keep one scale through attacks and victory");
+assert.match(main, /canvasWidth: BLACK_KNIGHT_ATTACK_SPRITE_WIDTH/, "black knight attack frames should render into the standard-width internal canvas");
+assert.match(main, /referenceHeight: BLACK_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE\.height/, "black knight light attacks should override the default idle-height scale");
+assert.match(main, /allowHorizontalOverflow: true/, "black knight attack frames should keep uniform scale and crop instead of squeezing width");
+assert.match(main, /maxDrawWidth: render\.allowHorizontalOverflow \? Number\.POSITIVE_INFINITY : sprite\.width - 8/, "black knight attack frames should avoid width-based downscaling");
+assert.match(main, /referenceHeight: BLACK_KNIGHT_VICTORY_REFERENCE_SIZE\.height/, "black knight victory frames should scale from their cleaned visible content");
+assert.match(main, /outputWidthSource = options\.drawWidthFromReference \? referenceWidth : sourceWidth/, "visible-bounds drawing should support width-stable attack frames");
+assert.match(main, /drawStampedeDashEffect\(fighter, sprite, spriteX, spriteY, viewX, jumpHeight\)/, "knight stampede dash should size itself from the rendered sprite");
+assert.match(main, /const modelHeight = modelBounds\.maxY - modelBounds\.minY \+ 1/, "Showdown sprite metrics should expose visible model height");
+assert.match(main, /const dashPad = modelWidth \/ 2/, "knight stampede trail should pad by half the model width");
+assert.match(main, /const dashHeight = Math\.max\(48, modelHeight\)/, "knight stampede trail height should follow the rendered model height");
+
 const whiteRookSourceGifs = [
   "idle_ready.gif",
   "walk.gif",
@@ -422,7 +512,7 @@ assert.match(main, /STAMPEDE_DASH_DISTANCE = 96/, "horse Stampede should use sho
 assert.match(main, /performStampedeDash/, "horse Stampede should teleport between dash positions");
 assert.match(main, /drawStampedeDashEffect/, "horse Stampede should draw a dash smear effect");
 assert.match(main, /function isStampeding\(fighter\)/, "horse Stampede should share one active-skill visibility check");
-assert.match(main, /if \(isStampeding\(fighter\)\) \{\s+drawStampedeDashEffect\(fighter, viewX, jumpHeight\);\s+ctx\.restore\(\);\s+return;/s, "horse piece should be hidden while Stampede is active");
+assert.match(main, /if \(isStampeding\(fighter\)\) \{\s+drawStampedeDashEffect\(fighter, sprite, spriteX, spriteY, viewX, jumpHeight\);\s+ctx\.restore\(\);\s+return;/s, "horse piece should be hidden while Stampede is active");
 assert.match(main, /if \(!isStampeding\(fighter\)\) \{\s+return;\s+\}/s, "horse Stampede dash effects should not linger after the skill ends");
 assert.match(main, /stampedeTrailFrom/, "horse Stampede should remember the dash trail start");
 assert.match(main, /stampedeTrailTo/, "horse Stampede should remember the dash trail end");
@@ -555,6 +645,14 @@ assert.match(main, /\$\{team\}:\$\{section\}:\$\{action\}/, "rook frame caches s
 assert.match(main, /heavy_attack_double_crush/, "black rook critical strikes should use the double-crush animation frames");
 assert.match(main, /ground_smash/, "black rook ultimate casting should use the ground-smash animation frames");
 assert.match(main, /isRookSpritePiece/, "rook sprite support should include generated black and white rooks");
+assert.match(main, /BLACK_KNIGHT_SHOWDOWN_ANIMATIONS/, "black knight should support generated Showdown frame animations");
+assert.match(main, /BLACK_KNIGHT_BOARD_ANIMATIONS/, "black knight should support generated board frame models");
+assert.match(main, /loadBlackKnightAnimations/, "black knight animations should be preloaded at boot");
+assert.match(main, /getBlackKnightShowdownSprite/, "black knight Showdown rendering should prefer loaded generated frames");
+assert.match(main, /drawBlackKnightBoardSprite/, "black knight board rendering should prefer loaded top-view frames");
+assert.match(main, /blackKnightAnimationFrames/, "black knight frame folders should be cached like rook frames");
+assert.match(main, /isBlackKnightSpritePiece/, "black knight sprite support should be limited to black knight pieces");
+assert.match(main, /piece\?\.type === "horse" && piece\.team === TEAM\.BLACK/, "black knight sprite routing should use the internal horse type");
 assert.match(main, /playerTeam: TEAM\.WHITE/, "AI games should track the human player's selected side");
 assert.match(main, /function setAiPlayerTeam/, "AI side picker should update the selected human side");
 assert.match(main, /function getAiTeam/, "AI ownership should be derived from the player's selected side");

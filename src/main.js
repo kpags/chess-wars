@@ -208,6 +208,68 @@ const ROOK_BOARD_ANIMATIONS = {
 };
 const BLACK_ROOK_BOARD_IDLE_ACTION = "down";
 const BLACK_ROOK_BOARD_MOVE_ACTIONS = [BLACK_ROOK_BOARD_IDLE_ACTION, "up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"];
+const BLACK_KNIGHT_SPRITE_BASE = "assets/sprites/knights/black";
+const BLACK_KNIGHT_SHOWDOWN_DRAW = { width: 378, height: 286 };
+const BLACK_KNIGHT_BOARD_DRAW = { width: 92, height: 100 };
+const BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE = { width: 268, height: 300 };
+const BLACK_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE = { width: 300, height: 240 };
+const BLACK_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE = { width: 300, height: 240 };
+const BLACK_KNIGHT_VICTORY_REFERENCE_SIZE = { width: 225, height: 170 };
+const BLACK_KNIGHT_BOARD_REFERENCE_SIZE = { width: 84, height: 110 };
+const BLACK_KNIGHT_ATTACK_SPRITE_WIDTH = 460;
+const BLACK_KNIGHT_BACKDROP_MIN_COMPONENT_PIXELS = 2000;
+const BLACK_KNIGHT_SHOWDOWN_ANIMATIONS = {
+  idle_ready: { path: `${BLACK_KNIGHT_SPRITE_BASE}/idle_ready`, frames: 8, frameMs: 100, draw: BLACK_KNIGHT_SHOWDOWN_DRAW },
+  walk: { path: `${BLACK_KNIGHT_SPRITE_BASE}/walk`, frames: 3, frameMs: 110, draw: BLACK_KNIGHT_SHOWDOWN_DRAW },
+  charge_dash: { path: `${BLACK_KNIGHT_SPRITE_BASE}/charge_dash`, frames: 3, frameMs: 110, draw: BLACK_KNIGHT_SHOWDOWN_DRAW },
+  light_attack_pierce: {
+    path: `${BLACK_KNIGHT_SPRITE_BASE}/light_attack_pierce`,
+    frames: 3,
+    frameMs: 150,
+    draw: BLACK_KNIGHT_SHOWDOWN_DRAW,
+    render: {
+      canvasWidth: BLACK_KNIGHT_ATTACK_SPRITE_WIDTH,
+      referenceWidth: BLACK_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE.width,
+      referenceHeight: BLACK_KNIGHT_LIGHT_ATTACK_REFERENCE_SIZE.height,
+      allowHorizontalOverflow: true,
+      maxDrawHeight: BLACK_KNIGHT_SHOWDOWN_DRAW.height
+    }
+  },
+  heavy_attack: {
+    path: `${BLACK_KNIGHT_SPRITE_BASE}/heavy_attack`,
+    frames: 3,
+    frameMs: 160,
+    draw: BLACK_KNIGHT_SHOWDOWN_DRAW,
+    render: {
+      canvasWidth: BLACK_KNIGHT_ATTACK_SPRITE_WIDTH,
+      referenceWidth: BLACK_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE.width,
+      referenceHeight: BLACK_KNIGHT_HEAVY_ATTACK_REFERENCE_SIZE.height,
+      allowHorizontalOverflow: true,
+      maxDrawHeight: BLACK_KNIGHT_SHOWDOWN_DRAW.height
+    }
+  },
+  ultimate_skill: { path: `${BLACK_KNIGHT_SPRITE_BASE}/ultimate_skill`, frames: 6, frameMs: 60, draw: BLACK_KNIGHT_SHOWDOWN_DRAW },
+  jump_rear: { path: `${BLACK_KNIGHT_SPRITE_BASE}/jump_rear`, frames: 4, frameMs: 120, draw: BLACK_KNIGHT_SHOWDOWN_DRAW, floorOffset: 18 },
+  guard_block: { path: `${BLACK_KNIGHT_SPRITE_BASE}/guard_block`, frames: 4, frameMs: 110, draw: BLACK_KNIGHT_SHOWDOWN_DRAW },
+  hit_hurt: { path: `${BLACK_KNIGHT_SPRITE_BASE}/hit_hurt`, frames: 1, frameMs: 700, draw: BLACK_KNIGHT_SHOWDOWN_DRAW },
+  victory: {
+    path: `${BLACK_KNIGHT_SPRITE_BASE}/victory`,
+    frames: 3,
+    frameMs: 220,
+    draw: BLACK_KNIGHT_SHOWDOWN_DRAW,
+    render: {
+      referenceWidth: BLACK_KNIGHT_VICTORY_REFERENCE_SIZE.width,
+      referenceHeight: BLACK_KNIGHT_VICTORY_REFERENCE_SIZE.height,
+      drawWidthFromReference: true,
+      maxDrawHeight: BLACK_KNIGHT_SHOWDOWN_DRAW.height
+    }
+  },
+  knocked_down_defeat: { path: `${BLACK_KNIGHT_SPRITE_BASE}/knocked_down_defeat`, frames: 1, frameMs: 700, draw: BLACK_KNIGHT_SHOWDOWN_DRAW }
+};
+const BLACK_KNIGHT_BOARD_ANIMATIONS = {
+  idle: { path: `${BLACK_KNIGHT_SPRITE_BASE}/board_idle`, frames: 1, frameMs: 700, draw: BLACK_KNIGHT_BOARD_DRAW },
+  board_move_animation: { path: `${BLACK_KNIGHT_SPRITE_BASE}/board_move_animation`, frames: 7, frameMs: 120, draw: BLACK_KNIGHT_BOARD_DRAW }
+};
 const BOARD_MOVE_ANIMATION_SECONDS = 0.52;
 const SHOWDOWN_PREVIEW_SECONDS = 0.68;
 const PAWN_SPRITE_ATLAS = {
@@ -284,9 +346,12 @@ const pawnGifFrames = new Map();
 const pawnGifRenderCache = new Map();
 const imageVisibleBoundsCache = new WeakMap();
 const showdownModelSourceCache = new WeakMap();
+const blackKnightModelSourceCache = new WeakMap();
 const showdownContactShadowCache = new WeakMap();
 const blackRookAnimationFrames = new Map();
 const blackRookRenderCache = new Map();
+const blackKnightAnimationFrames = new Map();
+const blackKnightRenderCache = new Map();
 
 const ARENA = {
   width: 960,
@@ -574,6 +639,7 @@ function boot() {
   loadPawnSpriteSheets();
   loadPawnGifFrames();
   loadBlackRookAnimations();
+  loadBlackKnightAnimations();
   bindEvents();
   setupBackgroundMusic();
   setupShowdownMusic();
@@ -993,6 +1059,40 @@ function loadBlackRookAnimations() {
           };
           image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
         }
+      }
+    }
+  }
+}
+
+function loadBlackKnightAnimations() {
+  const sets = {
+    showdown: BLACK_KNIGHT_SHOWDOWN_ANIMATIONS,
+    board: BLACK_KNIGHT_BOARD_ANIMATIONS
+  };
+
+  for (const [section, animations] of Object.entries(sets)) {
+    for (const [action, config] of Object.entries(animations)) {
+      const cacheKey = `${section}:${action}`;
+      if (blackKnightAnimationFrames.has(cacheKey)) {
+        continue;
+      }
+
+      const frames = [];
+      blackKnightAnimationFrames.set(cacheKey, frames);
+      for (let index = 0; index < config.frames; index += 1) {
+        const image = new Image();
+        const record = { image, loaded: false, failed: false };
+        frames.push(record);
+        image.onload = () => {
+          record.loaded = true;
+          record.failed = false;
+          blackKnightRenderCache.clear();
+        };
+        image.onerror = () => {
+          record.loaded = false;
+          record.failed = true;
+        };
+        image.src = `${config.path}/frame-${String(index).padStart(2, "0")}.png`;
       }
     }
   }
@@ -1439,7 +1539,7 @@ function hasBoardMoveAnimation(piece) {
     return true;
   }
 
-  return isBlackRookSpritePiece(piece);
+  return isBlackRookSpritePiece(piece) || isBlackKnightSpritePiece(piece);
 }
 
 function finishBoardMove(piece, usedDance) {
@@ -4621,6 +4721,11 @@ function drawPiece(piece, board) {
     return;
   }
 
+  if (drawBlackKnightBoardSprite(piece)) {
+    ctx.restore();
+    return;
+  }
+
   drawCarvedPieceBody(piece.type, colors);
   drawBoardWeaponIcon(piece.type, colors);
   drawPieceCrest(stat.short, colors);
@@ -4956,6 +5061,191 @@ function isRookSpritePiece(piece) {
 
 function isBlackRookSpritePiece(piece) {
   return isRookSpritePiece(piece);
+}
+
+function drawBlackKnightBoardSprite(piece) {
+  if (!isBlackKnightSpritePiece(piece)) {
+    return false;
+  }
+
+  const animation = getBoardPieceMoveAnimation(piece);
+  const action = animation ? "board_move_animation" : "idle";
+  const config = BLACK_KNIGHT_BOARD_ANIMATIONS[action] ?? BLACK_KNIGHT_BOARD_ANIMATIONS.idle;
+  const frameIndex = getBlackKnightBoardFrameIndex(animation, config);
+  const image = getBlackKnightAnimationFrame("board", action, frameIndex);
+  if (!image) {
+    return false;
+  }
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  const source = getBlackKnightModelSource(image);
+  drawImageVisibleBoundsBottomCentered(ctx, source, 0, 36, config.draw.width, config.draw.height, shouldFlipBlackKnightBoardSprite(piece), {
+    referenceWidth: BLACK_KNIGHT_BOARD_REFERENCE_SIZE.width,
+    referenceHeight: BLACK_KNIGHT_BOARD_REFERENCE_SIZE.height
+  });
+  ctx.restore();
+  return true;
+}
+
+function shouldFlipBlackKnightBoardSprite(piece) {
+  return piece?.team === getLocalBoardTeam();
+}
+
+function getBlackKnightBoardFrameIndex(animation, config) {
+  if (!animation) {
+    return getBlackKnightLoopFrameForConfig(config, performance.now() / 1000);
+  }
+
+  return getBlackKnightProgressFrameForConfig(config, animation.elapsed / Math.max(animation.duration, 0.01), true);
+}
+
+function getBlackKnightShowdownSprite(piece, frame, fighter) {
+  if (!isBlackKnightSpritePiece(piece)) {
+    return null;
+  }
+
+  const frameInfo = getBlackKnightShowdownFrameInfo(frame, fighter);
+  if (!frameInfo) {
+    return null;
+  }
+
+  const config = BLACK_KNIGHT_SHOWDOWN_ANIMATIONS[frameInfo.action];
+  const image = getBlackKnightAnimationFrame("showdown", frameInfo.action, frameInfo.index);
+  if (!config || !image) {
+    return null;
+  }
+
+  const key = `knight-render:black:${frameInfo.action}:${frameInfo.index}`;
+  if (blackKnightRenderCache.has(key)) {
+    return blackKnightRenderCache.get(key);
+  }
+
+  const render = config.render ?? {};
+  const sprite = document.createElement("canvas");
+  sprite.width = render.canvasWidth ?? SHOWDOWN_SPRITE_WIDTH;
+  sprite.height = SHOWDOWN_SPRITE_HEIGHT;
+  const spriteCtx = sprite.getContext("2d");
+  spriteCtx.imageSmoothingEnabled = false;
+
+  const floorY = SHOWDOWN_SPRITE_FLOOR_Y - (config.floorOffset ?? 0);
+  const source = getBlackKnightModelSource(image);
+  drawImageVisibleBoundsBottomCentered(spriteCtx, source, sprite.width / 2, floorY, config.draw.width, config.draw.height, false, {
+    referenceWidth: BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE.width,
+    referenceHeight: BLACK_KNIGHT_SHOWDOWN_REFERENCE_SIZE.height,
+    maxDrawWidth: render.allowHorizontalOverflow ? Number.POSITIVE_INFINITY : sprite.width - 8,
+    ...render
+  });
+  blackKnightRenderCache.set(key, sprite);
+  return sprite;
+}
+
+function getBlackKnightShowdownFrameInfo(frame, fighter) {
+  if (frame.startsWith("defeated-fall")) {
+    return {
+      action: "knocked_down_defeat",
+      index: getBlackKnightProgressFrame("knocked_down_defeat", fighter?.fallTimer ?? 0)
+    };
+  }
+  if (frame.startsWith("victory-wave")) {
+    return {
+      action: "victory",
+      index: getBlackKnightLoopFrame("victory", fighter?.victoryTimer ?? performance.now() / 1000)
+    };
+  }
+  if (frame === "hit-stagger") {
+    return {
+      action: "hit_hurt",
+      index: getBlackKnightLoopFrame("hit_hurt", performance.now() / 1000)
+    };
+  }
+  if (frame === "ultimate-cast") {
+    const timer = fighter?.ultimateTimer ?? 0;
+    const progress = timer > 0 ? 1 - timer / 0.45 : 1;
+    return {
+      action: "ultimate_skill",
+      index: getBlackKnightProgressFrame("ultimate_skill", progress, true)
+    };
+  }
+  if (frame === "critical-strike") {
+    const timer = fighter?.criticalAttackTimer ?? 0;
+    const progress = timer > 0 ? 1 - timer / Math.max(CRITICAL_ATTACK_FLASH_SECONDS, 0.01) : 1;
+    return {
+      action: "heavy_attack",
+      index: getBlackKnightProgressFrame("heavy_attack", progress, true)
+    };
+  }
+  if (frame.startsWith("attack-")) {
+    const attackFrames = ["attack-windup", "attack-swing", "attack-strike", "attack-recover"];
+    return {
+      action: "light_attack_pierce",
+      index: Math.min(Math.max(0, attackFrames.indexOf(frame)), BLACK_KNIGHT_SHOWDOWN_ANIMATIONS.light_attack_pierce.frames - 1)
+    };
+  }
+  if (frame.startsWith("block")) {
+    return {
+      action: "guard_block",
+      index: frame === "block-brace" ? 3 : getBlackKnightLoopFrame("guard_block", performance.now() / 1000)
+    };
+  }
+  if (frame === "jump-rise") {
+    return { action: "jump_rear", index: 1 };
+  }
+  if (frame === "jump-fall") {
+    return { action: "jump_rear", index: 2 };
+  }
+  if (frame.startsWith("run-")) {
+    const action = (fighter?.speedTimer ?? 0) > 0 || (fighter?.dashTimer ?? 0) > 0 ? "charge_dash" : "walk";
+    return {
+      action,
+      index: getBlackKnightLoopFrame(action, fighter?.motionTime ?? performance.now() / 1000)
+    };
+  }
+  return {
+    action: "idle_ready",
+    index: getBlackKnightLoopFrame("idle_ready", performance.now() / 1000)
+  };
+}
+
+function getBlackKnightLoopFrame(action, seconds) {
+  const config = BLACK_KNIGHT_SHOWDOWN_ANIMATIONS[action] ?? BLACK_KNIGHT_BOARD_ANIMATIONS[action];
+  return getBlackKnightLoopFrameForConfig(config, seconds);
+}
+
+function getBlackKnightLoopFrameForConfig(config, seconds) {
+  if (!config) {
+    return 0;
+  }
+
+  return Math.floor((seconds * 1000) / config.frameMs) % config.frames;
+}
+
+function getBlackKnightProgressFrame(action, value, normalized = false) {
+  const config = BLACK_KNIGHT_SHOWDOWN_ANIMATIONS[action] ?? BLACK_KNIGHT_BOARD_ANIMATIONS[action];
+  return getBlackKnightProgressFrameForConfig(config, value, normalized);
+}
+
+function getBlackKnightProgressFrameForConfig(config, value, normalized = false) {
+  if (!config) {
+    return 0;
+  }
+
+  const progress = normalized ? value : value * 1000 / Math.max(config.frameMs * config.frames, 1);
+  return clamp(Math.floor(progress * config.frames), 0, config.frames - 1);
+}
+
+function getBlackKnightAnimationFrame(section, action, index) {
+  const records = blackKnightAnimationFrames.get(`${section}:${action}`);
+  if (!records?.length) {
+    return null;
+  }
+
+  const record = records[clamp(Math.floor(index), 0, records.length - 1)];
+  return record?.loaded ? record.image : null;
+}
+
+function isBlackKnightSpritePiece(piece) {
+  return piece?.type === "horse" && piece.team === TEAM.BLACK;
 }
 
 function getPawnShowdownSprite(piece, frame, fighter) {
@@ -5341,6 +5631,40 @@ function drawImageVisibleBottomCentered(target, image, centerX, floorY, maxWidth
   target.drawImage(image, centerX - width / 2, floorY - height + visibleBottomInset * scale, width, height);
 }
 
+function drawImageVisibleBoundsBottomCentered(target, image, centerX, floorY, maxWidth, maxHeight, flipY = false, options = {}) {
+  const bounds = getImageVisibleBounds(image);
+  if (!bounds) {
+    return;
+  }
+
+  const sourceX = bounds.minX;
+  const sourceY = bounds.minY;
+  const sourceWidth = bounds.maxX - bounds.minX + 1;
+  const sourceHeight = bounds.maxY - bounds.minY + 1;
+  const referenceWidth = options.referenceWidth ?? sourceWidth;
+  const referenceHeight = options.referenceHeight ?? sourceHeight;
+  const outputWidthSource = options.drawWidthFromReference ? referenceWidth : sourceWidth;
+  const scale = Math.min(
+    maxWidth / referenceWidth,
+    maxHeight / referenceHeight,
+    (options.maxDrawWidth ?? Number.POSITIVE_INFINITY) / outputWidthSource,
+    (options.maxDrawHeight ?? Number.POSITIVE_INFINITY) / sourceHeight
+  );
+  const width = outputWidthSource * scale;
+  const height = sourceHeight * scale;
+
+  if (flipY) {
+    target.save();
+    target.translate(centerX, floorY - height / 2);
+    target.scale(1, -1);
+    target.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, -width / 2, -height / 2, width, height);
+    target.restore();
+    return;
+  }
+
+  target.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, centerX - width / 2, floorY - height, width, height);
+}
+
 function getImageVisibleBounds(image) {
   if (imageVisibleBoundsCache.has(image)) {
     return imageVisibleBoundsCache.get(image);
@@ -5372,6 +5696,121 @@ function getShowdownModelSource(image) {
   removeShowdownModelFloorShadow(sourceCtx, source.width, source.height);
   showdownModelSourceCache.set(image, source);
   return source;
+}
+
+function getBlackKnightModelSource(image) {
+  if (blackKnightModelSourceCache.has(image)) {
+    return blackKnightModelSourceCache.get(image);
+  }
+
+  const source = document.createElement("canvas");
+  source.width = image.width;
+  source.height = image.height;
+  const sourceCtx = source.getContext("2d", { willReadFrequently: true });
+  sourceCtx.imageSmoothingEnabled = false;
+  sourceCtx.drawImage(image, 0, 0);
+  removeBlackKnightFlatBackdrop(sourceCtx, source.width, source.height);
+  removeShowdownModelFloorShadow(sourceCtx, source.width, source.height);
+  blackKnightModelSourceCache.set(image, source);
+  return source;
+}
+
+function removeBlackKnightFlatBackdrop(sourceCtx, width, height) {
+  const imageData = sourceCtx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const visited = new Uint8Array(width * height);
+  const queue = new Int32Array(width * height);
+  let removed = false;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const start = y * width + x;
+      if (visited[start]) {
+        continue;
+      }
+
+      visited[start] = 1;
+      if (!isBlackKnightBackdropPixel(data, start * 4)) {
+        continue;
+      }
+
+      let readIndex = 0;
+      let writeIndex = 0;
+      let minX = x;
+      let minY = y;
+      let maxX = x;
+      let maxY = y;
+      queue[writeIndex] = start;
+      writeIndex += 1;
+
+      while (readIndex < writeIndex) {
+        const pixel = queue[readIndex];
+        readIndex += 1;
+        const pixelX = pixel % width;
+        const pixelY = Math.floor(pixel / width);
+        minX = Math.min(minX, pixelX);
+        minY = Math.min(minY, pixelY);
+        maxX = Math.max(maxX, pixelX);
+        maxY = Math.max(maxY, pixelY);
+
+        const neighbors = [
+          pixel - 1,
+          pixel + 1,
+          pixel - width,
+          pixel + width
+        ];
+
+        for (const neighbor of neighbors) {
+          if (neighbor < 0 || neighbor >= visited.length || visited[neighbor]) {
+            continue;
+          }
+
+          const neighborX = neighbor % width;
+          if ((neighbor === pixel - 1 && neighborX !== pixelX - 1) || (neighbor === pixel + 1 && neighborX !== pixelX + 1)) {
+            continue;
+          }
+
+          visited[neighbor] = 1;
+          if (!isBlackKnightBackdropPixel(data, neighbor * 4)) {
+            continue;
+          }
+
+          queue[writeIndex] = neighbor;
+          writeIndex += 1;
+        }
+      }
+
+      const spanX = maxX - minX + 1;
+      const spanY = maxY - minY + 1;
+      if (writeIndex < BLACK_KNIGHT_BACKDROP_MIN_COMPONENT_PIXELS || (spanX < 10 && spanY < 10)) {
+        continue;
+      }
+
+      for (let i = 0; i < writeIndex; i += 1) {
+        data[queue[i] * 4 + 3] = 0;
+      }
+      removed = true;
+    }
+  }
+
+  if (removed) {
+    sourceCtx.putImageData(imageData, 0, 0);
+  }
+}
+
+function isBlackKnightBackdropPixel(data, index) {
+  const alpha = data[index + 3];
+  if (alpha <= 220) {
+    return false;
+  }
+
+  const r = data[index];
+  const g = data[index + 1];
+  const b = data[index + 2];
+  const brightness = (r + g + b) / 3;
+  const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+
+  return chroma <= 8 && brightness >= 82 && brightness <= 122;
 }
 
 function removeShowdownModelFloorShadow(sourceCtx, width, height) {
@@ -6105,7 +6544,7 @@ function drawFighter(fighter) {
   ctx.save();
   ctx.translate(viewX, fighter.y);
   if (isStampeding(fighter)) {
-    drawStampedeDashEffect(fighter, viewX, jumpHeight);
+    drawStampedeDashEffect(fighter, sprite, spriteX, spriteY, viewX, jumpHeight);
     ctx.restore();
     return;
   }
@@ -6178,11 +6617,14 @@ function getShowdownContactShadowMetrics(image) {
   }
 
   const modelWidth = modelBounds.maxX - modelBounds.minX + 1;
+  const modelHeight = modelBounds.maxY - modelBounds.minY + 1;
   const centerX = (modelBounds.minX + modelBounds.maxX) / 2;
   const metrics = {
     centerX,
+    topY: modelBounds.minY,
     bottomY: modelBounds.maxY,
-    modelWidth
+    modelWidth,
+    modelHeight
   };
 
   showdownContactShadowCache.set(image, metrics);
@@ -6309,16 +6751,25 @@ function drawFighterAfterimages(fighter, sprite, spriteX, spriteY) {
   }
 }
 
-function drawStampedeDashEffect(fighter, viewX, jumpHeight) {
+function drawStampedeDashEffect(fighter, sprite, spriteX, spriteY, viewX, jumpHeight) {
   if (!isStampeding(fighter)) {
     return;
   }
 
+  const metrics = getShowdownContactShadowMetrics(sprite);
+  const scaleX = metrics ? SHOWDOWN_DRAW_WIDTH / sprite.width : 1;
+  const scaleY = metrics ? SHOWDOWN_DRAW_HEIGHT / sprite.height : 1;
+  const modelWidth = metrics ? metrics.modelWidth * scaleX : 232;
+  const modelHeight = metrics ? metrics.modelHeight * scaleY : 150;
+  const dashPad = modelWidth / 2;
+  const dashTop = metrics ? spriteY + metrics.topY * scaleY : -180;
+  const dashHeight = Math.max(48, modelHeight);
+  const lineCount = clamp(Math.round(dashHeight / 8), 14, 44);
   const trailAlpha = clamp((fighter.stampedeTrailTimer ?? 0) / STAMPEDE_TRAIL_SECONDS, 0.35, 1);
   const from = getShowdownViewX(fighter.stampedeTrailFrom ?? fighter.x);
   const to = getShowdownViewX(fighter.stampedeTrailTo ?? fighter.x);
-  const start = Math.min(from, to) - viewX - 116;
-  const end = Math.max(from, to) - viewX + 116;
+  const start = Math.min(from, to) - viewX - dashPad;
+  const end = Math.max(from, to) - viewX + dashPad;
   const elapsed = performance.now() / 30;
 
   ctx.save();
@@ -6326,10 +6777,10 @@ function drawStampedeDashEffect(fighter, viewX, jumpHeight) {
   ctx.lineCap = "round";
   ctx.globalAlpha = 0.18 + trailAlpha * 0.62;
 
-  for (let i = 0; i < 34; i += 1) {
+  for (let i = 0; i < lineCount; i += 1) {
     const wobble = Math.sin(elapsed + i * 1.37);
-    const y = -134 + (i % 14) * 7 + wobble * 2.5;
-    const inset = 8 + ((i * 17) % 72);
+    const y = dashTop + (i / Math.max(1, lineCount - 1)) * dashHeight + wobble * 2.5;
+    const inset = 8 + ((i * 17) % Math.max(24, dashPad));
     const lineStart = start + inset * 0.5;
     const lineEnd = end - inset;
     ctx.strokeStyle = i % 4 === 0 ? "rgba(255, 248, 232, 0.58)" : i % 3 === 0 ? "rgba(0, 0, 0, 0.72)" : "rgba(185, 185, 185, 0.62)";
@@ -6342,9 +6793,9 @@ function drawStampedeDashEffect(fighter, viewX, jumpHeight) {
 
   ctx.globalAlpha = Math.min(1, trailAlpha + 0.25);
   ctx.fillStyle = "#2767ff";
-  ctx.fillRect(start + (end - start) * 0.42, -78, 6, 9);
+  ctx.fillRect(start + (end - start) * 0.42, dashTop + dashHeight * 0.62, 6, 9);
   ctx.fillStyle = "#ff1f2f";
-  ctx.fillRect(start + (end - start) * 0.56, -82, 7, 8);
+  ctx.fillRect(start + (end - start) * 0.56, dashTop + dashHeight * 0.58, 7, 8);
   ctx.restore();
 }
 
@@ -6423,6 +6874,11 @@ function getShowdownSprite(piece, frame, fighter = null) {
   const blackRookSprite = getBlackRookShowdownSprite(piece, frame, fighter);
   if (blackRookSprite) {
     return blackRookSprite;
+  }
+
+  const blackKnightSprite = getBlackKnightShowdownSprite(piece, frame, fighter);
+  if (blackKnightSprite) {
+    return blackKnightSprite;
   }
 
   const key = `${piece.team}-${piece.type}-${frame}`;
