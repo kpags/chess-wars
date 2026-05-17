@@ -28,6 +28,7 @@ const els = {
   aiDifficultyHard: document.querySelector("#ai-difficulty-hard"),
   newGame: document.querySelector("#new-game"),
   musicToggle: document.querySelector("#music-toggle"),
+  soundToggle: document.querySelector("#sound-toggle"),
   createRoom: document.querySelector("#create-room"),
   joinRoom: document.querySelector("#join-room"),
   roomCode: document.querySelector("#room-code"),
@@ -281,6 +282,9 @@ const pawnSpriteSheets = new Map();
 const pawnSpriteFrameCache = new Map();
 const pawnGifFrames = new Map();
 const pawnGifRenderCache = new Map();
+const imageVisibleBoundsCache = new WeakMap();
+const showdownModelSourceCache = new WeakMap();
+const showdownContactShadowCache = new WeakMap();
 const blackRookAnimationFrames = new Map();
 const blackRookRenderCache = new Map();
 
@@ -561,6 +565,9 @@ const showdownMusic = {
   trackIndex: -1,
   ready: false
 };
+const pieceSounds = {
+  muted: false
+};
 let pendingConfirmation = null;
 
 function boot() {
@@ -570,6 +577,7 @@ function boot() {
   bindEvents();
   setupBackgroundMusic();
   setupShowdownMusic();
+  syncAudioToggles();
   syncResponsiveMode();
   syncOnlineHud();
   joinRoomFromUrl();
@@ -634,6 +642,7 @@ function bindEvents() {
     resetGame();
   });
   els.musicToggle.addEventListener("click", toggleBackgroundMusicMute);
+  els.soundToggle.addEventListener("click", togglePieceSoundsMute);
   els.createRoom.addEventListener("click", createOnlineRoom);
   els.joinRoom.addEventListener("click", joinTypedRoom);
   els.onlineChatForm.addEventListener("submit", sendOnlineChatMessage);
@@ -697,7 +706,7 @@ function setupBackgroundMusic() {
     window.setTimeout(playNextBackgroundMusicTrack, 300);
   });
   loadBackgroundMusicTrack(0);
-  syncMusicToggle();
+  syncBackgroundMusicToggle();
   requestBackgroundMusicStart();
 }
 
@@ -763,7 +772,7 @@ function toggleBackgroundMusicMute() {
     backgroundMusic.audio.pause();
     showdownMusic.audio.pause();
   }
-  syncMusicToggle();
+  syncBackgroundMusicToggle();
   if (!backgroundMusic.muted) {
     if (state.phase === "showoff") {
       requestShowdownMusicStart();
@@ -778,14 +787,30 @@ function syncMusicMuteState() {
   showdownMusic.audio.muted = backgroundMusic.muted;
 }
 
-function syncMusicToggle() {
+function togglePieceSoundsMute() {
+  pieceSounds.muted = !pieceSounds.muted;
+  syncPieceSoundsToggle();
+}
+
+function syncAudioToggles() {
+  syncBackgroundMusicToggle();
+  syncPieceSoundsToggle();
+}
+
+function syncBackgroundMusicToggle() {
   els.musicToggle.classList.toggle("is-muted", backgroundMusic.muted);
-  els.musicToggle.textContent = backgroundMusic.muted ? "Music Muted" : "Music On";
+  els.musicToggle.textContent = backgroundMusic.muted ? "Background Music Off" : "Background Music On";
   els.musicToggle.setAttribute("aria-pressed", String(backgroundMusic.muted));
 }
 
+function syncPieceSoundsToggle() {
+  els.soundToggle.classList.toggle("is-muted", pieceSounds.muted);
+  els.soundToggle.textContent = pieceSounds.muted ? "Sounds Off" : "Sounds On";
+  els.soundToggle.setAttribute("aria-pressed", String(pieceSounds.muted));
+}
+
 function playRandomAttackSound() {
-  if (!ATTACK_SOUND_TRACKS.length) {
+  if (!ATTACK_SOUND_TRACKS.length || pieceSounds.muted) {
     return;
   }
 
@@ -800,54 +825,31 @@ function playRandomAttackSound() {
 
 function playPawnShowdownSound(team, soundType) {
   const src = PAWN_SHOWDOWN_ATTACK_SOUNDS[team]?.[soundType];
-  if (!src) {
-    return;
-  }
-  const audio = new Audio(src);
-  audio.volume = PAWN_SHOWDOWN_SOUND_VOLUME;
-  audio.muted = backgroundMusic.muted;
-  const playPromise = audio.play();
-  if (playPromise?.catch) {
-    playPromise.catch(() => {});
-  }
+  playPieceSound(src, PAWN_SHOWDOWN_SOUND_VOLUME);
 }
 
 function playPawnVoiceSound(team, soundType) {
   const src = PAWN_VOICE_ATTACK_SOUNDS[team]?.[soundType];
-  if (!src) {
-    return;
-  }
-  const audio = new Audio(src);
-  audio.volume = PAWN_VOICE_SOUND_VOLUME;
-  audio.muted = backgroundMusic.muted;
-  const playPromise = audio.play();
-  if (playPromise?.catch) {
-    playPromise.catch(() => {});
-  }
+  playPieceSound(src, PAWN_VOICE_SOUND_VOLUME);
 }
 
 function playRookShowdownSound(team, soundType) {
   const src = ROOK_SHOWDOWN_ATTACK_SOUNDS[team]?.[soundType];
-  if (!src) {
-    return;
-  }
-  const audio = new Audio(src);
-  audio.volume = PAWN_SHOWDOWN_SOUND_VOLUME;
-  audio.muted = backgroundMusic.muted;
-  const playPromise = audio.play();
-  if (playPromise?.catch) {
-    playPromise.catch(() => {});
-  }
+  playPieceSound(src, PAWN_SHOWDOWN_SOUND_VOLUME);
 }
 
 function playRookVoiceSound(team, soundType) {
   const src = ROOK_VOICE_ATTACK_SOUNDS[team]?.[soundType];
-  if (!src) {
+  playPieceSound(src, PAWN_VOICE_SOUND_VOLUME);
+}
+
+function playPieceSound(src, volume) {
+  if (!src || pieceSounds.muted) {
     return;
   }
+
   const audio = new Audio(src);
-  audio.volume = PAWN_VOICE_SOUND_VOLUME;
-  audio.muted = backgroundMusic.muted;
+  audio.volume = volume;
   const playPromise = audio.play();
   if (playPromise?.catch) {
     playPromise.catch(() => {});
@@ -4834,7 +4836,8 @@ function getBlackRookShowdownSprite(piece, frame, fighter) {
   spriteCtx.imageSmoothingEnabled = false;
 
   const floorY = SHOWDOWN_SPRITE_FLOOR_Y - (config.floorOffset ?? 0);
-  drawImageBottomCentered(spriteCtx, image, SHOWDOWN_SPRITE_WIDTH / 2, floorY, config.draw.width, config.draw.height);
+  const source = getShowdownModelSource(image);
+  drawImageVisibleBottomCentered(spriteCtx, source, SHOWDOWN_SPRITE_WIDTH / 2, floorY, config.draw.width, config.draw.height);
   blackRookRenderCache.set(key, sprite);
   return sprite;
 }
@@ -4988,7 +4991,8 @@ function getPawnShowdownSprite(piece, frame, fighter) {
 
   const maxSize = getPawnShowdownDrawSize(frameInfo.action);
   const floorY = frameInfo.action === "jump" ? SHOWDOWN_SPRITE_FLOOR_Y - 18 : SHOWDOWN_SPRITE_FLOOR_Y;
-  drawImageBottomCentered(spriteCtx, source, PAWN_SPRITE_OUTPUT.width / 2, floorY, maxSize.width, maxSize.height);
+  const modelSource = getShowdownModelSource(source);
+  drawImageVisibleBottomCentered(spriteCtx, modelSource, PAWN_SPRITE_OUTPUT.width / 2, floorY, maxSize.width, maxSize.height);
 
   pawnSpriteFrameCache.set(key, sprite);
   return sprite;
@@ -5022,7 +5026,8 @@ function getPawnGifShowdownSprite(piece, frame, fighter) {
   spriteCtx.imageSmoothingEnabled = false;
 
   const floorY = frameInfo.action === "jump" ? SHOWDOWN_SPRITE_FLOOR_Y - 20 : SHOWDOWN_SPRITE_FLOOR_Y;
-  drawImageBottomCentered(spriteCtx, source, PAWN_SPRITE_OUTPUT.width / 2, floorY, config.draw.width, config.draw.height);
+  const modelSource = getShowdownModelSource(source);
+  drawImageVisibleBottomCentered(spriteCtx, modelSource, PAWN_SPRITE_OUTPUT.width / 2, floorY, config.draw.width, config.draw.height);
 
   pawnGifRenderCache.set(key, sprite);
   return sprite;
@@ -5324,6 +5329,118 @@ function drawImageBottomCentered(target, image, centerX, floorY, maxWidth, maxHe
   }
 
   target.drawImage(image, centerX - width / 2, floorY - height, width, height);
+}
+
+function drawImageVisibleBottomCentered(target, image, centerX, floorY, maxWidth, maxHeight) {
+  const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+  const bounds = getImageVisibleBounds(image);
+  const visibleBottomInset = bounds ? image.height - 1 - bounds.maxY : 0;
+
+  target.drawImage(image, centerX - width / 2, floorY - height + visibleBottomInset * scale, width, height);
+}
+
+function getImageVisibleBounds(image) {
+  if (imageVisibleBoundsCache.has(image)) {
+    return imageVisibleBoundsCache.get(image);
+  }
+
+  const boundsCanvas = document.createElement("canvas");
+  boundsCanvas.width = image.width;
+  boundsCanvas.height = image.height;
+  const boundsCtx = boundsCanvas.getContext("2d");
+  boundsCtx.drawImage(image, 0, 0);
+
+  const data = boundsCtx.getImageData(0, 0, boundsCanvas.width, boundsCanvas.height).data;
+  const bounds = getVisibleBoundsFromImageData(data, boundsCanvas.width, boundsCanvas.height);
+  imageVisibleBoundsCache.set(image, bounds);
+  return bounds;
+}
+
+function getShowdownModelSource(image) {
+  if (showdownModelSourceCache.has(image)) {
+    return showdownModelSourceCache.get(image);
+  }
+
+  const source = document.createElement("canvas");
+  source.width = image.width;
+  source.height = image.height;
+  const sourceCtx = source.getContext("2d", { willReadFrequently: true });
+  sourceCtx.imageSmoothingEnabled = false;
+  sourceCtx.drawImage(image, 0, 0);
+  removeShowdownModelFloorShadow(sourceCtx, source.width, source.height);
+  showdownModelSourceCache.set(image, source);
+  return source;
+}
+
+function removeShowdownModelFloorShadow(sourceCtx, width, height) {
+  const imageData = sourceCtx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const bounds = getVisibleBoundsFromImageData(data, width, height);
+
+  if (!bounds) {
+    return;
+  }
+
+  const contentHeight = bounds.maxY - bounds.minY + 1;
+  const shadowBandStart = bounds.maxY - Math.max(5, Math.round(contentHeight * 0.16));
+  let removed = false;
+
+  for (let y = Math.max(bounds.minY, shadowBandStart); y <= bounds.maxY; y += 1) {
+    for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
+      const index = (y * width + x) * 4;
+      if (!isShowdownFloorShadowPixel(data, index)) {
+        continue;
+      }
+
+      data[index + 3] = 0;
+      removed = true;
+    }
+  }
+
+  if (removed) {
+    sourceCtx.putImageData(imageData, 0, 0);
+  }
+}
+
+function isShowdownFloorShadowPixel(data, index) {
+  const alpha = data[index + 3];
+  if (alpha <= 24) {
+    return false;
+  }
+
+  const r = data[index];
+  const g = data[index + 1];
+  const b = data[index + 2];
+  const brightest = Math.max(r, g, b);
+  const darkest = Math.min(r, g, b);
+  const brightness = (r + g + b) / 3;
+  const chroma = brightest - darkest;
+
+  return chroma <= 30 && brightness >= 78 && brightness <= 196;
+}
+
+function getVisibleBoundsFromImageData(data, width, height, alphaThreshold = 24) {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (data[(y * width + x) * 4 + 3] <= alphaThreshold) {
+        continue;
+      }
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  return maxX < 0 ? null : { minX, minY, maxX, maxY };
 }
 
 function drawPawnBoardTopView(colors) {
@@ -5995,12 +6112,8 @@ function drawFighter(fighter) {
 
   ctx.scale(viewFacing, 1);
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
-  ctx.beginPath();
-  ctx.ellipse(0, 34, Math.max(48, 96 - jumpHeight * 0.2), Math.max(8, 18 - jumpHeight * 0.04), 0, 0, Math.PI * 2);
-  ctx.fill();
-
   ctx.translate(0, -jumpHeight);
+  drawFighterContactShadow(sprite, spriteX, spriteY);
 
   if (fighter.attackTimer > 0) {
     drawAttackTrail(fighter);
@@ -6023,6 +6136,57 @@ function drawFighter(fighter) {
   drawStunEffect(fighter);
   drawPassiveIndicator(fighter);
   ctx.restore();
+}
+
+function drawFighterContactShadow(sprite, spriteX, spriteY) {
+  const metrics = getShowdownContactShadowMetrics(sprite);
+  if (!metrics) {
+    return;
+  }
+
+  const scaleX = SHOWDOWN_DRAW_WIDTH / sprite.width;
+  const scaleY = SHOWDOWN_DRAW_HEIGHT / sprite.height;
+  const x = spriteX + metrics.centerX * scaleX;
+  const y = spriteY + metrics.bottomY * scaleY + 3;
+  const width = metrics.modelWidth * scaleX;
+  const height = clamp(width * 0.045, 3, 8);
+
+  ctx.save();
+  ctx.fillStyle = "rgba(20, 14, 10, 0.26)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, width / 2, height, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function getShowdownContactShadowMetrics(image) {
+  if (showdownContactShadowCache.has(image)) {
+    return showdownContactShadowCache.get(image);
+  }
+
+  const metricsCanvas = document.createElement("canvas");
+  metricsCanvas.width = image.width;
+  metricsCanvas.height = image.height;
+  const metricsCtx = metricsCanvas.getContext("2d", { willReadFrequently: true });
+  metricsCtx.drawImage(image, 0, 0);
+
+  const data = metricsCtx.getImageData(0, 0, metricsCanvas.width, metricsCanvas.height).data;
+  const modelBounds = getVisibleBoundsFromImageData(data, metricsCanvas.width, metricsCanvas.height, 64);
+  if (!modelBounds) {
+    showdownContactShadowCache.set(image, null);
+    return null;
+  }
+
+  const modelWidth = modelBounds.maxX - modelBounds.minX + 1;
+  const centerX = (modelBounds.minX + modelBounds.maxX) / 2;
+  const metrics = {
+    centerX,
+    bottomY: modelBounds.maxY,
+    modelWidth
+  };
+
+  showdownContactShadowCache.set(image, metrics);
+  return metrics;
 }
 
 function drawCriticalModelTint(sprite, spriteX, spriteY, alpha) {
@@ -6297,11 +6461,6 @@ function drawShowdownSprite(spriteCtx, piece, frame) {
   spriteCtx.fillStyle = aura;
   spriteCtx.beginPath();
   spriteCtx.arc(0, -70, 122, 0, Math.PI * 2);
-  spriteCtx.fill();
-
-  spriteCtx.beginPath();
-  spriteCtx.fillStyle = "rgba(0, 0, 0, 0.2)";
-  spriteCtx.ellipse(0, 49, 58, 13, 0, 0, Math.PI * 2);
   spriteCtx.fill();
 
   const limbStroke = blocking ? pawnPalette?.guard ?? "#111111" : stickColor;

@@ -224,9 +224,14 @@ button {
   background: linear-gradient(135deg, var(--crimson), #a93c35);
 }
 
+.audio-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .audio-toggle {
   width: 100%;
-  margin-top: 8px;
   font-weight: 800;
   background: rgba(255, 209, 102, 0.16);
 }

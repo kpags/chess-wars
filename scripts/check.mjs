@@ -286,7 +286,8 @@ assert.match(html, /id="ai-side-picker"/, "Vs AI mode should include a side pick
 assert.match(html, /id="ai-side-white"[\s\S]*id="ai-side-black"/, "AI side picker should let the user choose White or Black");
 assert.match(html, /id="ai-difficulty-picker"/, "Vs AI mode should include a difficulty picker");
 assert.match(html, /id="ai-difficulty-beginner"[\s\S]*id="ai-difficulty-intermediate"[\s\S]*id="ai-difficulty-hard"/, "AI difficulty picker should include Beginner, Intermediate, and Hard");
-assert.match(html, /id="music-toggle"/, "HUD should include a background music mute button");
+assert.match(html, /id="music-toggle"[\s\S]*Background Music On/, "HUD should include a background music mute button");
+assert.match(html, /id="sound-toggle"[\s\S]*Sounds On/, "HUD should include a separate piece-sounds mute button");
 for (const track of ["bg_1.mp3", "bg_2.mp3", "bg_3.mp3", "bg_4.mp3", "bg_5.mp3", "bg_6.mp3"]) {
   assert.ok(existsSync(new URL(`../assets/sounds/background/${track}`, import.meta.url)), `background music asset should exist: ${track}`);
 }
@@ -329,10 +330,13 @@ assert.match(main, /function setupBackgroundMusic/, "background music should ini
 assert.match(main, /function setupShowdownMusic/, "Showdown music should initialize at boot");
 assert.match(main, /backgroundMusic\.audio\.autoplay = true/, "background music should attempt to start as the page opens");
 assert.match(main, /function toggleBackgroundMusicMute/, "background music should have a mute toggle");
+assert.match(main, /function togglePieceSoundsMute/, "piece sounds should have a separate mute toggle");
 assert.match(main, /function syncMusicMuteState[\s\S]*showdownMusic\.audio\.muted = backgroundMusic\.muted/, "music mute should also apply to Showdown music");
 assert.match(main, /addEventListener\("ended", playNextBackgroundMusicTrack\)/, "background music should advance when each track ends");
 assert.match(main, /\(backgroundMusic\.trackIndex \+ 1\) % BACKGROUND_MUSIC_TRACKS\.length/, "background music should loop the queue forever");
 assert.match(main, /function playRandomAttackSound/, "board attacks should play a random attack sound");
+assert.match(main, /function playRandomAttackSound[\s\S]*pieceSounds\.muted/, "piece-sounds mute should silence board attack sounds");
+assert.match(main, /function playPieceSound[\s\S]*pieceSounds\.muted/, "piece-sounds mute should silence Showdown and voice sounds");
 assert.match(main, /function playRandomAttackSound[\s\S]*pauseBackgroundMusicForAttack\(\)/, "board attacks should pause background music before playing the attack cue");
 assert.match(main, /function beginShowdownMovePreview[\s\S]*playRandomAttackSound\(\)/, "attack sound should play before Showdown starts");
 assert.match(main, /function startShowoff[\s\S]*state\.phase = "showoff";[\s\S]*startShowdownMusic\(\)/, "Showdown should start random looping Showdown music");
@@ -491,7 +495,10 @@ assert.match(main, /SHOWDOWN_MANA_FULL_GLOW/, "full mana bars should glow light 
 assert.match(main, /showdownHudHealthTrails/, "Showdown health bars should track delayed damage animation state");
 assert.match(main, /SHOWDOWN_HEALTH_TRAIL_HOLD_SECONDS/, "Showdown health damage trail should wait before draining");
 assert.match(main, /SHOWDOWN_HEALTH_TRAIL_DRAIN_SPEED/, "Showdown health damage trail should animate down after the hold");
-assert.match(main, /ctx\.ellipse\(0, 34, Math\.max\(48, 96 - jumpHeight \* 0\.2\)/, "Showdown fighter shadows should sit closer to the model");
+assert.doesNotMatch(main, /ctx\.ellipse\(0, 34, Math\.max\(48, 96 - jumpHeight \* 0\.2\)/, "Showdown fighters should not draw circular model shadows");
+assert.match(main, /drawImageVisibleBottomCentered/, "pawn Showdown sprites should align to their visible foot baseline");
+assert.match(main, /drawFighterContactShadow/, "Showdown fighters should draw a minimal contact shadow from the visible sprite bottom");
+assert.match(main, /const width = metrics\.modelWidth \* scaleX;/, "Showdown contact shadows should match the model width");
 assert.match(main, /drawDistantPalace/, "Showdown should use a distant palace battlefield backdrop");
 assert.match(main, /drawSideRuin/, "Showdown battlefield should include side ruins like the reference arena");
 assert.match(main, /drawArenaGroundPatch/, "Showdown battlefield should paint cracked grass and dirt ground patches");
@@ -625,6 +632,7 @@ assert.match(styles, /\.confirm-dialog h2\s*\{[\s\S]*color: #ffe6ad/, "confirmat
 assert.match(styles, /#confirm-yes\s*\{[\s\S]*background: linear-gradient\(180deg, #ffd166, #c6882d\)/, "confirmation OK action should use the game gold theme");
 assert.match(styles, /\.segmented-three\s*\{[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/, "AI difficulty picker should lay out three choices cleanly");
 assert.match(styles, /\.ai-difficulty-picker\s*\{/, "AI difficulty picker should share the game menu styling");
+assert.match(styles, /\.audio-controls\s*\{[\s\S]*gap: 8px/, "audio toggles should be grouped with compact spacing");
 assert.match(styles, /\.audio-toggle\s*\{[\s\S]*background: rgba\(255, 209, 102, 0\.16\)/, "music mute button should use the game gold theme");
 assert.match(styles, /\.audio-toggle\.is-muted\s*\{/, "music mute button should show muted state");
 

@@ -1,0 +1,6 @@
+
+> chess-wars@0.1.0 dev
+> node server.mjs
+
+Chess Wars running at http://127.0.0.1:4174
+LAN link: http://192.168.254.196:4174
